@@ -1,0 +1,60 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&display=swap');
+
+:root {
+  --gov-blue: #0056b3;       /* Official Blue */
+  --gov-dark: #1a202c;
+  --gov-light: #f8f9fa;
+  --gov-accent: #eab308;     /* Gold Accent */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: 'Noto Sans', sans-serif;
+  background-color: #f3f4f6;
+  margin: 0;
+  color: #333;
+}
+
+/* CARDS */
+.gov-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  transition: transform 0.2s;
+  border: 1px solid #e5e7eb;
+  overflow: hidden;
+}
+.gov-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+
+/* BUTTONS */
+.btn-gov {
+  background: var(--gov-blue);
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-gov:hover { background: #004494; }
+
+/* UTILITIES */
+.fade-in { animation: fadeIn 0.5s ease-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+/* SMOOTH PAGE TRANSITION */
+.page-animate {
+  animation: slideUpFade 0.5s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+  0% {
+    opacity: 0;
+    transform: translateY(20px); /* Starts slightly lower */
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);    /* Slides up to normal position */
+  }
+}
