@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import GovHeader from './components/GovHeader';
 import GovFooter from './components/GovFooter';
 
+
 // Import all the pages we created
 import Home from './pages/Home';
 import Login from './pages/Login';
@@ -9,6 +10,7 @@ import Signup from './pages/Signup';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -29,6 +31,7 @@ function App() {
             {/* 2. Protected Dashboards */}
             <Route path="/user-dashboard" element={<UserDashboard />} />
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/profile" element={<Profile />} />
             <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
           </Routes>
         </div>

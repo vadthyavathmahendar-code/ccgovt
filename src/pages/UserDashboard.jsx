@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from '../components/ProfileModal'; // <--- 1. IMPORT MODAL
 
 const UserDashboard = () => {
   const [formData, setFormData] = useState({ title: '', desc: '', location: '', category: 'Roads' });
   const [complaints, setComplaints] = useState([]);
   const [image, setImage] = useState(null);
   const [user, setUser] = useState(null);
+  
+  const [showProfile, setShowProfile] = useState(false); // <--- 2. MODAL STATE
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -47,13 +51,13 @@ const UserDashboard = () => {
       location: formData.location, image_url: imageUrl, status: 'Pending'
     }]);
 
-    alert("Grievance Submitted Successfully!");
+    alert("Report Submitted Successfully!");
     setFormData({ title: '', desc: '', location: '', category: 'Roads' });
-    setImage(null); // Clear image input internally (optional improvement)
+    setImage(null);
+    // Reset file input manually if needed, usually requires a ref or key reset
     fetchHistory(user.id);
   };
 
-  // Logout Function
   const handleLogout = async () => {
     await supabase.auth.signOut();
     navigate('/');
@@ -61,19 +65,34 @@ const UserDashboard = () => {
 
   return (
     <div className="container fade-in">
-      {/* HEADER WITH LOGOUT BUTTON */}
+      
+      {/* 3. RENDER MODAL IF STATE IS TRUE */}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+
+      {/* HEADER START */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', borderBottom: '2px solid #0056b3', paddingBottom: '10px' }}>
         <div>
           <h2 style={{ margin: 0, color: '#0056b3' }}>Citizen Dashboard</h2>
           <p style={{ margin: 0, color: '#666' }}>Welcome, {user?.email}</p>
         </div>
-        <button onClick={handleLogout} className="btn-gov" style={{ background: '#dc3545' }}>Logout</button>
+        
+        <div style={{ display: 'flex', gap: '10px' }}>
+          {/* 4. UPDATE BUTTON TO OPEN MODAL */}
+          <button onClick={() => setShowProfile(true)} className="btn-gov" style={{ background: '#0056b3' }}>
+            👤 My Profile
+          </button>
+          
+          <button onClick={handleLogout} className="btn-gov" style={{ background: '#dc3545' }}>
+            Logout
+          </button>
+        </div>
       </div>
+      {/* HEADER END */}
       
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginTop: '20px' }}>
         {/* FORM */}
         <div className="gov-card" style={{ padding: '20px' }}>
-          <h3 style={{ margin: '0 0 20px', background: '#f1f1f1', padding: '10px', fontSize: '1.1rem' }}>📝 Lodge a New Complaint</h3>
+          <h3 style={{ margin: '0 0 20px', background: '#f1f1f1', padding: '10px', fontSize: '1.1rem' }}>📝 New Report</h3>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <input placeholder="Issue Title" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={{ padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
             
@@ -96,7 +115,7 @@ const UserDashboard = () => {
 
         {/* HISTORY */}
         <div>
-          <h3 style={{ margin: '0 0 20px', color: '#333' }}>📜 Your Complaint History</h3>
+          <h3 style={{ margin: '0 0 20px', color: '#333' }}>📜 Your Report History</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {complaints.length === 0 ? <p style={{ color: '#666' }}>No complaints filed yet.</p> : complaints.map(c => (
               <div key={c.id} className="gov-card" style={{ padding: '15px', borderLeft: c.status === 'Resolved' ? '5px solid green' : '5px solid orange' }}>
