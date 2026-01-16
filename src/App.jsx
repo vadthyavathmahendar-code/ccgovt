@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 
 // Import Headers
-import Navbar from './components/Navbar';       // <--- NEW Smart Navbar
+     // <--- NEW Smart Navbar
 import GovHeader from './components/GovHeader'; // <--- OLD Header for Home/Login
 import GovFooter from './components/GovFooter';
 
