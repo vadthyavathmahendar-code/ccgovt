@@ -44,8 +44,14 @@ const GovHeader = () => {
             active={isActive('/')} 
           />
           
-          <NavBtn label="About Us" />
-          <NavBtn label="Services" />
+          <NavBtn label="About Us" 
+          onClick={() => navigate('/about')} 
+          active={isActive('/about')}/>
+          
+          <NavBtn label="Services" 
+          onClick={() => navigate('/services')}
+          active={isActive('/services')}
+          />
           
           <NavBtn 
             label="Report Issue" 
@@ -53,7 +59,9 @@ const GovHeader = () => {
             active={isActive('/login') || isActive('/signup')} // Highlight for Login OR Signup
           />
           
-          <NavBtn label="Contact Us" />
+          <NavBtn label="Contact Us" 
+          onClick={() => navigate('/contact')} 
+          active={isActive('/contact')}/>
         </div>
       </nav>
     </div>

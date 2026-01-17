@@ -9,6 +9,9 @@ import Signup from './pages/Signup';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+import About from './pages/About';
+import Services from './pages/Services';
+import ContactUs from './pages/ContactUs';
 
 function App() {
   return (
@@ -25,6 +28,10 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/contact" element={<ContactUs />} />
+
             
             {/* 2. Protected Dashboards */}
             <Route path="/user-dashboard" element={<UserDashboard />} />
