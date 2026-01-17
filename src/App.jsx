@@ -1,64 +1,54 @@
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Import Headers
-     // <--- NEW Smart Navbar
-import GovHeader from './components/GovHeader'; // <--- OLD Header for Home/Login
+// Import Layout Components
+import GovHeader from './components/GovHeader';
 import GovFooter from './components/GovFooter';
 
 // Import Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import About from './pages/About';
+import ContactUs from './pages/ContactUs';
+import Services from './pages/Services';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
-import Profile from './pages/Profile'; // Only if you use it separately, else remove
-
-// 1. Create a Layout Component
-// This component checks the URL and decides which Header to show
-const Layout = ({ children }) => {
-  const location = useLocation();
-  
-  // List of pages that use the Smart Navbar
-  const dashboardPaths = ['/user-dashboard', '/admin-dashboard', '/employee-dashboard'];
-  
-  // Check if current page is in that list
-  const isDashboard = dashboardPaths.includes(location.pathname);
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      
-      {/* 2. Conditional Logic: Show Navbar OR GovHeader */}
-       <GovHeader />
-      
-      <div style={{ flex: 1 }}>
-        {children}
-      </div>
-
-      <GovFooter />
-    </div>
-  );
-};
+import Profile from './pages/Profile'; 
 
 function App() {
   return (
     <Router>
-      <Layout>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          
-          {/* Protected Routes */}
-          <Route path="/user-dashboard" element={<UserDashboard />} />
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-          <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
-          
-          {/* Keep this if you haven't fully removed the page route yet */}
-          <Route path="/profile" element={<Profile />} />
-        </Routes>
-      </Layout>
+      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+        
+        {/* 1. HEADER: Always the Official Government Header */}
+        <GovHeader />
+        
+        {/* 2. MAIN CONTENT */}
+        <div style={{ flex: 1 }}>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/services" element={<Services />} />
+            <Route path="/contact-us" element={<ContactUs />} />
+            
+            {/* Protected Routes */}
+            <Route path="/user-dashboard" element={<UserDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
+            <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
+            
+            {/* Profile Page */}
+            <Route path="/profile" element={<Profile />} />
+          </Routes>
+        </div>
+
+        {/* 3. FOOTER */}
+        <GovFooter />
+        
+      </div>
     </Router>
   );
 }

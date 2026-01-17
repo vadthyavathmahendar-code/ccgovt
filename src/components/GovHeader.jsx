@@ -2,9 +2,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 
 const GovHeader = () => {
   const navigate = useNavigate();
-  const location = useLocation(); // <--- 1. Hooks into the URL to see where we are
+  const location = useLocation();
 
-  // Helper function to check if a button should be active
   const isActive = (path) => location.pathname === path;
 
   return (
@@ -21,13 +20,14 @@ const GovHeader = () => {
       {/* Main Logo Area */}
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <img src="/images/ts_logo.png" alt="TS Govt" style={{ height: '70px' }} />
+          {/* Ensure this image exists in public/images/ folder */}
+          <div style={{ fontSize: '3rem' }}>🏛️</div> 
           <div>
             <h1 style={{ margin: 0, color: '#1a202c', fontSize: '2rem', fontWeight: '700' , fontFamily : 'serif'}}>Government of Telangana</h1>
             <h3 style={{ margin: 0, color: '#0056b3', fontSize: '1.5rem' }}>తెలంగాణ ప్రభుత్వం</h3>
           </div>
         </div>
-        <div style={{ textAlign: 'right' }}>
+        <div style={{ textAlign: 'right', display: window.innerWidth < 600 ? 'none' : 'block' }}>
           <h1 style={{ margin: 0, fontSize: '2rem', color: '#0056b3', fontWeight: '800' }}>Civic Connect</h1>
           <p style={{ margin: 0, fontSize: '1.5rem', color: 'black', fontWeight: '600' }}>పౌర సేవలు</p>
         </div>
@@ -35,45 +35,59 @@ const GovHeader = () => {
 
       {/* Nav Bar */}
       <nav style={{ background: '#0056b3', padding: '0 20px' }}>
-        <div className="container" style={{ padding: 0, display: 'flex', gap: '5px' }}>
+        <div className="container" style={{ padding: 0, display: 'flex', gap: '5px', overflowX: 'auto' }}>
           
-          {/* 2. DYNAMIC BUTTONS: Check "isActive" for every button */}
           <NavBtn 
             label="Home" 
             onClick={() => navigate('/')} 
             active={isActive('/')} 
           />
           
-          <NavBtn label="About Us" />
-          <NavBtn label="Services" />
+          <NavBtn 
+            label="About Us" 
+            onClick={() => navigate('/about')} 
+            active={isActive('/about')}
+          />
+          
+          <NavBtn 
+            label="Services" 
+            onClick={() => navigate('/services')}
+            active={isActive('/services')}
+          />
           
           <NavBtn 
             label="Report Issue" 
             onClick={() => navigate('/login')} 
-            active={isActive('/login') || isActive('/signup')} // Highlight for Login OR Signup
+            active={isActive('/login') || isActive('/signup')} 
           />
           
-          <NavBtn label="Contact Us" />
+          {/* ✅ FIXED: Now points to '/contact-us' to match your App.jsx */}
+          <NavBtn 
+            label="Contact Us" 
+            onClick={() => navigate('/contact-us')} 
+            active={isActive('/contact-us')}
+          />
         </div>
       </nav>
     </div>
   );
 };
 
-// 3. UPDATED BUTTON COMPONENT WITH TRANSITION
+// Button Component
 const NavBtn = ({ label, onClick, active }) => (
   <button 
     onClick={onClick} 
     style={{ 
-      background: active ? '#003d80' : 'transparent', // Change color based on active state
+      background: active ? '#003d80' : 'transparent', 
       color: 'white', 
       border: 'none', 
       padding: '12px 20px', 
       fontSize: '0.95rem', 
       cursor: 'pointer', 
       fontWeight: '500',
-      transition: 'background 0.3s ease-in-out', // <--- THE ANIMATION MAGIC
-      borderBottom: active ? '4px solid #eab308' : '4px solid transparent' // Adds a nice yellow bar under active tab
+      transition: 'background 0.3s ease-in-out',
+      borderBottom: active ? '4px solid #eab308' : '4px solid transparent',
+      whiteSpace: 'nowrap'
     }}
     onMouseOver={(e) => !active && (e.target.style.background = '#004494')}
     onMouseOut={(e) => !active && (e.target.style.background = 'transparent')}
