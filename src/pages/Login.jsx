@@ -137,34 +137,7 @@ const Login = () => {
             <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
           </div>
 
-          {/* Google Button (Bottom) */}
-          <button 
-            onClick={handleGoogleLogin}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: 'white',
-              color: '#333',
-              border: '1px solid #ccc',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              transition: 'background 0.2s'
-            }}
-            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
-            onMouseOut={(e) => e.target.style.background = 'white'}
-          >
-            <img 
-              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
-              alt="G" 
-              style={{ width: '20px', height: '20px' }} 
-            />
-            Continue with Google
-          </button>
+         
         </div>
 
         {/* Footer */}
