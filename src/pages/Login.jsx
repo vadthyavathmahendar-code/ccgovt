@@ -6,83 +6,138 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true); // Default to true to prevent form flash
   const navigate = useNavigate();
 
-  // 1. Check if already logged in when page loads
+  // 1. The Traffic Controller
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // If logged in, find role and redirect immediately
+    // Function to check role and redirect
+    const checkRoleAndRedirect = async (userId) => {
+      try {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', userId)
           .single();
         
-        redirectUser(profile?.role);
+        const role = profile?.role;
+        
+        if (role === 'admin') navigate('/admin-dashboard');
+        else if (role === 'employee') navigate('/employee-dashboard');
+        else navigate('/user-dashboard'); // Default
+      } catch (error) {
+        console.error("Error checking role:", error);
+        navigate('/user-dashboard');
       }
     };
-    checkSession();
-  }, [navigate]);
 
-  // Helper function to handle redirects
-  const redirectUser = (role) => {
-    if (role === 'admin') navigate('/admin-dashboard');
-    else if (role === 'employee') navigate('/employee-dashboard');
-    else navigate('/user-dashboard');
-  };
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // User is logged in! Check role and redirect.
+        await checkRoleAndRedirect(session.user.id);
+      } else {
+        // No user found, show the login form
+        setCheckingSession(false);
+      }
+    };
+    
+    // Run the initial check
+    checkSession();
+
+    // Listen for auth changes (like after Google redirect finishes)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session) {
+        setCheckingSession(true); // Show loading while we redirect
+        await checkRoleAndRedirect(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     
-    const { data: { user }, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
       alert(error.message);
       setLoading(false);
-    } else {
-      // Fetch role after successful login
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-        
-      redirectUser(profile?.role);
-    }
+    } 
+    // If success, the onAuthStateChange listener above will handle the redirect
   };
 
-  // ✅ NEW: Google Login Function
   const handleGoogleLogin = async () => {
+    // 🚨 CRITICAL FIX: Force redirect to the CURRENT website origin
+    const currentURL = window.location.origin; 
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        // Note: Google login will redirect to 'user-dashboard' by default based on Supabase settings.
-        // If you need role-based redirect for Google too, we handle that in the useEffect above 
-        // because Google redirects back to this app, triggering a page reload/session check.
-        redirectTo: window.location.origin + '/user-dashboard'
+        // Redirect back to /login so the 'useEffect' above can check the role
+        redirectTo: `${currentURL}/login`
       }
     });
     if (error) alert(error.message);
   };
 
+  // ✅ LOADING SCREEN (Prevents seeing the form if you are already logged in)
+  if (checkingSession) {
+    return (
+      <div className="fade-in" style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column' }}>
+        <div style={{ 
+          border: '4px solid #f3f3f3', 
+          borderTop: '4px solid #0056b3', 
+          borderRadius: '50%', 
+          width: '40px', 
+          height: '40px', 
+          animation: 'spin 1s linear infinite', 
+          marginBottom: '15px' 
+        }}></div>
+        <h3 style={{ color: '#0056b3' }}>Verifying Credentials...</h3>
+        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
   return (
     <div className="fade-in" style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center' }}>
       <div className="gov-card" style={{ width: '100%', maxWidth: '450px', padding: '0', borderTop: '4px solid #0056b3' }}>
         
-        {/* Header Section */}
+        {/* Header */}
         <div style={{ padding: '20px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef', textAlign: 'center' }}>
-          {/* Ensure this image path is correct, or remove if you don't have the logo yet */}
           <img src="/images/ts_logo.png" alt="Logo" style={{ height: '50px', marginBottom: '10px' }} />
           <h2 style={{ margin: 0, color: '#0056b3' }}>Sign In</h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}>To Civic Connect</p>
+          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}> To Civic Connect </p>
         </div>
         
-        <div style={{ padding: '30px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ padding: '30px' }}>
           
-          {/* 🔵 Google Button */}
+          {/* Login Form */}
+          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Email ID</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+            </div>
+            <div>
+              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Password</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+            </div>
+            <button type="submit" className="btn-gov" disabled={loading}>
+              {loading ? 'Authenticating...' : 'Login'}
+            </button>
+          </form>
+
+          {/* Divider */}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
+            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+            <span style={{ padding: '0 10px', color: '#888', fontSize: '0.85rem' }}>OR</span>
+            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+          </div>
+
+          {/* Google Button (Bottom) */}
           <button 
             onClick={handleGoogleLogin}
             style={{
@@ -97,30 +152,22 @@ const Login = () => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px'
+              gap: '10px',
+              transition: 'background 0.2s'
             }}
+            onMouseOver={(e) => e.target.style.background = '#f8f9fa'}
+            onMouseOut={(e) => e.target.style.background = 'white'}
           >
-            <img src="https://upload.wikimedia.org/wikipedia/commons/5/53/Google_%22G%22_Logo.svg" alt="G" style={{ width: '20px' }} />
+            <img 
+              src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" 
+              alt="G" 
+              style={{ width: '20px', height: '20px' }} 
+            />
             Continue with Google
           </button>
-
-          <div style={{ textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>— OR —</div>
-
-          {/* Form Section */}
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Email ID</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            </div>
-            <button type="submit" className="btn-gov" disabled={loading}>{loading ? 'Authenticating...' : 'Login'}</button>
-          </form>
         </div>
 
-        {/* Footer Section */}
+        {/* Footer */}
         <div style={{ padding: '15px', background: '#f8f9fa', borderTop: '1px solid #e9ecef', textAlign: 'center', fontSize: '0.9rem' }}>
           Don't have an account? <Link to="/signup" style={{ color: '#0056b3', fontWeight: 'bold' }}>Create account here</Link>
         </div>
