@@ -21,7 +21,7 @@ const GovHeader = () => {
       <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '15px 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           {/* Ensure this image exists in public/images/ folder */}
-          <div style={{ fontSize: '3rem' }}>🏛️</div> 
+          <div style={{ fontSize: '3rem' }}><img src="/images/ts_logo.png" alt="Logo" style={{ width: '50px', height: '50px' }} /></div> 
           <div>
             <h1 style={{ margin: 0, color: '#1a202c', fontSize: '2rem', fontWeight: '700' , fontFamily : 'serif'}}>Government of Telangana</h1>
             <h3 style={{ margin: 0, color: '#0056b3', fontSize: '1.5rem' }}>తెలంగాణ ప్రభుత్వం</h3>
