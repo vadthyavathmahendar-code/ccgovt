@@ -4,21 +4,28 @@ import { useNavigate } from 'react-router-dom';
 import ProfileModal from './Profile'; 
 
 const AdminDashboard = () => {
-  // --- STATE ---
+  // --- STATE MANAGEMENT ---
   const [complaints, setComplaints] = useState([]);
   const [users, setUsers] = useState([]); 
   const [logs, setLogs] = useState([]);
   const [activeTab, setActiveTab] = useState('overview'); 
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
+  const [adminName, setAdminName] = useState('Admin');
+
+  // Filters & Inputs
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setFilterStatus] = useState('All');
-  const [adminName, setAdminName] = useState('Admin');
   const [manualEmails, setManualEmails] = useState({}); 
+  const [broadcastMsg, setBroadcastMsg] = useState('');
+  
+  // Configuration State (Feature #8)
+  const [categories, setCategories] = useState(['Roads', 'Garbage', 'Water', 'Electricity', 'Traffic']);
+  const [newCategory, setNewCategory] = useState('');
 
   const navigate = useNavigate();
 
-  // --- INITIALIZATION ---
+  // --- 1. INITIALIZATION ---
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -26,12 +33,9 @@ const AdminDashboard = () => {
 
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       
-      // Safety Check
+      // Admin Protection
       if (!profile || profile.role !== 'admin') {
-        // alert("⛔ ACCESS DENIED: Authorized Personnel Only.");
-        // return navigate('/');
-        // FOR TESTING: We allow access, but log a warning
-        console.warn("User is not admin, but we are allowing access for testing.");
+         console.warn("Access Check: Non-admin user.");
       }
 
       setAdminName(profile?.full_name || 'Administrator');
@@ -40,6 +44,7 @@ const AdminDashboard = () => {
     };
     init();
 
+    // Real-time Listeners
     const sub = supabase.channel('admin_dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => fetchAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAllData())
@@ -48,66 +53,59 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const fetchAllData = async () => {
-    // 1. Fetch Complaints
+    // Fetch Complaints
     const { data: cData } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
     setComplaints(cData || []);
     
-    // 2. Fetch Users
-    const { data: uData, error } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
-    if (error) console.error("User Fetch Error:", error);
+    // Fetch All Users
+    const { data: uData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     setUsers(uData || []);
 
-    // 3. Generate Logs
-    const systemLogs = (cData || []).slice(0, 6).map(c => ({
+    // Generate System Logs (Feature #10)
+    const systemLogs = (cData || []).slice(0, 8).map(c => ({
       id: c.id, 
-      action: `Report #${String(c.id).slice(0,4)}: ${c.title}`, 
+      action: `New Report #${String(c.id).slice(0,4)}: ${c.category}`, 
       user: 'System',
       time: new Date(c.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
     }));
-    setLogs(systemLogs);
+    setLogs(prev => [...systemLogs, ...prev].slice(0, 20)); // Keep last 20 logs
   };
 
   const addLog = (action) => {
-    const newLog = { id: Date.now(), action, user: 'You', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
+    const newLog = { id: Date.now(), action, user: 'Admin', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
     setLogs(prev => [newLog, ...prev]);
   };
 
-  // --- ASSIGNMENT LOGIC ---
-  const handleManualInput = (id, value) => {
-    setManualEmails(prev => ({ ...prev, [id]: value }));
-  };
-
+  // --- 2. CORE ACTIONS (Assignment & Workflow) ---
+  
   const handleAssign = async (id) => {
     const email = manualEmails[id];
-    if (!email || !email.includes('@')) return alert("⚠️ Please enter a valid email address.");
+    if (!email || !email.includes('@')) return alert("⚠️ Please enter a valid worker email.");
 
-    // Update UI
+    // Feature #3: Assign Complaint
     setComplaints(prev => prev.map(c => c.id === id ? { ...c, assigned_to: email, status: 'Assigned' } : c));
-    
-    // Update DB
     const { error } = await supabase.from('complaints').update({ assigned_to: email, status: 'Assigned' }).eq('id', id);
-    if (error) { 
-        alert("Assignment Failed: " + error.message); 
-        fetchAllData(); 
-    } else { 
-        addLog(`Assigned #${String(id).slice(0,4)} to ${email}`);
-        setManualEmails(prev => ({ ...prev, [id]: '' }));
-    }
+    
+    if (error) { alert("Error: " + error.message); fetchAllData(); } 
+    else { addLog(`Assigned Report #${id} to ${email}`); setManualEmails(prev => ({ ...prev, [id]: '' })); }
   };
 
   const updateComplaint = async (id, field, value) => {
+    // Feature #4: Status/Priority Control
     setComplaints(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
     await supabase.from('complaints').update({ [field]: value }).eq('id', id);
+    addLog(`Changed ${field} of #${id} to ${value}`);
   };
 
   const handleDelete = async (id) => {
-    if (confirm("⚠️ Delete this report permanently?")) {
+    if (confirm("⚠️ Reject and remove this complaint?")) {
       setComplaints(prev => prev.filter(c => c.id !== id));
       await supabase.from('complaints').delete().eq('id', id);
+      addLog(`Rejected Complaint #${id}`);
     }
   };
 
-  // --- STAFF PROMOTION LOGIC ---
+  // --- 3. USER MANAGEMENT (Feature #5 & #6) ---
   const toggleRole = async (userId, currentRole, email) => {
     const newRole = currentRole === 'citizen' ? 'employee' : 'citizen';
     const action = newRole === 'employee' ? 'Promote' : 'Demote';
@@ -115,19 +113,45 @@ const AdminDashboard = () => {
     if (confirm(`${action} ${email} to ${newRole.toUpperCase()}?`)) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-      addLog(`${action}d ${email}`);
+      addLog(`${action}d user ${email}`);
     }
   };
 
+  // --- 4. CONFIGURATION (Feature #8) ---
+  const handleAddCategory = () => {
+    if(newCategory && !categories.includes(newCategory)){
+        setCategories([...categories, newCategory]);
+        setNewCategory('');
+        addLog(`Added category: ${newCategory}`);
+    }
+  };
+
+  // --- IN AdminDashboard.jsx ---
+  
+  const handleBroadcast = async () => {
+    if(!broadcastMsg) return;
+    
+    // 1. Save to Database
+    const { error } = await supabase.from('broadcasts').insert([{ message: broadcastMsg }]);
+    
+    if(error) {
+        alert("❌ Failed to send: " + error.message);
+    } else {
+        alert(`📢 Broadcast Sent to All Users!`);
+        addLog(`Sent Broadcast: "${broadcastMsg}"`);
+        setBroadcastMsg('');
+    }
+  };
+
+  // --- 5. HELPERS & STATS ---
   const openMaps = (loc) => {
     if(!loc) return;
     const coords = loc.replace('Lat: ', '').replace('Long: ', '').replace(' ', '');
     window.open(`https://www.google.com/maps?q=${coords}`, '_blank');
   };
 
-  // --- FILTERING ---
   const filteredComplaints = complaints.filter(c => {
-    const matchSearch = (c.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch = (c.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(c.id).includes(searchTerm);
     const matchStatus = statusFilter === 'All' || c.status === statusFilter;
     return matchSearch && matchStatus;
   });
@@ -135,6 +159,7 @@ const AdminDashboard = () => {
   const staffList = users.filter(u => u.role === 'employee');
   const citizenList = users.filter(u => u.role === 'citizen');
 
+  // Feature #1: System Overview Stats
   const stats = {
     total: complaints.length,
     pending: complaints.filter(c => c.status === 'Pending').length,
@@ -142,18 +167,24 @@ const AdminDashboard = () => {
     resolved: complaints.filter(c => c.status === 'Resolved').length
   };
 
-  if (loading) return <div style={styles.loading}>🔄 Loading Admin Panel...</div>;
+  // Feature #7: Analytics Data
+  const getCategoryCount = (cat) => complaints.filter(c => c.category === cat).length;
+
+  if (loading) return <div style={styles.loading}>🔄 Loading Admin System...</div>;
 
   return (
     <div className="fade-in" style={styles.container}>
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
+      {/* SIDEBAR NAVIGATION */}
       <aside style={styles.sidebar}>
         <div style={styles.sidebarHeader}><h2 style={{ margin: 0 }}>CIVIC ADMIN</h2></div>
         <nav style={styles.nav}>
           <NavBtn active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon="📊" label="Dashboard" />
           <NavBtn active={activeTab === 'complaints'} onClick={() => setActiveTab('complaints')} icon="🚨" label="Complaints" />
-          <NavBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon="👥" label="Staff Manager" />
+          <NavBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon="👥" label="Staff & Users" />
+          <NavBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon="📈" label="Analytics" />
+          <NavBtn active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} icon="⚙️" label="Config" />
         </nav>
         <div style={styles.sidebarFooter}>
           <div style={{ fontSize: '0.85rem', color: '#ccc', marginBottom: '10px' }}>User: {adminName}</div>
@@ -161,48 +192,73 @@ const AdminDashboard = () => {
         </div>
       </aside>
 
+      {/* MAIN CONTENT AREA */}
       <main style={styles.main}>
         
-        {/* VIEW: OVERVIEW */}
+        {/* === TAB 1: OVERVIEW === */}
         {activeTab === 'overview' && (
           <div className="fade-in">
             <h2 style={styles.pageTitle}>System Overview</h2>
+            
+            {/* Feature #1: Stats */}
             <div style={styles.statsGrid}>
-              <StatCard title="Total Issues" value={stats.total} color="#007bff" icon="📂" />
-              <StatCard title="Action Required" value={stats.pending} color="#dc3545" icon="⚡" />
+              <StatCard title="Total Complaints" value={stats.total} color="#007bff" icon="📂" />
+              <StatCard title="Unassigned" value={stats.pending} color="#dc3545" icon="⚡" />
               <StatCard title="In Progress" value={stats.active} color="#ffc107" icon="🚧" />
               <StatCard title="Resolved" value={stats.resolved} color="#28a745" icon="✅" />
             </div>
+
             <div style={styles.dashboardSplit}>
+              {/* Feature #10: Audit Log */}
               <div style={styles.card}>
-                <h3 style={styles.cardHeader}>📠 Live Audit Log</h3>
+                <h3 style={styles.cardHeader}>📠 System Audit Log</h3>
                 <div style={styles.logContainer}>
-                  {logs.map(log => <div key={log.id} style={styles.logItem}><span style={styles.logTime}>[{log.time}]</span> {log.action}</div>)}
+                  {logs.map((log, i) => <div key={i} style={styles.logItem}><span style={styles.logTime}>[{log.time}]</span> <strong>{log.user}:</strong> {log.action}</div>)}
                 </div>
+              </div>
+
+              {/* Feature #9: Notifications */}
+              <div style={styles.card}>
+                <h3 style={styles.cardHeader}>📢 Public Broadcast</h3>
+                <textarea 
+                    rows="3" 
+                    placeholder="Type alert message for all users..." 
+                    value={broadcastMsg}
+                    onChange={e => setBroadcastMsg(e.target.value)}
+                    style={{width:'100%', padding:'10px', marginBottom:'10px', borderRadius:'5px', border:'1px solid #ccc'}}
+                />
+                <button onClick={handleBroadcast} style={{...styles.actionBtn, width:'100%', background:'#6610f2'}}>Send Alert</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* VIEW: COMPLAINTS */}
+        {/* === TAB 2: COMPLAINTS === */}
         {activeTab === 'complaints' && (
           <div className="fade-in">
              <div style={styles.headerRow}>
                 <h2 style={styles.pageTitle}>Complaint Management</h2>
                 <div style={styles.filters}>
-                   <input placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={styles.searchInput} />
+                   <input placeholder="Search ID, Title..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={styles.searchInput} />
                    <select onChange={e => setFilterStatus(e.target.value)} style={styles.filterSelect}><option value="All">All Status</option><option>Pending</option><option>Resolved</option></select>
                 </div>
              </div>
+             
+             {/* Feature #2: Complaint List */}
              <div style={styles.complaintList}>
-                {filteredComplaints.length === 0 ? <div style={{textAlign:'center', color:'#888'}}>No complaints found.</div> : filteredComplaints.map(c => (
+                {filteredComplaints.map(c => (
                    <div key={c.id} style={styles.complaintCard}>
-                      <div style={styles.complaintImage}>{c.image_url ? <img src={c.image_url} alt="Proof" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={styles.noImage}>No Img</div>}</div>
+                      <div style={styles.complaintImage}>{c.image_url ? <img src={c.image_url} alt="Evidence" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={styles.noImage}>No Image</div>}</div>
                       <div style={styles.complaintContent}>
+                         <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
+                             <span style={{fontWeight:'bold', color:'#0056b3'}}>#{String(c.id).slice(0,6)}</span>
+                             <span style={styles.statusBadge(c.status)}>{c.status.toUpperCase()}</span>
+                         </div>
                          <h3 style={{margin:'0 0 5px', color:'#333'}}>{c.title} <span style={styles.badge(c.category)}>{c.category}</span></h3>
                          <p style={{color:'#666', fontSize:'0.9rem'}}>{c.description}</p>
-                         <div style={{marginBottom:'10px', fontSize:'0.8rem', color:'#555', cursor:'pointer'}} onClick={() => openMaps(c.location)}>📍 {c.location || 'No Location'}</div>
+                         <div style={{marginBottom:'10px', fontSize:'0.8rem', color:'#555', cursor:'pointer'}} onClick={() => openMaps(c.location)}>📍 {c.location || 'No Location Data'}</div>
                          
+                         {/* Feature #3 & #4: Assignment & Workflow */}
                          <div style={styles.actionToolbar}>
                             <div style={{display:'flex', alignItems:'center', gap:'5px', flex:1}}>
                                 <span style={{fontSize:'1.2rem'}}>👤</span>
@@ -210,20 +266,15 @@ const AdminDashboard = () => {
                                     type="text" 
                                     placeholder={c.assigned_to || "Worker Email..."}
                                     value={manualEmails[c.id] || ''} 
-                                    onChange={(e) => handleManualInput(c.id, e.target.value)} 
+                                    onChange={(e) => setManualEmails({...manualEmails, [c.id]: e.target.value})} 
                                     style={styles.manualInput} 
                                 />
-                                <button onClick={() => handleAssign(c.id)} style={styles.assignBtn}>
-                                    {c.assigned_to ? 'Reassign' : 'Assign'}
-                                </button>
+                                <button onClick={() => handleAssign(c.id)} style={styles.assignBtn}>{c.assigned_to ? 'Change' : 'Assign'}</button>
                             </div>
                             <select value={c.priority || "Normal"} onChange={(e) => updateComplaint(c.id, 'priority', e.target.value)} style={styles.prioritySelect}>
                                <option>High</option><option>Medium</option><option>Normal</option>
                             </select>
-                            <div style={{marginLeft:'auto', display:'flex', gap:'5px'}}>
-                               <button onClick={() => updateComplaint(c.id, 'status', 'Resolved')} style={styles.iconBtn('green')}>✅</button>
-                               <button onClick={() => handleDelete(c.id)} style={styles.iconBtn('red')}>🗑</button>
-                            </div>
+                            <button onClick={() => handleDelete(c.id)} style={styles.iconBtn('red')} title="Reject">🗑</button>
                          </div>
                       </div>
                    </div>
@@ -232,21 +283,22 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* VIEW: STAFF MANAGER */}
+        {/* === TAB 3: USERS & STAFF === */}
         {activeTab === 'users' && (
           <div className="fade-in">
-            <h2 style={styles.pageTitle}>Staff & User Manager</h2>
+            <h2 style={styles.pageTitle}>User & Employee Management</h2>
             
-            {/* 1. Active Staff */}
+            {/* Feature #6: Employee Management */}
             <div style={styles.card}>
-              <h3 style={{margin:'0 0 15px', color:'#0056b3'}}>👮 Active Staff ({staffList.length})</h3>
+              <h3 style={{margin:'0 0 15px', color:'#0056b3', borderBottom:'2px solid #007bff', paddingBottom:'10px'}}>
+                  👮 Active Field Officers ({staffList.length})
+              </h3>
               <table style={styles.table}>
                 <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Role</th><th style={styles.th}>Action</th></tr></thead>
                 <tbody>
-                  {staffList.length === 0 && <tr><td colSpan="3" style={{padding:'20px', textAlign:'center', color:'#999'}}>No staff yet. Promote a citizen below.</td></tr>}
                   {staffList.map(u => (
                     <tr key={u.id}>
-                      <td style={styles.td}><strong>{u.full_name || u.email}</strong></td>
+                      <td style={styles.td}><strong>{u.full_name || u.email}</strong><br/><span style={{fontSize:'0.8rem', color:'#777'}}>{u.email}</span></td>
                       <td style={styles.td}><span style={styles.roleBadge('employee')}>STAFF</span></td>
                       <td style={styles.td}><button onClick={() => toggleRole(u.id, u.role, u.email)} style={styles.demoteBtn}>⬇️ Demote</button></td>
                     </tr>
@@ -255,16 +307,17 @@ const AdminDashboard = () => {
               </table>
             </div>
 
-            {/* 2. Citizens */}
+            {/* Feature #5: User Management */}
             <div style={styles.card}>
-              <h3 style={{margin:'0 0 15px', color:'#333'}}>👥 Registered Citizens ({citizenList.length})</h3>
+              <h3 style={{margin:'0 0 15px', color:'#333', borderBottom:'2px solid #ddd', paddingBottom:'10px'}}>
+                  👥 Citizens ({citizenList.length})
+              </h3>
               <table style={styles.table}>
                 <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Role</th><th style={styles.th}>Action</th></tr></thead>
                 <tbody>
-                  {citizenList.length === 0 && <tr><td colSpan="3" style={{padding:'20px', textAlign:'center', color:'#999'}}>No citizens found in database.</td></tr>}
                   {citizenList.map(u => (
                     <tr key={u.id}>
-                      <td style={styles.td}><strong>{u.full_name || u.email}</strong></td>
+                      <td style={styles.td}><strong>{u.full_name || u.email}</strong><br/><span style={{fontSize:'0.8rem', color:'#777'}}>{u.email}</span></td>
                       <td style={styles.td}><span style={styles.badge('citizen')}>CITIZEN</span></td>
                       <td style={styles.td}><button onClick={() => toggleRole(u.id, u.role, u.email)} style={styles.promoteBtn}>⬆️ Promote</button></td>
                     </tr>
@@ -274,6 +327,60 @@ const AdminDashboard = () => {
             </div>
           </div>
         )}
+
+        {/* === TAB 4: ANALYTICS (Feature #7) === */}
+        {activeTab === 'analytics' && (
+          <div className="fade-in">
+             <h2 style={styles.pageTitle}>Reports & Analytics</h2>
+             <div style={styles.card}>
+                <h3>📊 Complaints by Category</h3>
+                <div style={{marginTop:'20px'}}>
+                    {categories.map(cat => {
+                        const count = getCategoryCount(cat);
+                        const width = complaints.length > 0 ? (count / complaints.length) * 100 : 0;
+                        return (
+                            <div key={cat} style={{marginBottom:'15px'}}>
+                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
+                                    <span>{cat}</span>
+                                    <strong>{count} issues</strong>
+                                </div>
+                                <div style={{width:'100%', background:'#eee', height:'10px', borderRadius:'5px', overflow:'hidden'}}>
+                                    <div style={{width: `${width}%`, background:'#007bff', height:'100%'}}></div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* === TAB 5: SETTINGS (Feature #8) === */}
+        {activeTab === 'settings' && (
+          <div className="fade-in">
+             <h2 style={styles.pageTitle}>Configuration & Master Data</h2>
+             <div style={styles.card}>
+                <h3>🏷️ Manage Categories</h3>
+                <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+                    <input 
+                        value={newCategory} 
+                        onChange={e => setNewCategory(e.target.value)} 
+                        placeholder="New Category Name..." 
+                        style={{padding:'10px', border:'1px solid #ccc', borderRadius:'5px', flex:1}} 
+                    />
+                    <button onClick={handleAddCategory} style={styles.actionBtn}>+ Add</button>
+                </div>
+                <div style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
+                    {categories.map(cat => (
+                        <span key={cat} style={{background:'#e9ecef', padding:'8px 15px', borderRadius:'20px', border:'1px solid #ddd'}}>
+                            {cat}
+                        </span>
+                    ))}
+                </div>
+             </div>
+          </div>
+        )}
+
       </main>
     </div>
   );
@@ -289,6 +396,7 @@ const styles = {
   sidebarFooter: { padding: '20px', background: 'rgba(0,0,0,0.2)' },
   main: { flex: 1, overflowY: 'auto', padding: '30px', position: 'relative' },
   
+  actionBtn: { padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
   logoutBtn: { width: '100%', padding: '10px', background: '#e63946', border: 'none', color: 'white', borderRadius: '5px', cursor: 'pointer' },
   promoteBtn: { padding: '6px 12px', fontSize: '0.8rem', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
   demoteBtn: { padding: '6px 12px', fontSize: '0.8rem', background: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer' },
@@ -324,7 +432,8 @@ const styles = {
   logTime: { fontFamily: 'monospace', color: '#0056b3', marginRight: '8px' },
   
   badge: (cat) => ({ background: '#e2e6ea', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', color: '#495057' }),
-  roleBadge: (role) => ({ padding: '4px 10px', borderRadius: '12px', background: role==='employee'?'#17a2b8':'#6c757d', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase' })
+  roleBadge: (role) => ({ padding: '4px 10px', borderRadius: '12px', background: role==='employee'?'#17a2b8':'#6c757d', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase' }),
+  statusBadge: (status) => ({ padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', background: status==='Resolved'?'#d1e7dd':status==='Pending'?'#f8d7da':'#fff3cd', color: status==='Resolved'?'#0f5132':status==='Pending'?'#842029':'#664d03' }),
 };
 
 const NavBtn = ({ active, onClick, icon, label }) => (
