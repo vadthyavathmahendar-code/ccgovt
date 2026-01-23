@@ -3,131 +3,192 @@ import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 
 const Signup = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // --- STATE ---
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [role, setRole] = useState('citizen');
   const [secretCode, setSecretCode] = useState('');
   const [loading, setLoading] = useState(false);
+  
   const navigate = useNavigate();
 
+  // Handle Input Changes
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  // --- SIGNUP LOGIC ---
   const handleSignup = async (e) => {
     e.preventDefault();
     setLoading(true);
 
-    // Your specific secret code logic for ccgovt
+    const { fullName, email, password, confirmPassword } = formData;
+
+    // 1. Basic Validation
+    if (password !== confirmPassword) {
+      alert("❌ Passwords do not match!");
+      setLoading(false);
+      return;
+    }
+
+    // 2. Secret Code Validation (Your Logic)
     if (role === 'employee' && secretCode !== 'CITYWORKER') {
       setLoading(false);
-      return alert("Invalid Employee Code");
+      return alert("⛔ Invalid Employee Code");
     }
     if (role === 'admin' && secretCode !== 'ADMINMASTER') {
       setLoading(false);
-      return alert("Invalid Admin Code");
+      return alert("⛔ Invalid Admin Code");
     }
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { 
-        data: { role: role } // Saving role to database
-      },
-    });
+    try {
+      // 3. CHECK IF USER ALREADY EXISTS (Prevents duplicates)
+      const { data: existingUser } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
 
-    if (error) {
-      alert(error.message);
-    } else {
-      alert('✅ Registration Successful! Please check your email.');
-      navigate('/login');
-    }
-    setLoading(false);
-  };
-
-  // ✅ Google Signup Logic
-  // Redirects to LOGIN page so your "Traffic Controller" can check the role there
- const handleGoogleSignup = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: window.location.origin + '/login' 
+      if (existingUser) {
+        alert("⚠️ User already exists! Please go to Login.");
+        navigate('/login');
+        return;
       }
-    });
-    if (error) alert(error.message);
+
+      // 4. Create User in Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            full_name: fullName, // Important for dashboards
+            role: role           // Saves 'citizen', 'employee', or 'admin'
+          },
+        },
+      });
+
+      if (error) throw error;
+
+      // 5. Success!
+      alert("✅ Registration Successful! Please check your email.");
+      navigate('/login');
+
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="fade-in" style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center' }}>
-      <div className="gov-card" style={{ width: '100%', maxWidth: '450px', padding: '0', borderTop: '4px solid #0056b3' }}>
+    <div className="fade-in" style={styles.container}>
+      <div style={styles.card}>
         
         {/* Header */}
-        <div style={{ padding: '20px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef', textAlign: 'center' }}>
-          <h2 style={{ margin: 0, color: '#0056b3' }}>SignUp</h2>
-          <p style={{ margin: 5, fontSize: '0.9rem', color: '#666' }}>Create account for Civic Connect</p>
+        <div style={styles.header}>
+          <h2 style={{ margin: 0, color: '#0056b3' }}>Create Account</h2>
+          <p style={{ margin: '5px 0 0', fontSize: '0.9rem', color: '#666' }}>Join Civic Connect</p>
         </div>
 
-        <div style={{ padding: '30px' }}>
+        {/* Form */}
+        <form onSubmit={handleSignup} style={styles.form}>
           
-          {/* Main Form */}
-          <form onSubmit={handleSignup} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input 
+            name="fullName" 
+            type="text" 
+            placeholder="Full Name" 
+            value={formData.fullName} 
+            onChange={handleChange} 
+            required 
+            style={styles.input} 
+          />
+          
+          <input 
+            name="email" 
+            type="email" 
+            placeholder="Email Address" 
+            value={formData.email} 
+            onChange={handleChange} 
+            required 
+            style={styles.input} 
+          />
+
+          <div style={{ display: 'flex', gap: '10px' }}>
             <input 
-              type="email" 
-              placeholder="Email Address" 
-              value={email} 
-              onChange={e => setEmail(e.target.value)} 
-              required 
-              style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} 
-            />
-            <input 
+              name="password" 
               type="password" 
-              placeholder="Create Password" 
-              value={password} 
-              onChange={e => setPassword(e.target.value)} 
+              placeholder="Password" 
+              value={formData.password} 
+              onChange={handleChange} 
               required 
-              style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} 
+              style={{ ...styles.input, flex: 1 }} 
             />
-            
-            <label style={{ fontWeight: '600', fontSize: '0.9rem', marginBottom: '-10px' }}>Register As:</label>
+            <input 
+              name="confirmPassword" 
+              type="password" 
+              placeholder="Confirm" 
+              value={formData.confirmPassword} 
+              onChange={handleChange} 
+              required 
+              style={{ ...styles.input, flex: 1 }} 
+            />
+          </div>
+
+          {/* Role Selection */}
+          <div style={{ background: '#f8f9fa', padding: '10px', borderRadius: '5px', border: '1px solid #eee' }}>
+            <label style={{ fontSize: '0.85rem', fontWeight: 'bold', display: 'block', marginBottom: '5px' }}>Register As:</label>
             <select 
               value={role} 
               onChange={e => setRole(e.target.value)} 
-              style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}
+              style={styles.select}
             >
               <option value="citizen">Citizen</option>
               <option value="employee">Govt Employee</option>
               <option value="admin">Admin</option>
             </select>
 
-            {/* Secret Code Input (Only shows if NOT citizen) */}
+            {/* Secret Code Input (Hidden for Citizens) */}
             {role !== 'citizen' && (
               <input 
                 type="password" 
-                placeholder="Enter Official Code" 
+                placeholder={role === 'admin' ? "Admin Master Code" : "Employee Code"} 
                 value={secretCode} 
                 onChange={e => setSecretCode(e.target.value)} 
-                style={{ borderColor: 'red', padding: '10px', borderRadius: '4px', border: '1px solid red' }} 
+                style={styles.secretInput} 
               />
             )}
-
-            <button type="submit" className="btn-gov" disabled={loading}>
-              {loading ? 'Processing...' : 'Create Account'}
-            </button>
-          </form>
-
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
-            <span style={{ padding: '0 10px', color: '#888', fontSize: '0.85rem' }}>OR</span>
-            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
           </div>
 
-         
-        </div>
+          <button type="submit" disabled={loading} style={styles.btn}>
+            {loading ? 'Creating Account...' : 'Sign Up'}
+          </button>
+        </form>
 
         {/* Footer */}
-        <div style={{ padding: '15px', background: '#f8f9fa', borderTop: '1px solid #e9ecef', textAlign: 'center', fontSize: '0.9rem' }}>
-          Already Registered? <Link to="/login" style={{ color: '#0056b3', fontWeight: 'bold' }}>Login Here</Link>
+        <div style={styles.footer}>
+          Already have an account? <Link to="/login" style={{ color: '#0056b3', fontWeight: 'bold' }}>Login Here</Link>
         </div>
       </div>
     </div>
   );
+};
+
+const styles = {
+  container: { minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f6f8', padding: '20px' },
+  card: { background: 'white', width: '100%', maxWidth: '400px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' },
+  header: { padding: '20px', background: '#f8f9fa', borderBottom: '1px solid #eee', textAlign: 'center' },
+  form: { padding: '25px', display: 'flex', flexDirection: 'column', gap: '15px' },
+  
+  input: { width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.95rem' },
+  select: { width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius: '4px', background: 'white' },
+  secretInput: { width: '100%', padding: '8px', marginTop: '10px', border: '1px solid #dc3545', borderRadius: '4px', background: '#fff5f5', color: '#dc3545' },
+  
+  btn: { width: '100%', padding: '12px', background: '#0056b3', color: 'white', border: 'none', borderRadius: '5px', fontSize: '1rem', fontWeight: 'bold', cursor: 'pointer' },
+  footer: { padding: '15px', textAlign: 'center', background: '#f8f9fa', borderTop: '1px solid #eee', fontSize: '0.9rem' }
 };
 
 export default Signup;
