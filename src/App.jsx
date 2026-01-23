@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Import Layout Components
 import GovHeader from './components/GovHeader';
 import GovFooter from './components/GovFooter';
+import ScrollToTop from './components/ScrollToTop'; // <--- NEW IMPORT
 
 // Import Pages
 import Home from './pages/Home';
@@ -19,6 +20,9 @@ import Profile from './pages/Profile';
 function App() {
   return (
     <Router>
+      {/* This component runs invisibly to reset scroll position on every click */}
+      <ScrollToTop />
+      
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         
         {/* 1. HEADER: Always the Official Government Header */}
