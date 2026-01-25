@@ -13,13 +13,16 @@ const AdminDashboard = () => {
   const [showProfile, setShowProfile] = useState(false);
   const [adminName, setAdminName] = useState('Admin');
 
+  // Assignment Modal State (Feature: Workload Picker)
+  const [assigningComplaintId, setAssigningComplaintId] = useState(null); 
+
   // Filters & Inputs
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setFilterStatus] = useState('All');
-  const [manualEmails, setManualEmails] = useState({}); 
+  const [showUrgentOnly, setShowUrgentOnly] = useState(false);
   const [broadcastMsg, setBroadcastMsg] = useState('');
   
-  // Configuration State (Feature #8)
+  // Configuration State
   const [categories, setCategories] = useState(['Roads', 'Garbage', 'Water', 'Electricity', 'Traffic']);
   const [newCategory, setNewCategory] = useState('');
 
@@ -33,7 +36,6 @@ const AdminDashboard = () => {
 
       const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
       
-      // Admin Protection
       if (!profile || profile.role !== 'admin') {
          console.warn("Access Check: Non-admin user.");
       }
@@ -44,7 +46,6 @@ const AdminDashboard = () => {
     };
     init();
 
-    // Real-time Listeners
     const sub = supabase.channel('admin_dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => fetchAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, () => fetchAllData())
@@ -53,22 +54,19 @@ const AdminDashboard = () => {
   }, [navigate]);
 
   const fetchAllData = async () => {
-    // Fetch Complaints
     const { data: cData } = await supabase.from('complaints').select('*').order('created_at', { ascending: false });
     setComplaints(cData || []);
     
-    // Fetch All Users
     const { data: uData } = await supabase.from('profiles').select('*').order('created_at', { ascending: false });
     setUsers(uData || []);
 
-    // Generate System Logs (Feature #10)
     const systemLogs = (cData || []).slice(0, 8).map(c => ({
       id: c.id, 
       action: `New Report #${String(c.id).slice(0,4)}: ${c.category}`, 
       user: 'System',
       time: new Date(c.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
     }));
-    setLogs(prev => [...systemLogs, ...prev].slice(0, 20)); // Keep last 20 logs
+    setLogs(prev => [...systemLogs, ...prev].slice(0, 20)); 
   };
 
   const addLog = (action) => {
@@ -76,22 +74,28 @@ const AdminDashboard = () => {
     setLogs(prev => [newLog, ...prev]);
   };
 
-  // --- 2. CORE ACTIONS (Assignment & Workflow) ---
+  // --- 2. CORE ACTIONS ---
   
-  const handleAssign = async (id) => {
-    const email = manualEmails[id];
-    if (!email || !email.includes('@')) return alert("⚠️ Please enter a valid worker email.");
+  // Feature: Smart Assignment Logic
+  const handleAssignWorker = async (email) => {
+    if (!assigningComplaintId) return;
 
-    // Feature #3: Assign Complaint
-    setComplaints(prev => prev.map(c => c.id === id ? { ...c, assigned_to: email, status: 'Assigned' } : c));
-    const { error } = await supabase.from('complaints').update({ assigned_to: email, status: 'Assigned' }).eq('id', id);
+    // Optimistic Update
+    setComplaints(prev => prev.map(c => c.id === assigningComplaintId ? { ...c, assigned_to: email, status: 'Assigned' } : c));
     
-    if (error) { alert("Error: " + error.message); fetchAllData(); } 
-    else { addLog(`Assigned Report #${id} to ${email}`); setManualEmails(prev => ({ ...prev, [id]: '' })); }
+    // DB Update
+    const { error } = await supabase.from('complaints').update({ assigned_to: email, status: 'Assigned' }).eq('id', assigningComplaintId);
+    
+    if (error) { 
+        alert("Error: " + error.message); 
+        fetchAllData(); 
+    } else { 
+        addLog(`Assigned Report #${assigningComplaintId} to ${email}`); 
+        setAssigningComplaintId(null); // Close Modal
+    }
   };
 
   const updateComplaint = async (id, field, value) => {
-    // Feature #4: Status/Priority Control
     setComplaints(prev => prev.map(c => c.id === id ? { ...c, [field]: value } : c));
     await supabase.from('complaints').update({ [field]: value }).eq('id', id);
     addLog(`Changed ${field} of #${id} to ${value}`);
@@ -105,61 +109,68 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- 3. USER MANAGEMENT (Feature #5 & #6) ---
+  // --- 3. EXPORT & HELPERS ---
+  const handleExport = () => {
+    const headers = ["ID", "Title", "Category", "Status", "Date", "Location", "Assigned To"];
+    const rows = complaints.map(c => [
+        c.id, 
+        `"${c.title.replace(/"/g, '""')}"`, 
+        c.category, 
+        c.status, 
+        new Date(c.created_at).toLocaleDateString(), 
+        `"${c.location}"`, 
+        c.assigned_to || 'Unassigned'
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `civic_report_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const getWorkerLoad = (email) => {
+      // Calculate active tasks (Assigned or In Progress) for a specific worker
+      return complaints.filter(c => c.assigned_to === email && c.status !== 'Resolved').length;
+  };
+
   const toggleRole = async (userId, currentRole, email) => {
     const newRole = currentRole === 'citizen' ? 'employee' : 'citizen';
-    const action = newRole === 'employee' ? 'Promote' : 'Demote';
-    
-    if (confirm(`${action} ${email} to ${newRole.toUpperCase()}?`)) {
+    if (confirm(`Change role of ${email} to ${newRole.toUpperCase()}?`)) {
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole } : u));
       await supabase.from('profiles').update({ role: newRole }).eq('id', userId);
-      addLog(`${action}d user ${email}`);
+      addLog(`Changed role of ${email} to ${newRole}`);
     }
   };
 
-  // --- 4. CONFIGURATION (Feature #8) ---
-  const handleAddCategory = () => {
-    if(newCategory && !categories.includes(newCategory)){
-        setCategories([...categories, newCategory]);
-        setNewCategory('');
-        addLog(`Added category: ${newCategory}`);
-    }
-  };
-
-  // --- IN AdminDashboard.jsx ---
-  
   const handleBroadcast = async () => {
     if(!broadcastMsg) return;
-    
-    // 1. Save to Database
     const { error } = await supabase.from('broadcasts').insert([{ message: broadcastMsg }]);
-    
-    if(error) {
-        alert("❌ Failed to send: " + error.message);
-    } else {
-        alert(`📢 Broadcast Sent to All Users!`);
+    if(!error) {
+        alert(`📢 Broadcast Sent!`);
         addLog(`Sent Broadcast: "${broadcastMsg}"`);
         setBroadcastMsg('');
     }
   };
 
-  // --- 5. HELPERS & STATS ---
   const openMaps = (loc) => {
     if(!loc) return;
-    const coords = loc.replace('Lat: ', '').replace('Long: ', '').replace(' ', '');
-    window.open(`https://www.google.com/maps?q=${coords}`, '_blank');
+    const coords = loc.match(/-?\d+(\.\d+)?/g);
+    if(coords && coords.length >= 2) window.open(`https://www.google.com/maps?q=${coords[0]},${coords[1]}`, '_blank');
   };
 
+  // --- 4. FILTERING & STATS ---
   const filteredComplaints = complaints.filter(c => {
     const matchSearch = (c.title || '').toLowerCase().includes(searchTerm.toLowerCase()) || String(c.id).includes(searchTerm);
     const matchStatus = statusFilter === 'All' || c.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchUrgent = showUrgentOnly ? (c.title && c.title.includes('⚠️')) : true;
+    return matchSearch && matchStatus && matchUrgent;
   });
 
   const staffList = users.filter(u => u.role === 'employee');
   const citizenList = users.filter(u => u.role === 'citizen');
 
-  // Feature #1: System Overview Stats
   const stats = {
     total: complaints.length,
     pending: complaints.filter(c => c.status === 'Pending').length,
@@ -167,14 +178,65 @@ const AdminDashboard = () => {
     resolved: complaints.filter(c => c.status === 'Resolved').length
   };
 
-  // Feature #7: Analytics Data
+  // Analytics Helpers
   const getCategoryCount = (cat) => complaints.filter(c => c.category === cat).length;
+  let currentDeg = 0;
+  const pieColors = ['#007bff', '#28a745', '#ffc107', '#dc3545', '#6610f2', '#fd7e14'];
+  const pieGradient = categories.map((cat, i) => {
+      const count = getCategoryCount(cat);
+      const percentage = (count / complaints.length) * 360;
+      const segment = `${pieColors[i % pieColors.length]} ${currentDeg}deg ${currentDeg + percentage}deg`;
+      currentDeg += percentage;
+      return segment;
+  }).join(', ');
 
   if (loading) return <div style={styles.loading}>🔄 Loading Admin System...</div>;
 
   return (
     <div className="fade-in" style={styles.container}>
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
+      
+      {/* --- FEATURE: ASSIGNMENT MODAL --- */}
+      {assigningComplaintId && (
+          <div style={styles.modalOverlay}>
+              <div className="gov-card fade-in" style={styles.modalContent}>
+                  <div style={styles.modalHeader}>
+                      <h3>👤 Select Officer</h3>
+                      <button onClick={() => setAssigningComplaintId(null)} style={styles.closeBtn}>✖</button>
+                  </div>
+                  <div style={{padding:'20px', maxHeight:'400px', overflowY:'auto'}}>
+                      <p style={{fontSize:'0.9rem', color:'#666', marginBottom:'15px'}}>Assigning Report #{String(assigningComplaintId).slice(0,4)}</p>
+                      
+                      {/* Worker List Sorted by Load (Least Busy First) */}
+                      {staffList
+                        .sort((a,b) => getWorkerLoad(a.email) - getWorkerLoad(b.email))
+                        .map(worker => {
+                            const load = getWorkerLoad(worker.email);
+                            const loadColor = load === 0 ? '#198754' : load < 5 ? '#ffc107' : '#dc3545';
+                            return (
+                                <div key={worker.id} style={styles.workerRow}>
+                                    <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
+                                        <div style={styles.avatar}>{worker.full_name ? worker.full_name[0] : 'E'}</div>
+                                        <div>
+                                            <div style={{fontWeight:'bold'}}>{worker.full_name || 'Officer'}</div>
+                                            <div style={{fontSize:'0.8rem', color:'#666'}}>{worker.email}</div>
+                                        </div>
+                                    </div>
+                                    <div style={{textAlign:'right'}}>
+                                        <span style={{fontSize:'0.75rem', fontWeight:'bold', color:loadColor, border:`1px solid ${loadColor}`, padding:'2px 6px', borderRadius:'4px', marginRight:'10px'}}>
+                                            {load} Active Tasks
+                                        </span>
+                                        <button onClick={() => handleAssignWorker(worker.email)} style={styles.assignActionBtn}>Select</button>
+                                    </div>
+                                </div>
+                            )
+                        })
+                      }
+                      {staffList.length === 0 && <p style={{textAlign:'center', color:'#999'}}>No field officers found. Go to 'Staff' tab to promote users.</p>}
+                  </div>
+              </div>
+          </div>
+      )}
 
       {/* SIDEBAR NAVIGATION */}
       <aside style={styles.sidebar}>
@@ -199,8 +261,6 @@ const AdminDashboard = () => {
         {activeTab === 'overview' && (
           <div className="fade-in">
             <h2 style={styles.pageTitle}>System Overview</h2>
-            
-            {/* Feature #1: Stats */}
             <div style={styles.statsGrid}>
               <StatCard title="Total Complaints" value={stats.total} color="#007bff" icon="📂" />
               <StatCard title="Unassigned" value={stats.pending} color="#dc3545" icon="⚡" />
@@ -209,24 +269,15 @@ const AdminDashboard = () => {
             </div>
 
             <div style={styles.dashboardSplit}>
-              {/* Feature #10: Audit Log */}
               <div style={styles.card}>
                 <h3 style={styles.cardHeader}>📠 System Audit Log</h3>
                 <div style={styles.logContainer}>
                   {logs.map((log, i) => <div key={i} style={styles.logItem}><span style={styles.logTime}>[{log.time}]</span> <strong>{log.user}:</strong> {log.action}</div>)}
                 </div>
               </div>
-
-              {/* Feature #9: Notifications */}
               <div style={styles.card}>
                 <h3 style={styles.cardHeader}>📢 Public Broadcast</h3>
-                <textarea 
-                    rows="3" 
-                    placeholder="Type alert message for all users..." 
-                    value={broadcastMsg}
-                    onChange={e => setBroadcastMsg(e.target.value)}
-                    style={{width:'100%', padding:'10px', marginBottom:'10px', borderRadius:'5px', border:'1px solid #ccc'}}
-                />
+                <textarea rows="3" placeholder="Type alert message..." value={broadcastMsg} onChange={e => setBroadcastMsg(e.target.value)} style={styles.textarea} />
                 <button onClick={handleBroadcast} style={{...styles.actionBtn, width:'100%', background:'#6610f2'}}>Send Alert</button>
               </div>
             </div>
@@ -239,46 +290,57 @@ const AdminDashboard = () => {
              <div style={styles.headerRow}>
                 <h2 style={styles.pageTitle}>Complaint Management</h2>
                 <div style={styles.filters}>
+                   <button onClick={() => setShowUrgentOnly(!showUrgentOnly)} style={{...styles.actionBtn, background: showUrgentOnly ? '#dc3545' : 'white', color: showUrgentOnly ? 'white' : '#dc3545', border:'1px solid #dc3545'}}>⚠️ Hazard Filter</button>
                    <input placeholder="Search ID, Title..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={styles.searchInput} />
                    <select onChange={e => setFilterStatus(e.target.value)} style={styles.filterSelect}><option value="All">All Status</option><option>Pending</option><option>Resolved</option></select>
+                   <button onClick={handleExport} style={{...styles.actionBtn, background:'#198754'}}>📥 Export CSV</button>
                 </div>
              </div>
              
-             {/* Feature #2: Complaint List */}
              <div style={styles.complaintList}>
-                {filteredComplaints.map(c => (
-                   <div key={c.id} style={styles.complaintCard}>
-                      <div style={styles.complaintImage}>{c.image_url ? <img src={c.image_url} alt="Evidence" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={styles.noImage}>No Image</div>}</div>
-                      <div style={styles.complaintContent}>
-                         <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
-                             <span style={{fontWeight:'bold', color:'#0056b3'}}>#{String(c.id).slice(0,6)}</span>
-                             <span style={styles.statusBadge(c.status)}>{c.status.toUpperCase()}</span>
-                         </div>
-                         <h3 style={{margin:'0 0 5px', color:'#333'}}>{c.title} <span style={styles.badge(c.category)}>{c.category}</span></h3>
-                         <p style={{color:'#666', fontSize:'0.9rem'}}>{c.description}</p>
-                         <div style={{marginBottom:'10px', fontSize:'0.8rem', color:'#555', cursor:'pointer'}} onClick={() => openMaps(c.location)}>📍 {c.location || 'No Location Data'}</div>
-                         
-                         {/* Feature #3 & #4: Assignment & Workflow */}
-                         <div style={styles.actionToolbar}>
-                            <div style={{display:'flex', alignItems:'center', gap:'5px', flex:1}}>
-                                <span style={{fontSize:'1.2rem'}}>👤</span>
-                                <input 
-                                    type="text" 
-                                    placeholder={c.assigned_to || "Worker Email..."}
-                                    value={manualEmails[c.id] || ''} 
-                                    onChange={(e) => setManualEmails({...manualEmails, [c.id]: e.target.value})} 
-                                    style={styles.manualInput} 
-                                />
-                                <button onClick={() => handleAssign(c.id)} style={styles.assignBtn}>{c.assigned_to ? 'Change' : 'Assign'}</button>
-                            </div>
-                            <select value={c.priority || "Normal"} onChange={(e) => updateComplaint(c.id, 'priority', e.target.value)} style={styles.prioritySelect}>
-                               <option>High</option><option>Medium</option><option>Normal</option>
-                            </select>
-                            <button onClick={() => handleDelete(c.id)} style={styles.iconBtn('red')} title="Reject">🗑</button>
-                         </div>
-                      </div>
-                   </div>
-                ))}
+                {filteredComplaints.length === 0 ? <div style={{textAlign:'center', padding:'40px', color:'#999'}}>No matching complaints.</div> : 
+                    filteredComplaints.map(c => {
+                       const isUrgent = c.title.includes('⚠️');
+                       return (
+                           <div key={c.id} style={{...styles.complaintCard, borderLeft: isUrgent ? '5px solid #dc3545' : 'none'}}>
+                              <div style={styles.complaintImage}>{c.image_url ? <img src={c.image_url} alt="Evidence" style={{width:'100%', height:'100%', objectFit:'cover'}} /> : <div style={styles.noImage}>No Image</div>}</div>
+                              <div style={styles.complaintContent}>
+                                 <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
+                                     <div style={{display:'flex', gap:'10px'}}>
+                                         <span style={{fontWeight:'bold', color:'#0056b3'}}>#{String(c.id).slice(0,6)}</span>
+                                         {isUrgent && <span style={{background:'#dc3545', color:'white', fontSize:'0.7rem', padding:'1px 5px', borderRadius:'3px', fontWeight:'bold'}}>HAZARD</span>}
+                                     </div>
+                                     <span style={styles.statusBadge(c.status)}>{c.status.toUpperCase()}</span>
+                                 </div>
+                                 <h3 style={{margin:'0 0 5px', color:'#333'}}>{c.title.replace('⚠️ [URGENT] ', '')} <span style={styles.badge(c.category)}>{c.category}</span></h3>
+                                 <p style={{color:'#666', fontSize:'0.9rem'}}>{c.description}</p>
+                                 <div style={{marginBottom:'10px', fontSize:'0.8rem', color:'#555', cursor:'pointer'}} onClick={() => openMaps(c.location)}>📍 {c.location || 'No Location Data'}</div>
+                                 
+                                 <div style={styles.actionToolbar}>
+                                    
+                                    {/* Feature: The New "Assign" Button */}
+                                    <div style={{display:'flex', alignItems:'center', gap:'5px', flex:1}}>
+                                        <div style={{display:'flex', flexDirection:'column'}}>
+                                            <span style={{fontSize:'0.75rem', color:'#888', fontWeight:'bold'}}>ASSIGNED TO:</span>
+                                            <span style={{fontSize:'0.9rem', color: c.assigned_to ? '#333' : '#dc3545'}}>{c.assigned_to || "Unassigned"}</span>
+                                        </div>
+                                        <button onClick={() => setAssigningComplaintId(c.id)} style={styles.assignBtn}>
+                                            {c.assigned_to ? '🔄 Reassign' : '👤 Assign Officer'}
+                                        </button>
+                                    </div>
+
+                                    <div style={{borderLeft:'1px solid #ccc', paddingLeft:'15px', display:'flex', gap:'10px', alignItems:'center'}}>
+                                        <select value={c.priority || "Normal"} onChange={(e) => updateComplaint(c.id, 'priority', e.target.value)} style={styles.prioritySelect}>
+                                            <option>High</option><option>Medium</option><option>Normal</option>
+                                        </select>
+                                        <button onClick={() => handleDelete(c.id)} style={styles.iconBtn('red')} title="Reject">🗑</button>
+                                    </div>
+                                 </div>
+                              </div>
+                           </div>
+                       )
+                    })
+                }
              </div>
           </div>
         )}
@@ -287,31 +349,28 @@ const AdminDashboard = () => {
         {activeTab === 'users' && (
           <div className="fade-in">
             <h2 style={styles.pageTitle}>User & Employee Management</h2>
-            
-            {/* Feature #6: Employee Management */}
             <div style={styles.card}>
-              <h3 style={{margin:'0 0 15px', color:'#0056b3', borderBottom:'2px solid #007bff', paddingBottom:'10px'}}>
-                  👮 Active Field Officers ({staffList.length})
-              </h3>
+              <h3 style={{margin:'0 0 15px', color:'#0056b3'}}>👮 Active Field Officers ({staffList.length})</h3>
               <table style={styles.table}>
-                <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Role</th><th style={styles.th}>Action</th></tr></thead>
+                <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Workload</th><th style={styles.th}>Action</th></tr></thead>
                 <tbody>
                   {staffList.map(u => (
                     <tr key={u.id}>
                       <td style={styles.td}><strong>{u.full_name || u.email}</strong><br/><span style={{fontSize:'0.8rem', color:'#777'}}>{u.email}</span></td>
-                      <td style={styles.td}><span style={styles.roleBadge('employee')}>STAFF</span></td>
+                      <td style={styles.td}>
+                          <span style={{fontWeight:'bold', color: getWorkerLoad(u.email) > 4 ? 'red' : 'green'}}>{getWorkerLoad(u.email)} Active Tasks</span>
+                      </td>
                       <td style={styles.td}><button onClick={() => toggleRole(u.id, u.role, u.email)} style={styles.demoteBtn}>⬇️ Demote</button></td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            
+            <div style={{height:'20px'}}></div>
 
-            {/* Feature #5: User Management */}
             <div style={styles.card}>
-              <h3 style={{margin:'0 0 15px', color:'#333', borderBottom:'2px solid #ddd', paddingBottom:'10px'}}>
-                  👥 Citizens ({citizenList.length})
-              </h3>
+              <h3 style={{margin:'0 0 15px', color:'#333'}}>👥 Citizens ({citizenList.length})</h3>
               <table style={styles.table}>
                 <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Role</th><th style={styles.th}>Action</th></tr></thead>
                 <tbody>
@@ -328,59 +387,63 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* === TAB 4: ANALYTICS (Feature #7) === */}
+        {/* === TAB 4: ANALYTICS === */}
         {activeTab === 'analytics' && (
           <div className="fade-in">
              <h2 style={styles.pageTitle}>Reports & Analytics</h2>
-             <div style={styles.card}>
-                <h3>📊 Complaints by Category</h3>
-                <div style={{marginTop:'20px'}}>
-                    {categories.map(cat => {
-                        const count = getCategoryCount(cat);
-                        const width = complaints.length > 0 ? (count / complaints.length) * 100 : 0;
-                        return (
-                            <div key={cat} style={{marginBottom:'15px'}}>
-                                <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}>
-                                    <span>{cat}</span>
-                                    <strong>{count} issues</strong>
-                                </div>
-                                <div style={{width:'100%', background:'#eee', height:'10px', borderRadius:'5px', overflow:'hidden'}}>
-                                    <div style={{width: `${width}%`, background:'#007bff', height:'100%'}}></div>
-                                </div>
+             <div style={{display:'grid', gridTemplateColumns: '1fr 1fr', gap:'20px'}}>
+                 <div style={styles.card}>
+                    <h3 style={{textAlign:'center'}}>Category Distribution</h3>
+                    <div style={{display:'flex', justifyContent:'center', margin:'30px 0'}}>
+                        <div style={{
+                            width: '200px', height: '200px', borderRadius: '50%', 
+                            background: complaints.length ? `conic-gradient(${pieGradient})` : '#eee'
+                        }}></div>
+                    </div>
+                    <div style={{display:'flex', justifyContent:'center', flexWrap:'wrap', gap:'10px'}}>
+                        {categories.map((cat, i) => (
+                            <div key={cat} style={{display:'flex', alignItems:'center', gap:'5px', fontSize:'0.8rem'}}>
+                                <div style={{width:'10px', height:'10px', background: pieColors[i % pieColors.length], borderRadius:'50%'}}></div>
+                                {cat}
                             </div>
-                        );
-                    })}
-                </div>
+                        ))}
+                    </div>
+                 </div>
+                 <div style={styles.card}>
+                    <h3>📊 Breakdown</h3>
+                    <div style={{marginTop:'20px'}}>
+                        {categories.map((cat, i) => {
+                            const count = getCategoryCount(cat);
+                            const width = complaints.length > 0 ? (count / complaints.length) * 100 : 0;
+                            return (
+                                <div key={cat} style={{marginBottom:'15px'}}>
+                                    <div style={{display:'flex', justifyContent:'space-between', marginBottom:'5px'}}><span>{cat}</span><strong>{count}</strong></div>
+                                    <div style={{width:'100%', background:'#eee', height:'10px', borderRadius:'5px', overflow:'hidden'}}><div style={{width: `${width}%`, background: pieColors[i % pieColors.length], height:'100%'}}></div></div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                 </div>
              </div>
           </div>
         )}
 
-        {/* === TAB 5: SETTINGS (Feature #8) === */}
+        {/* === TAB 5: SETTINGS === */}
         {activeTab === 'settings' && (
           <div className="fade-in">
-             <h2 style={styles.pageTitle}>Configuration & Master Data</h2>
+             <h2 style={styles.pageTitle}>Configuration</h2>
              <div style={styles.card}>
                 <h3>🏷️ Manage Categories</h3>
                 <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
-                    <input 
-                        value={newCategory} 
-                        onChange={e => setNewCategory(e.target.value)} 
-                        placeholder="New Category Name..." 
-                        style={{padding:'10px', border:'1px solid #ccc', borderRadius:'5px', flex:1}} 
-                    />
-                    <button onClick={handleAddCategory} style={styles.actionBtn}>+ Add</button>
+                    <input value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="New Category Name..." style={{padding:'10px', border:'1px solid #ccc', borderRadius:'5px', flex:1}} />
+                    <button onClick={() => { if(newCategory && !categories.includes(newCategory)){ setCategories([...categories, newCategory]); setNewCategory(''); addLog(`Added category: ${newCategory}`); }}} style={styles.actionBtn}>+ Add</button>
                 </div>
                 <div style={{display:'flex', gap:'10px', flexWrap:'wrap'}}>
-                    {categories.map(cat => (
-                        <span key={cat} style={{background:'#e9ecef', padding:'8px 15px', borderRadius:'20px', border:'1px solid #ddd'}}>
-                            {cat}
-                        </span>
-                    ))}
+                    {categories.map(cat => (<span key={cat} style={{background:'#e9ecef', padding:'8px 15px', borderRadius:'20px', border:'1px solid #ddd'}}>{cat}</span>))}
                 </div>
              </div>
           </div>
         )}
-
       </main>
     </div>
   );
@@ -400,7 +463,7 @@ const styles = {
   logoutBtn: { width: '100%', padding: '10px', background: '#e63946', border: 'none', color: 'white', borderRadius: '5px', cursor: 'pointer' },
   promoteBtn: { padding: '6px 12px', fontSize: '0.8rem', background: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' },
   demoteBtn: { padding: '6px 12px', fontSize: '0.8rem', background: '#ffc107', color: 'black', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  assignBtn: { padding: '8px 12px', background: '#0056b3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem' },
+  assignBtn: { padding: '8px 12px', background: '#0056b3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.8rem', marginLeft:'10px' },
   iconBtn: (color) => ({ background: 'none', border: `1px solid ${color}`, borderRadius: '4px', padding: '5px 10px', cursor: 'pointer', color: color }),
 
   pageTitle: { margin: '0 0 20px', color: '#1a1f36', fontSize: '1.8rem' },
@@ -415,13 +478,14 @@ const styles = {
   filterSelect: { padding: '10px', border: '1px solid #ccc', borderRadius: '5px' },
   manualInput: { padding: '8px', borderRadius: '4px', border: '1px solid #ccc', width: '180px', fontSize: '0.85rem' },
   prioritySelect: { padding: '8px', borderRadius: '4px', border: '1px solid #ccc' },
+  textarea: {width:'100%', padding:'10px', marginBottom:'10px', borderRadius:'5px', border:'1px solid #ccc'},
   
   complaintList: { display: 'flex', flexDirection: 'column', gap: '20px' },
   complaintCard: { background: 'white', padding: '20px', borderRadius: '10px', display: 'flex', gap: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', alignItems: 'start' },
   complaintImage: { width: '120px', height: '120px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, background: '#eee' },
   noImage: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', color: '#777' },
   complaintContent: { flex: 1 },
-  actionToolbar: { background: '#f8f9fa', padding: '10px', borderRadius: '8px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+  actionToolbar: { background: '#f8f9fa', padding: '10px', borderRadius: '8px', display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', justifyContent:'space-between' },
 
   table: { width: '100%', borderCollapse: 'collapse' },
   th: { padding: '12px', color: '#555', fontSize: '0.85rem', textAlign: 'left', background: '#f8f9fa', borderBottom: '2px solid #eee' },
@@ -434,6 +498,15 @@ const styles = {
   badge: (cat) => ({ background: '#e2e6ea', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', color: '#495057' }),
   roleBadge: (role) => ({ padding: '4px 10px', borderRadius: '12px', background: role==='employee'?'#17a2b8':'#6c757d', color: 'white', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase' }),
   statusBadge: (status) => ({ padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', background: status==='Resolved'?'#d1e7dd':status==='Pending'?'#f8d7da':'#fff3cd', color: status==='Resolved'?'#0f5132':status==='Pending'?'#842029':'#664d03' }),
+
+  // Modal Styles
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
+  modalContent: { width: '400px', background: 'white', borderRadius: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.2)', overflow:'hidden' },
+  modalHeader: { background: '#f8f9fa', padding: '15px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#666' },
+  workerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f1f1' },
+  avatar: { width: '40px', height: '40px', background: '#e2e6ea', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#555' },
+  assignActionBtn: { background: '#0d6efd', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }
 };
 
 const NavBtn = ({ active, onClick, icon, label }) => (

@@ -5,74 +5,148 @@ const Home = () => {
 
   return (
     <div className="fade-in">
-      {/* 1. HERO BANNER */}
-      <div style={{ 
-        height: '500px', 
-        backgroundImage: 'url("/images/hyd_banner.jpg")', 
-        backgroundSize: 'cover', 
-        backgroundPosition: 'center', 
-        position: 'relative', 
-        display: 'flex', 
-        alignItems: 'center',
-        justifyContent: 'flex-start' // <--- 1. Forces everything to start from the left
-      }}>
-        {/* Gradient Overlay: Dark on left, transparent on right to see the image */}
-        <div style={{ position: 'absolute', top:0, left:0, right:0, bottom:0, background: 'linear-gradient(90deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.1) 100%)' }}></div>
-        
-        {/* TEXT CONTENT WRAPPER */}
-        <div style={{ 
-          position: 'relative', 
-          color: 'white', 
-          zIndex: 2, 
-          paddingLeft: '80px', // <--- 2. Pushes content slightly away from the edge
-          textAlign: 'left',
-          maxWidth: '600px'    // <--- 3. Limits width so it doesn't cover the image on the right
-        }}>
-          
-          <h1 style={{ fontSize: '4rem', margin: '0 0 15px', fontWeight: '800', lineHeight: '1.2' ,color : '#0056b3'}}>
-            Civic <br/> Connect
-          </h1>
-          <p style={{ fontSize: '2rem', opacity: 0.9, lineHeight: '1.6', margin: '0 0 30px 0' ,}}>
-            See it, Click it, Fix it.
-          </p>
-          
-          {/* BUTTONS */}
-          <div style={{ display: 'flex', gap: '15px' }}> 
-            <button onClick={() => navigate('/login')} className="btn-gov" style={{ padding: '15px 35px', fontSize: '1.1rem', background: '#eab308', color: 'black', border: 'none' }}>
-              Login
-            </button>
-            <button onClick={() => navigate('/signup')} className="btn-gov" style={{ padding: '15px 35px', fontSize: '1.1rem', background: 'transparent', border: '2px solid white' }}>
-              Create Account
-            </button>
+      
+      {/* 1. HERO SECTION */}
+      <section style={styles.heroSection}>
+        {/* Gradient Overlay */}
+        <div style={styles.heroOverlay}></div>
+
+        <div className="container" style={styles.heroContainer}>
+          <div style={styles.heroContent}>
+            
+            <span style={styles.badge}>🚀 Better Cities, Faster</span>
+            
+            <h1 style={styles.heroTitle}>
+              Civic <span style={{ color: '#60a5fa' }}>Connect</span>
+            </h1>
+            
+            <p style={styles.heroText}>
+              Don't just complain—report it. We connect citizens directly with city officials to fix potholes, garbage, and streetlights .
+            </p>
+
+            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+              <button onClick={() => navigate('/login')} className="btn btn-primary">
+                Login 
+              </button>
+              <button onClick={() => navigate('/signup')} className="btn btn-outline">
+                Create Account
+              </button>
+            </div>
+
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ... (Keep the rest of the Feature Cards and Footer code exactly as it was) ... */}
-      
-      {/* 2. FEATURE CARDS */}
-      <div style={{ background: '#f0f9ff', padding: '60px 0' }}>
-        <div className="container" style={{ maxWidth: '1200px', margin: '0 auto', padding: '0 20px' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px', marginTop: '-100px', position: 'relative', zIndex: 10 }}>
-            <FeatureCard icon="📸" title="Snap & Upload" desc="Spotted a pothole? Take a photo. Our system automatically tags the location instantly." />
-            <FeatureCard icon="🛰️" title="GPS Precision" desc="We use advanced geolocation to pinpoint exactly where repairs are needed with 100% accuracy." />
-            <FeatureCard icon="✅" title="Verified Proof" desc="Don't just take our word for it. See 'Before & After' photos when jobs are done." />
+      {/* 2. FEATURES GRID (Floating Overlap) */}
+      <section style={{ background: '#f8fafc', paddingBottom: '80px' }}>
+        <div className="container">
+          <div style={styles.gridContainer}>
+            <FeatureCard 
+              icon="📸" 
+              title="Snap & Upload" 
+              desc="See an issue? Take a photo. Our AI automatically tags the category and location for you." 
+            />
+            <FeatureCard 
+              icon="📍" 
+              title="GPS Precision" 
+              desc="No need to explain the address. We use satellite geolocation to pinpoint the exact repair spot." 
+            />
+            <FeatureCard 
+              icon="✅" 
+              title="Verified Proof" 
+              desc="Transparency first. See 'Before' and 'After' photos for every single complaint you raise." 
+            />
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* 3. INITIATIVE FOOTER */}
-      
+      {/* 3. CALL TO ACTION STRIP */}
+      <section style={{ background: '#1e293b', color: 'white', padding: '60px 0', textAlign: 'center' }}>
+        <div className="container">
+          <h2 style={{ margin: '0 0 10px' }}>Ready to clean up your city?</h2>
+          <p style={{ color: '#94a3b8', marginBottom: '30px' }}>Join 5,000+ active citizens making a difference today.</p>
+          <button onClick={() => navigate('/signup')} className="btn" style={{ background: '#f59e0b', color: 'black' }}>
+            Get Started Now
+          </button>
+        </div>
+      </section>
+
     </div>
   );
 };
 
+// --- SUB-COMPONENTS ---
 const FeatureCard = ({ icon, title, desc }) => (
-  <div className="gov-card" style={{ padding: '30px', background: 'white', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.08)', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', textAlign: 'left' }}>
-    <div style={{ fontSize: '3rem', marginBottom: '15px' }}>{icon}</div>
-    <h3 style={{ fontSize: '1.5rem', color: '#1a202c', margin: '0 0 10px', fontWeight: 'bold' }}>{title}</h3>
-    <p style={{ color: '#555', fontSize: '1rem', lineHeight: '1.6', margin: 0 }}>{desc}</p>
+  <div className="gov-card">
+    <div style={{ fontSize: '2.5rem', marginBottom: '15px', background: '#eff6ff', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>{icon}</div>
+    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0 0 10px', color: '#1e293b' }}>{title}</h3>
+    <p style={{ color: '#64748b', margin: 0 }}>{desc}</p>
   </div>
 );
+
+// --- LOCAL STYLES ---
+const styles = {
+  heroSection: {
+    height: '85vh',
+    backgroundImage: 'url("/images/hyd_banner.jpg")', // Ensure this image exists in public/images/
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center', // Vertically centers the container
+  },
+  heroOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.9) 40%, rgba(15, 23, 42, 0.2) 100%)', // Darker on the left for text readability
+  },
+  heroContainer: {
+    position: 'relative',
+    zIndex: 10,
+    width: '100%',
+    display: 'flex',
+    justifyContent: 'flex-start', // Forces the content inside container to the left
+    alignItems: 'center',
+  },
+  heroContent: {
+    maxWidth: '650px',
+    color: 'white',
+    textAlign: 'left',
+  },
+  badge: {
+    background: 'rgba(37, 99, 235, 0.2)',
+    color: '#60a5fa',
+    padding: '8px 16px',
+    borderRadius: '30px',
+    fontSize: '0.85rem',
+    fontWeight: '600',
+    border: '1px solid rgba(96, 165, 250, 0.3)',
+    marginBottom: '25px',
+    display: 'inline-block',
+    backdropFilter: 'blur(4px)',
+  },
+  heroTitle: {
+    fontSize: '4rem',
+    fontWeight: '800',
+    lineHeight: '1.1',
+    margin: '0 0 20px 0',
+    letterSpacing: '-1px',
+  },
+  heroText: {
+    fontSize: '1.25rem',
+    color: '#cbd5e1',
+    marginBottom: '40px',
+    lineHeight: '1.6',
+    maxWidth: '500px',
+  },
+  gridContainer: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '30px',
+    marginTop: '-80px',
+    position: 'relative',
+    zIndex: 20,
+  }
+};
 
 export default Home;

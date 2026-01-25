@@ -11,12 +11,12 @@ const EmployeeDashboard = () => {
   const [resolvingId, setResolvingId] = useState(null);
   const [notes, setNotes] = useState('');
   const [proofImage, setProofImage] = useState(null);
+  const [proofPreview, setProofPreview] = useState(null);
   
   // UI States
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
-  const [showNotifs, setShowNotifs] = useState(false);
   const [activeTab, setActiveTab] = useState('active'); 
 
   const navigate = useNavigate();
@@ -25,11 +25,11 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return navigate('/');
+      if (!session) { navigate('/'); return; }
 
       // Check Role
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-      if (profile?.role !== 'employee') return navigate('/');
+      if (profile?.role !== 'employee') { navigate('/'); return; }
 
       const email = session.user.email;
       setWorkerDetails({ name: email.split('@')[0], email: email });
@@ -49,8 +49,7 @@ const EmployeeDashboard = () => {
   }, [navigate]);
 
   const fetchTasks = async (email) => {
-    if (!email) return; // Prevent 400 Error by ensuring email exists
-    
+    if (!email) return;
     const { data, error } = await supabase
       .from('complaints')
       .select('*')
@@ -58,13 +57,30 @@ const EmployeeDashboard = () => {
       .order('created_at', { ascending: false });
 
     if (error) console.error("Fetch Error:", error.message);
-    setTasks(data || []);
+    
+    // Smart Sorting: Urgent > Oldest > Newest
+    const sortedData = (data || []).sort((a, b) => {
+        const isUrgentA = a.title?.includes('⚠️') || false;
+        const isUrgentB = b.title?.includes('⚠️') || false;
+        if (isUrgentA && !isUrgentB) return -1;
+        if (!isUrgentA && isUrgentB) return 1;
+        return new Date(b.created_at) - new Date(a.created_at);
+    });
+    setTasks(sortedData);
   };
 
   // --- 2. ACTIONS ---
   const startWork = async (id) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'In Progress' } : t));
     await supabase.from('complaints').update({ status: 'In Progress' }).eq('id', id);
+  };
+
+  const handleProofSelect = (e) => {
+      if (e.target.files && e.target.files[0]) {
+          const file = e.target.files[0];
+          setProofImage(file);
+          setProofPreview(URL.createObjectURL(file));
+      }
   };
 
   const submitResolution = async (id) => {
@@ -85,7 +101,7 @@ const EmployeeDashboard = () => {
       if(error) throw error;
 
       alert("✅ Resolution Submitted!");
-      setResolvingId(null); setNotes(''); setProofImage(null);
+      setResolvingId(null); setNotes(''); setProofImage(null); setProofPreview(null);
       fetchTasks(workerDetails.email);
 
     } catch (err) {
@@ -97,14 +113,22 @@ const EmployeeDashboard = () => {
 
   const openMaps = (loc) => {
     if(!loc) return;
-    const coords = loc.replace('Lat: ', '').replace('Long: ', '').replace(' ', '');
-    window.open(`https://www.google.com/maps?q=${coords}`, '_blank');
+    const coords = loc.match(/-?\d+(\.\d+)?/g); 
+    if(coords && coords.length >= 2) {
+        window.open(`https://www.google.com/maps?q=${coords[0]},${coords[1]}`, '_blank');
+    } else {
+        alert("Invalid GPS format");
+    }
   };
 
-  // --- 3. FILTERING ---
-  const displayedTasks = tasks.filter(t => 
-    activeTab === 'active' ? t.status !== 'Resolved' : t.status === 'Resolved'
-  );
+  const getDaysOld = (dateString) => {
+      const days = Math.floor((new Date() - new Date(dateString)) / (1000 * 60 * 60 * 24));
+      if (days === 0) return { label: 'Today', color: '#166534', bg: '#dcfce7' };
+      if (days > 5) return { label: `${days} Days Old`, color: '#991b1b', bg: '#fee2e2' }; 
+      return { label: `${days} Days Ago`, color: '#475569', bg: '#f1f5f9' };
+  };
+
+  const displayedTasks = tasks.filter(t => activeTab === 'active' ? t.status !== 'Resolved' : t.status === 'Resolved');
   
   const stats = {
     total: tasks.length,
@@ -113,160 +137,232 @@ const EmployeeDashboard = () => {
     completed: tasks.filter(t => t.status === 'Resolved').length
   };
 
-  if (loading) return <div style={styles.loading}>Authenticating Field Officer...</div>;
-
   return (
-    <div className="fade-in" style={styles.container}>
+    <div className="container fade-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
+      
+      {/* GLOBAL STYLES FOR ANIMATIONS */}
+      <style>{`
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); } 70% { box-shadow: 0 0 0 10px rgba(220, 53, 69, 0); } 100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); } }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+        .urgent-card { border: 2px solid #ef4444 !important; animation: pulse-red 2s infinite; }
+        .tab-btn { transition: all 0.2s ease; border-bottom: 3px solid transparent; }
+        .tab-btn:hover { background: #f8fafc; }
+        .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: bold; background: #eff6ff; }
+      `}</style>
+
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       {/* HEADER */}
       <div style={styles.header}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: '1.2rem', textTransform: 'uppercase' }}>Field Officer Portal</h2>
-          <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>ID: {workerDetails.name.toUpperCase()}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <div style={{ fontSize: '2.5rem' }}>👷‍♂️</div>
+          <div>
+            <h2 style={{ margin: 0, color: '#0f172a', fontSize:'1.5rem' }}>Field Officer Portal</h2>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>ID: {workerDetails.name.toUpperCase()}</p>
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-         
-          <button onClick={() => setShowProfile(true)} className="btn-gov" style={{padding:'8px 12px'}}>Profile</button>
-          <button onClick={() => { supabase.auth.signOut(); navigate('/'); }} className="btn-gov" style={{background:'#dc3545', padding:'8px 12px'}}>Logout</button>
+          <button onClick={() => setShowProfile(true)} className="btn btn-outline" style={{ color: '#0f172a', borderColor: '#cbd5e1' }}>Profile</button>
+          <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} className="btn btn-primary" style={{ background: '#ef4444', borderColor:'#ef4444' }}>Logout</button>
         </div>
       </div>
 
-      {/* STATS */}
-      <div style={styles.statsBar}>
-        <StatBox label="Total" value={stats.total} color="#007bff" />
-        <StatBox label="Pending" value={stats.pending} color="#dc3545" />
-        <StatBox label="Active" value={stats.inProgress} color="#ffc107" textColor="black" />
-        <StatBox label="Done" value={stats.completed} color="#28a745" />
+      {/* STATS OVERVIEW */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', margin: '20px 0' }}>
+        <StatCard label="Total Assignments" value={stats.total} color="#2563eb" bg="#eff6ff" />
+        <StatCard label="Pending Action" value={stats.pending} color="#d97706" bg="#fffbeb" />
+        <StatCard label="In Progress" value={stats.inProgress} color="#059669" bg="#ecfdf5" />
+        <StatCard label="Jobs Completed" value={stats.completed} color="#475569" bg="#f1f5f9" />
       </div>
 
-      {/* TABS (FIXED STYLE WARNING) */}
-      <div style={styles.tabs}>
+      {/* TABS (Modern Segmented Control) */}
+      <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
         <button 
-          style={activeTab === 'active' ? styles.activeTab : styles.tab} 
-          onClick={() => setActiveTab('active')}
+            className={`tab-btn ${activeTab === 'active' ? 'tab-active' : ''}`} 
+            onClick={() => setActiveTab('active')}
+            style={styles.tab}
         >
           📋 Current Work
         </button>
         <button 
-          style={activeTab === 'history' ? styles.activeTab : styles.tab} 
-          onClick={() => setActiveTab('history')}
+            className={`tab-btn ${activeTab === 'history' ? 'tab-active' : ''}`} 
+            onClick={() => setActiveTab('history')}
+            style={styles.tab}
         >
           ✅ History
         </button>
       </div>
 
-      {/* LIST */}
-      <div style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
-        {displayedTasks.length === 0 ? (
-          <div style={styles.emptyState}>No tasks found in this section.</div>
+      {/* TASK LIST */}
+      <div style={{ padding: '10px 0' }}>
+        {loading ? (
+             <>
+                <SkeletonCard />
+                <SkeletonCard />
+            </>
+        ) : displayedTasks.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '50px', background: 'white', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
+             <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🎉</div>
+             <div style={{ color: '#64748b' }}>All caught up! No tasks in this section.</div>
+          </div>
         ) : (
-          displayedTasks.map(t => (
-            <div key={t.id} style={styles.taskCard}>
-              
-              {/* HEADER STRIP */}
-              <div style={{ ...styles.cardStrip, borderLeft: `5px solid ${getPriorityColor(t.priority)}` }}>
-                {/* 🔴 FIX: Convert ID to String before slicing to prevent crash */}
-                <span style={{fontWeight:'bold'}}>#{String(t.id).slice(0,6)}</span>
-                <span style={styles.statusBadge(t.status)}>{t.status.toUpperCase()}</span>
-              </div>
+          displayedTasks.map(t => {
+            const isUrgent = t.title.includes('⚠️');
+            const age = getDaysOld(t.created_at);
 
-              <div style={{ padding: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+            return (
+                <div key={t.id} className={`gov-card fade-in ${isUrgent ? 'urgent-card' : ''}`} style={styles.taskCard}>
                 
-                {/* DETAILS */}
-                <div style={{ flex: 1, minWidth: '280px' }}>
-                  <h3 style={{ margin: '0 0 10px', color: '#0056b3' }}>{t.title} <span style={{fontSize:'0.8rem', color:'#666'}}>({t.category})</span></h3>
-                  <p style={{ color: '#444', marginBottom: '15px' }}>{t.description}</p>
-                  
-                  <div style={styles.infoRow} onClick={() => openMaps(t.location)}>
-                    <span>📍</span> <span>{t.location || 'No GPS'}</span>
-                  </div>
-                  <div style={{marginTop:'10px'}}>
-                     {t.image_url ? <img src={t.image_url} alt="Problem" style={styles.thumbnail} /> : <span style={{fontSize:'0.8rem', color:'#999'}}>No Image Provided</span>}
-                  </div>
+                {/* URGENT HEADER */}
+                {isUrgent && (
+                    <div style={{ background: '#ef4444', color: 'white', padding: '8px 20px', fontSize: '0.85rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>⚠️ SAFETY HAZARD - HIGH PRIORITY</span>
+                    </div>
+                )}
+
+                {/* META STRIP */}
+                <div style={styles.cardStrip}>
+                    <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
+                        <span style={{fontWeight:'bold', color:'#64748b', fontFamily:'monospace'}}>#{String(t.id).slice(0,4)}</span>
+                        <span style={{ fontSize:'0.75rem', fontWeight:'bold', color: age.color, background: age.bg, padding:'2px 8px', borderRadius:'6px' }}>{age.label}</span>
+                    </div>
+                    <span style={styles.statusBadge(t.status)}>{t.status.toUpperCase()}</span>
                 </div>
 
-                {/* ACTIONS */}
-                {activeTab === 'active' && (
-                  <div style={styles.actionPanel}>
-                    {t.status === 'Assigned' || t.status === 'Pending' ? (
-                      <div style={{textAlign:'center', padding:'20px'}}>
-                        <button onClick={() => startWork(t.id)} style={styles.startBtn}>🚀 Accept & Start</button>
-                      </div>
-                    ) : resolvingId === t.id ? (
-                      <div className="fade-in">
-                        <h4 style={{marginTop:0}}>Upload Proof</h4>
-                        <input type="file" onChange={e => setProofImage(e.target.files[0])} style={{width:'100%', marginBottom:'10px'}} />
-                        <textarea placeholder="Notes..." value={notes} onChange={e => setNotes(e.target.value)} style={{width:'100%', padding:'10px', marginBottom:'10px'}} />
-                        <button onClick={() => submitResolution(t.id)} style={styles.submitBtn} disabled={submitting}>{submitting ? '...' : 'Mark Resolved'}</button>
-                        <button onClick={() => setResolvingId(null)} style={styles.cancelBtn}>Cancel</button>
-                      </div>
-                    ) : (
-                      <div style={{textAlign:'center', padding:'10px'}}>
-                        <div style={styles.wipBadge}>🚧 IN PROGRESS</div>
-                        <button onClick={() => setResolvingId(t.id)} style={styles.resolveBtn}>📷 Complete Job</button>
-                      </div>
+                <div style={{ padding: '25px', display: 'flex', gap: '25px', flexWrap: 'wrap' }}>
+                    
+                    {/* LEFT: DETAILS */}
+                    <div style={{ flex: 1, minWidth: '300px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                             <h3 style={{ margin: '0 0 10px', color: '#0f172a', fontSize:'1.25rem' }}>
+                                {t.title.replace('⚠️ [URGENT] ', '')} 
+                            </h3>
+                            <span style={{ fontSize:'0.75rem', fontWeight:'bold', color:'#2563eb', background:'#eff6ff', padding:'4px 10px', borderRadius:'15px' }}>{t.category}</span>
+                        </div>
+                       
+                        <p style={{ color: '#475569', marginBottom: '20px', lineHeight:'1.6' }}>{t.description}</p>
+                        
+                        <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+                            <button onClick={() => openMaps(t.location)} style={styles.mapBtn}>
+                                📍 Get Directions
+                            </button>
+                        </div>
+
+                        <div style={{marginTop:'10px', borderRadius:'8px', overflow:'hidden', border:'1px solid #e2e8f0', width:'fit-content'}}>
+                            {t.image_url ? <img src={t.image_url} alt="Problem" style={{ width: '120px', height: '120px', objectFit: 'cover' }} /> : <div style={{width:'120px', height:'120px', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:'0.8rem'}}>No Photo</div>}
+                        </div>
+                    </div>
+
+                    {/* RIGHT: ACTION PANEL */}
+                    {activeTab === 'active' && (
+                    <div style={styles.actionPanel}>
+                        {t.status === 'Assigned' || t.status === 'Pending' ? (
+                        <div style={{textAlign:'center', padding:'30px 20px'}}>
+                            <div style={{fontSize:'2rem', marginBottom:'10px'}}>🚀</div>
+                            <div style={{marginBottom:'15px', color:'#64748b', fontSize:'0.9rem'}}>New assignment available</div>
+                            <button onClick={() => startWork(t.id)} className="btn btn-primary" style={{width:'100%'}}>Accept Assignment</button>
+                        </div>
+                        ) : resolvingId === t.id ? (
+                        <div className="fade-in">
+                            <h4 style={{marginTop:0, marginBottom:'15px', color:'#0f172a'}}>Submit Resolution</h4>
+                            
+                            {/* Drag & Drop Proof */}
+                            <div style={styles.uploadBox} onClick={() => document.getElementById(`file-${t.id}`).click()}>
+                                {proofPreview ? 
+                                    <div style={{position:'relative'}}>
+                                        <img src={proofPreview} alt="Preview" style={{width:'100%', height:'150px', objectFit:'cover', borderRadius:'6px'}} />
+                                        <div style={{position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,0.6)', color:'white', fontSize:'0.8rem', padding:'5px'}}>Click to Change</div>
+                                    </div>
+                                    : 
+                                    <div style={{padding:'30px 10px', color:'#64748b'}}>
+                                        <span style={{fontSize:'1.5rem'}}>📸</span><br/>Click to Upload Proof
+                                    </div>
+                                }
+                                <input id={`file-${t.id}`} type="file" onChange={handleProofSelect} style={{display:'none'}} />
+                            </div>
+
+                            <textarea placeholder="Officer notes (e.g. Pothole filled with asphalt)..." value={notes} onChange={e => setNotes(e.target.value)} style={styles.textarea} />
+                            
+                            <div style={{display:'flex', gap:'10px'}}>
+                                <button onClick={() => submitResolution(t.id)} className="btn btn-primary" style={{flex:2, background:'#16a34a', borderColor:'#16a34a'}} disabled={submitting}>{submitting ? 'Uploading...' : '✅ Mark Resolved'}</button>
+                                <button onClick={() => { setResolvingId(null); setProofPreview(null); }} className="btn btn-outline" style={{flex:1, color:'#64748b', borderColor:'#cbd5e1'}}>Cancel</button>
+                            </div>
+                        </div>
+                        ) : (
+                        <div style={{textAlign:'center', padding:'20px'}}>
+                            <div style={styles.wipBadge}>🚧 IN PROGRESS</div>
+                            <p style={{fontSize:'0.9rem', color:'#64748b', margin:'15px 0'}}>Work started. When you are finished, upload a photo to close the ticket.</p>
+                            <button onClick={() => setResolvingId(t.id)} className="btn btn-primary" style={{width:'100%', background:'#0f172a', borderColor:'#0f172a'}}>📷 Complete Job</button>
+                        </div>
+                        )}
+                    </div>
                     )}
-                  </div>
-                )}
 
-                {/* HISTORY NOTE */}
-                {activeTab === 'history' && (
-                  <div style={{ flex: 1, borderLeft: '1px solid #eee', paddingLeft: '20px' }}>
-                    <h4 style={{margin:'0 0 10px', color:'green'}}>Resolution</h4>
-                    <p style={{fontSize:'0.9rem'}}>{t.admin_reply}</p>
-                    {t.resolve_image_url && <img src={t.resolve_image_url} alt="Proof" style={styles.thumbnail} />}
-                  </div>
-                )}
+                    {/* HISTORY VIEW (READ ONLY) */}
+                    {activeTab === 'history' && (
+                    <div style={{ flex: 1, borderLeft: '4px solid #f1f5f9', paddingLeft: '25px', display:'flex', flexDirection:'column', justifyContent:'center' }}>
+                        <h4 style={{margin:'0 0 15px', color:'#166534', display:'flex', alignItems:'center', gap:'5px'}}>✅ Resolution Report</h4>
+                        
+                        <div style={{background:'#f0fdf4', padding:'15px', borderRadius:'8px', marginBottom:'15px', border:'1px solid #bbf7d0'}}>
+                            <span style={{fontSize:'0.75rem', fontWeight:'bold', color:'#166534', letterSpacing:'0.5px'}}>OFFICER NOTES</span>
+                            <p style={{margin:'5px 0', fontSize:'0.95rem', color:'#14532d'}}>{t.admin_reply}</p>
+                        </div>
 
-              </div>
-            </div>
-          ))
+                        {t.resolve_image_url && (
+                            <div>
+                                <span style={{fontSize:'0.75rem', fontWeight:'bold', color:'#64748b', marginBottom:'5px', display:'block'}}>PROOF OF WORK</span>
+                                <img src={t.resolve_image_url} alt="Proof" style={{ width: '100%', maxHeight:'150px', objectFit: 'cover', borderRadius: '8px', border:'1px solid #e2e8f0' }} />
+                            </div>
+                        )}
+                    </div>
+                    )}
+
+                </div>
+                </div>
+            );
+          })
         )}
       </div>
     </div>
   );
 };
 
-// --- STYLES ---
-const getPriorityColor = (p) => p === 'High' ? '#dc3545' : p === 'Medium' ? '#ffc107' : '#28a745';
-
-const StatBox = ({ label, value, color, textColor='white' }) => (
-  <div style={{ flex: 1, background: color, color: textColor, padding: '15px', borderRadius: '8px', textAlign: 'center', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
-    <div style={{ fontSize: '1.8rem', fontWeight: 'bold' }}>{value}</div>
-    <div style={{ fontSize: '0.8rem', textTransform: 'uppercase' }}>{label}</div>
-  </div>
+// --- SUB COMPONENTS ---
+const SkeletonCard = () => (
+    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', display: 'flex', gap: '20px', border: '1px solid #f1f5f9', marginBottom:'20px' }}>
+        <div className="skeleton" style={{ width: '120px', height: '120px' }}></div>
+        <div style={{ flex: 1 }}>
+            <div className="skeleton" style={{ width: '40%', height: '20px', marginBottom: '15px' }}></div>
+            <div className="skeleton" style={{ width: '80%', height: '15px', marginBottom: '10px' }}></div>
+            <div className="skeleton" style={{ width: '60%', height: '15px' }}></div>
+        </div>
+    </div>
 );
 
-const styles = {
-  container: { background: '#f4f6f9', minHeight: '100vh', paddingBottom:'50px' },
-  loading: { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#0056b3', fontWeight: 'bold' },
-  header: { background: '#0056b3', color: 'white', padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' },
-  
-  notifBadge: { position: 'absolute', top: -5, right: -5, background: 'red', color: 'white', borderRadius: '50%', width: '18px', height: '18px', fontSize: '0.7rem', display: 'flex', alignItems: 'center', justifyContent: 'center' },
-  
-  statsBar: { display: 'flex', gap: '15px', padding: '20px', maxWidth: '1000px', margin: '0 auto', flexWrap: 'wrap' },
-  
-  // 🔴 FIX: Separated Border Properties to stop React Warning
-  tabs: { display: 'flex', justifyContent: 'center', gap: '20px', marginBottom: '10px' },
-  tab: { padding: '10px 20px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '3px solid transparent', background: 'none', cursor: 'pointer', color: '#666' },
-  activeTab: { padding: '10px 20px', borderTop: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: '3px solid #0056b3', background: 'none', cursor: 'pointer', color: '#0056b3', fontWeight: 'bold' },
-  
-  emptyState: { textAlign: 'center', padding: '50px', color: '#999', fontSize: '1.1rem' },
-  taskCard: { background: 'white', borderRadius: '10px', boxShadow: '0 3px 10px rgba(0,0,0,0.05)', marginBottom: '20px', overflow: 'hidden' },
-  cardStrip: { background: '#f8f9fa', padding: '10px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee' },
-  
-  statusBadge: (s) => ({ padding: '4px 10px', borderRadius: '15px', fontSize: '0.75rem', fontWeight: 'bold', background: s==='Resolved'?'#d1e7dd':s==='In Progress'?'#fff3cd':'#e2e3e5', color: s==='Resolved'?'#0f5132':s==='In Progress'?'#856404':'#383d41' }),
-  wipBadge: { color:'#856404', background:'#fff3cd', padding:'10px', borderRadius:'5px', marginBottom:'15px', fontWeight:'bold' },
+const StatCard = ({ label, value, color, bg }) => (
+    <div className="gov-card" style={{ textAlign: 'center', background: bg, borderLeft: `4px solid ${color}`, padding: '20px', borderRadius:'12px', boxShadow:'0 2px 4px rgba(0,0,0,0.05)' }}>
+        <h3 style={{ margin: 0, fontSize: '2rem', color: color }}>{value}</h3>
+        <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight:'600', textTransform:'uppercase' }}>{label}</span>
+    </div>
+);
 
-  infoRow: { display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', color: '#555', marginBottom: '8px', cursor:'pointer' },
-  thumbnail: { width: '80px', height: '80px', objectFit: 'cover', borderRadius: '5px', border: '1px solid #ddd', marginTop: '10px' },
+// --- STYLES OBJECT ---
+const styles = {
+  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '15px 25px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '20px' },
+  tab: { flex: 1, padding: '15px', cursor: 'pointer', background: 'none', border: 'none', fontSize: '1rem', color: '#64748b' },
   
-  actionPanel: { flex: 1, minWidth: '280px', background: '#f9f9f9', padding: '20px', borderRadius: '8px', border: '1px solid #eee' },
-  startBtn: { width: '100%', padding: '12px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
-  resolveBtn: { width: '100%', padding: '12px', background: '#28a745', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
-  submitBtn: { width: '100%', padding: '10px', background: '#198754', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', marginBottom: '10px' },
-  cancelBtn: { width: '100%', padding: '10px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' },
+  taskCard: { background: 'white', borderRadius: '12px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)', marginBottom: '25px', overflow: 'hidden', border: '1px solid #e2e8f0' },
+  cardStrip: { background: '#f8fafc', padding: '12px 25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #e2e8f0' },
+  
+  statusBadge: (s) => ({ padding: '6px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', background: s==='Resolved'?'#dcfce7':s==='In Progress'?'#fef9c3':'#e2e8f0', color: s==='Resolved'?'#166534':s==='In Progress'?'#854d0e':'#475569', letterSpacing:'0.5px' }),
+  wipBadge: { color:'#854d0e', background:'#fef9c3', padding:'8px 15px', borderRadius:'20px', display:'inline-block', fontWeight:'bold', fontSize:'0.85rem', letterSpacing:'0.5px' },
+
+  mapBtn: { background: 'white', color: '#0f172a', border: '1px solid #cbd5e1', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '600', display:'flex', alignItems:'center', gap:'8px', boxShadow:'0 1px 2px rgba(0,0,0,0.05)' },
+  
+  actionPanel: { flex: 1, minWidth: '300px', background: 'white', padding: '25px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' },
+  uploadBox: { border: '2px dashed #cbd5e1', borderRadius: '8px', textAlign: 'center', marginBottom: '15px', cursor: 'pointer', background: '#f8fafc', overflow:'hidden', transition:'all 0.2s' },
+  textarea: { width: '100%', padding: '12px', marginBottom: '15px', borderRadius: '8px', border: '1px solid #cbd5e1', minHeight:'80px', fontSize:'0.95rem', fontFamily:'inherit' },
 };
 
 export default EmployeeDashboard;

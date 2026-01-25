@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from './Profile';
@@ -9,53 +9,48 @@ const UserDashboard = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Form & UI States
+  // Form States
   const [formData, setFormData] = useState({ title: '', desc: '', location: '', category: 'Roads' });
+  const [isUrgent, setIsUrgent] = useState(false);
   const [image, setImage] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef(null);
   
-  // Filter States
+  // Filter & UI States
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [categoryFilter, setCategoryFilter] = useState('All');
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
-
-  // Modal & Notification States
+  
+  // Modal States
   const [showProfile, setShowProfile] = useState(false);
-  const [selectedComplaint, setSelectedComplaint] = useState(null); 
+  const [selectedComplaint, setSelectedComplaint] = useState(null); // Controls the popup
   const [isEditing, setIsEditing] = useState(false); 
   
-  // 🔥 NOTIFICATION LOGIC
+  // Notification Logic
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0); // Tracks unread alerts
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const navigate = useNavigate();
 
-  // --- 1. INITIALIZATION & REAL-TIME LISTENERS ---
+  // --- 1. INITIALIZATION ---
   useEffect(() => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return navigate('/');
       setUser(session.user);
-      
-      // Load Data
       fetchHistory(session.user.id);
       fetchBroadcasts(); 
     };
     checkUser();
 
-    // Real-time Subscription
+    // Real-time Listeners
     const sub = supabase.channel('user_dashboard')
-      // Listener 1: Status Updates on My Complaints
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
         handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
-        // Refresh list to show new status/image
-        supabase.auth.getSession().then(({ data }) => {
-            if(data.session) fetchHistory(data.session.user.id);
-        });
+        supabase.auth.getSession().then(({ data }) => { if(data.session) fetchHistory(data.session.user.id); });
       })
-      // Listener 2: Admin Broadcasts
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
         handleNewNotification(`📢 ADMIN ALERT: ${payload.new.message}`);
       })
@@ -75,7 +70,6 @@ const UserDashboard = () => {
     const all = data || [];
     setComplaints(all);
 
-    // Calculate Stats
     setStats({
       total: all.length,
       pending: all.filter(c => c.status === 'Pending').length,
@@ -86,37 +80,42 @@ const UserDashboard = () => {
   };
 
   const fetchBroadcasts = async () => {
-    // Get last 3 admin broadcasts
     const { data } = await supabase.from('broadcasts').select('*').order('created_at', { ascending: false }).limit(3);
     if(data) {
         const formatted = data.map(b => ({ id: b.id, msg: `📢 ADMIN: ${b.message}`, type: 'broadcast' }));
         setNotifications(prev => [...formatted, ...prev]);
-        // We set initial unread count to match these new broadcasts so user sees them
         setUnreadCount(data.length); 
     }
   };
 
   const handleNewNotification = (msg) => {
     setNotifications(prev => [{ id: Date.now(), msg: msg, type: 'alert' }, ...prev]);
-    setUnreadCount(prev => prev + 1); // 🔴 Increment red badge
+    setUnreadCount(prev => prev + 1);
   };
 
-  const toggleNotifications = () => {
-    if (!showNotifications) {
-        setUnreadCount(0); // 🔴 Reset red badge when opening
-    }
-    setShowNotifications(!showNotifications);
-  };
-
-  // --- 3. ACTIONS (Submit, Edit, Reopen) ---
+  // --- 3. ACTIONS ---
   const handleGPS = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(pos => {
         setFormData({ ...formData, location: `Lat: ${pos.coords.latitude.toFixed(4)}, Long: ${pos.coords.longitude.toFixed(4)}` });
       }, () => alert("GPS Access Denied."));
-    } else {
-      alert("GPS not supported.");
+    } else { alert("GPS not supported."); }
+  };
+
+  const handleFileDrop = (e) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+        setImage(file);
+        setPreviewUrl(URL.createObjectURL(file));
     }
+  };
+  
+  const handleFileSelect = (e) => {
+      if (e.target.files && e.target.files[0]) {
+          setImage(e.target.files[0]);
+          setPreviewUrl(URL.createObjectURL(e.target.files[0]));
+      }
   };
 
   const handleSubmit = async (e) => {
@@ -132,9 +131,11 @@ const UserDashboard = () => {
       imageUrl = data.publicUrl;
     }
 
+    const finalTitle = isUrgent ? `⚠️ [URGENT] ${formData.title}` : formData.title;
+
     const { error } = await supabase.from('complaints').insert([{
       user_id: user.id, 
-      title: formData.title, 
+      title: finalTitle, 
       description: formData.desc, 
       category: formData.category, 
       location: formData.location, 
@@ -146,7 +147,8 @@ const UserDashboard = () => {
       alert("✅ Report Submitted Successfully!");
       setFormData({ title: '', desc: '', location: '', category: 'Roads' });
       setImage(null);
-      document.getElementById('fileInput').value = "";
+      setPreviewUrl(null);
+      setIsUrgent(false);
       fetchHistory(user.id);
     } else {
         alert("Error: " + error.message);
@@ -156,38 +158,22 @@ const UserDashboard = () => {
 
   const handleReopen = async (id) => {
     if (window.confirm("⚠️ Are you sure the work was NOT done? This will reopen the ticket.")) {
-      const { error } = await supabase
-        .from('complaints')
-        .update({ status: 'Pending', admin_reply: 'REOPENED BY USER: Issue persists.' })
-        .eq('id', id);
-      
-      if (!error) {
-        alert("Ticket Reopened.");
-        fetchHistory(user.id);
-        setSelectedComplaint(null);
-      }
+      const { error } = await supabase.from('complaints').update({ status: 'Pending', admin_reply: 'REOPENED BY USER: Issue persists.' }).eq('id', id);
+      if (!error) { alert("Ticket Reopened."); fetchHistory(user.id); setSelectedComplaint(null); }
     }
   };
 
   const handleUpdateComplaint = async () => {
     if (!selectedComplaint) return;
-    await supabase.from('complaints').update({ 
-        title: selectedComplaint.title, 
-        description: selectedComplaint.description,
-        category: selectedComplaint.category 
-      }).eq('id', selectedComplaint.id);
-    alert("Updated!");
-    setIsEditing(false);
-    setSelectedComplaint(null);
-    fetchHistory(user.id);
+    await supabase.from('complaints').update({ title: selectedComplaint.title, description: selectedComplaint.description, category: selectedComplaint.category }).eq('id', selectedComplaint.id);
+    alert("Updated!"); setIsEditing(false); setSelectedComplaint(null); fetchHistory(user.id);
   };
 
   // --- 4. RENDER HELPERS ---
   const filteredComplaints = complaints.filter(c => {
     const matchesSearch = c.title.toLowerCase().includes(searchTerm.toLowerCase()) || c.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'All' || c.status === statusFilter;
-    const matchesCategory = categoryFilter === 'All' || c.category === categoryFilter;
-    return matchesSearch && matchesStatus && matchesCategory;
+    return matchesSearch && matchesStatus;
   });
 
   const getTimelineStep = (status) => {
@@ -200,61 +186,79 @@ const UserDashboard = () => {
     }
   };
 
+  const CATEGORIES = [
+      { id: 'Roads', icon: '🛣️', label: 'Roads' },
+      { id: 'Garbage', icon: '🗑️', label: 'Garbage' },
+      { id: 'Electricity', icon: '⚡', label: 'Electric' },
+    
+  ];
+
   return (
     <div className="container fade-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       
+      {/* GLOBAL STYLES */}
+      <style>{`
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
+        .cat-btn:hover { transform: translateY(-3px); box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-color: #2563eb !important; }
+        .cat-selected { background: #eff6ff !important; border-color: #2563eb !important; color: #0056b3 !important; }
+      `}</style>
+
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       
-      {/* --- DETAILS MODAL --- */}
+      {/* 🔥 DETAILS MODAL (THIS WAS MISSING) 🔥 */}
       {selectedComplaint && (
-        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div className="modal-content fade-in" style={{ background: 'white', padding: '25px', borderRadius: '10px', width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(3px)' }}>
+          <div className="gov-card fade-in" style={{ width: '90%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '30px', position: 'relative' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px', borderBottom:'1px solid #eee', paddingBottom:'10px' }}>
-              <h2 style={{ margin: 0, color: '#0056b3' }}>{isEditing ? '✏️ Edit Report' : '📋 Report Details'}</h2>
-              <button onClick={() => { setSelectedComplaint(null); setIsEditing(false); }} style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>✖</button>
-            </div>
+            <button onClick={() => { setSelectedComplaint(null); setIsEditing(false); }} style={{ position: 'absolute', top: '20px', right: '20px', background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#64748b' }}>✖</button>
+
+            <h2 style={{ marginTop: 0, color: '#0f172a' }}>{isEditing ? 'Edit Report' : 'Report Details'}</h2>
 
             {isEditing ? (
-              // Edit Form
+              // Edit Mode
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <input value={selectedComplaint.title} onChange={e => setSelectedComplaint({...selectedComplaint, title: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-                <textarea rows="4" value={selectedComplaint.description} onChange={e => setSelectedComplaint({...selectedComplaint, description: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }} />
-                <select value={selectedComplaint.category} onChange={e => setSelectedComplaint({...selectedComplaint, category: e.target.value})} style={{ padding: '10px', border: '1px solid #ccc' }}>
+                <input value={selectedComplaint.title} onChange={e => setSelectedComplaint({...selectedComplaint, title: e.target.value})} style={styles.input} />
+                <textarea rows="4" value={selectedComplaint.description} onChange={e => setSelectedComplaint({...selectedComplaint, description: e.target.value})} style={styles.input} />
+                <select value={selectedComplaint.category} onChange={e => setSelectedComplaint({...selectedComplaint, category: e.target.value})} style={styles.input}>
                    <option>Roads</option><option>Garbage</option><option>Electricity</option><option>Water</option><option>Traffic</option>
                 </select>
-                <button onClick={handleUpdateComplaint} className="btn-gov">Save Changes</button>
+                <div style={{display:'flex', gap:'10px', marginTop:'10px'}}>
+                    <button onClick={handleUpdateComplaint} className="btn btn-primary" style={{flex:1}}>Save Changes</button>
+                    <button onClick={() => setIsEditing(false)} className="btn btn-outline" style={{flex:1, color:'black', borderColor:'#ccc'}}>Cancel</button>
+                </div>
               </div>
             ) : (
-              // View Details
+              // View Mode
               <div>
-                <div style={{display:'flex', gap:'10px', overflowX:'auto', marginBottom:'15px'}}>
+                <div style={{display:'flex', gap:'15px', overflowX:'auto', marginBottom:'20px'}}>
                     <div style={{flex:1}}>
-                        <div style={{fontSize:'0.7rem', fontWeight:'bold', color:'#666'}}>YOUR PHOTO</div>
-                        {selectedComplaint.image_url ? <img src={selectedComplaint.image_url} alt="Before" style={{ width:'100%', height: '150px', borderRadius: '5px', objectFit:'cover', border:'1px solid #ddd' }} /> : <div style={{height:'150px', background:'#eee', display:'flex', alignItems:'center', justifyContent:'center'}}>No Image</div>}
+                        <div style={{fontSize:'0.75rem', fontWeight:'bold', color:'#64748b', marginBottom:'5px'}}>YOUR PHOTO</div>
+                        {selectedComplaint.image_url ? <img src={selectedComplaint.image_url} alt="Before" style={{ width:'100%', height: '180px', borderRadius: '8px', objectFit:'cover', border:'1px solid #e2e8f0' }} /> : <div style={{height:'180px', background:'#f1f5f9', borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center'}}>No Image</div>}
                     </div>
                     {selectedComplaint.resolve_image_url && (
                         <div style={{flex:1}}>
-                            <div style={{fontSize:'0.7rem', fontWeight:'bold', color:'green'}}>✅ RESOLUTION PROOF</div>
-                            <img src={selectedComplaint.resolve_image_url} alt="After" style={{ width:'100%', height: '150px', borderRadius: '5px', objectFit:'cover', border:'2px solid green' }} />
+                            <div style={{fontSize:'0.75rem', fontWeight:'bold', color:'#166534', marginBottom:'5px'}}>✅ RESOLUTION PROOF</div>
+                            <img src={selectedComplaint.resolve_image_url} alt="After" style={{ width:'100%', height: '180px', borderRadius: '8px', objectFit:'cover', border:'2px solid #22c55e' }} />
                         </div>
                     )}
                 </div>
                 
-                <h3 style={{ margin: '0 0 5px' }}>{selectedComplaint.title}</h3>
-                <span style={{ background: '#e9ecef', padding: '3px 8px', borderRadius: '4px', fontSize: '0.8rem', fontWeight:'bold', color:'#555' }}>{selectedComplaint.category}</span>
-                <p style={{ marginTop: '10px', color: '#555' }}>{selectedComplaint.description}</p>
+                <h3 style={{ margin: '0 0 5px', fontSize: '1.25rem' }}>{selectedComplaint.title}</h3>
+                <span style={{ background: '#eff6ff', color: '#2563eb', padding: '4px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight:'bold' }}>{selectedComplaint.category}</span>
+                <p style={{ marginTop: '15px', color: '#475569', lineHeight: '1.6' }}>{selectedComplaint.description}</p>
 
-                <div style={{ marginTop: '25px', position: 'relative', padding: '0 10px' }}>
-                  <h4 style={{ margin: '0 0 15px' }}>Progress Tracking</h4>
+                {/* Timeline */}
+                <div style={{ marginTop: '30px', position: 'relative', padding: '0 10px' }}>
+                  <h4 style={{ margin: '0 0 20px', fontSize:'0.9rem', color:'#64748b' }}>STATUS TIMELINE</h4>
                   <div style={{ display: 'flex', justifyContent: 'space-between', position: 'relative' }}>
-                    <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, height: '3px', background: '#e0e0e0', zIndex: 0 }}></div>
+                    <div style={{ position: 'absolute', top: '10px', left: 0, right: 0, height: '3px', background: '#e2e8f0', zIndex: 0 }}></div>
                     {['Submitted', 'Assigned', 'In Progress', 'Resolved'].map((label, idx) => {
                       const isActive = idx + 1 <= getTimelineStep(selectedComplaint.status);
                       return (
                         <div key={label} style={{ zIndex: 1, textAlign: 'center', flex: 1 }}>
-                          <div style={{ width: '20px', height: '20px', background: isActive ? '#28a745' : '#ccc', borderRadius: '50%', margin: '0 auto', border: '3px solid white' }}></div>
-                          <div style={{ fontSize: '0.7rem', marginTop: '5px', color: isActive ? '#000' : '#999', fontWeight: isActive ? 'bold' : 'normal' }}>{label}</div>
+                          <div style={{ width: '20px', height: '20px', background: isActive ? '#2563eb' : '#e2e8f0', borderRadius: '50%', margin: '0 auto', border: '3px solid white', boxShadow: isActive ? '0 0 0 2px #bfdbfe' : 'none' }}></div>
+                          <div style={{ fontSize: '0.7rem', marginTop: '8px', color: isActive ? '#0f172a' : '#94a3b8', fontWeight: isActive ? 'bold' : 'normal' }}>{label}</div>
                         </div>
                       )
                     })}
@@ -262,16 +266,16 @@ const UserDashboard = () => {
                 </div>
 
                 {selectedComplaint.admin_reply && (
-                  <div style={{ marginTop: '20px', padding: '10px', background: '#f0fdf4', borderLeft: '4px solid #198754', fontSize: '0.9rem', borderRadius:'4px' }}>
-                    <strong>👷 Field Officer Update:</strong>
-                    <div style={{marginTop:'5px'}}>{selectedComplaint.admin_reply}</div>
+                  <div style={{ marginTop: '25px', padding: '15px', background: '#f0fdf4', borderLeft: '4px solid #22c55e', borderRadius:'6px' }}>
+                    <strong style={{color:'#166534', display:'block', marginBottom:'5px'}}>👷 Field Officer Update:</strong>
+                    <div style={{color:'#15803d'}}>{selectedComplaint.admin_reply}</div>
                   </div>
                 )}
 
-                <div style={{ marginTop: '25px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                  {selectedComplaint.status === 'Pending' && <button onClick={() => setIsEditing(true)} style={{ padding: '8px 15px', background: '#ffc107', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>✏️ Edit</button>}
-                  {selectedComplaint.status === 'Resolved' && <button onClick={() => handleReopen(selectedComplaint.id)} style={{ padding: '8px 15px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>🔄 Issue Not Fixed? Reopen</button>}
-                  <button onClick={() => setSelectedComplaint(null)} style={{ padding: '8px 15px', background: '#6c757d', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Close</button>
+                <div style={{ marginTop: '30px', display: 'flex', gap: '10px', justifyContent: 'flex-end', borderTop:'1px solid #f1f5f9', paddingTop:'20px' }}>
+                  {selectedComplaint.status === 'Pending' && <button onClick={() => setIsEditing(true)} className="btn btn-outline" style={{ color:'#d97706', borderColor:'#d97706' }}>✏️ Edit</button>}
+                  {selectedComplaint.status === 'Resolved' && <button onClick={() => handleReopen(selectedComplaint.id)} className="btn btn-primary" style={{ background: '#dc3545', border:'none' }}>🔄 Issue Not Fixed? Reopen</button>}
+                  <button onClick={() => setSelectedComplaint(null)} className="btn btn-outline" style={{ color: '#64748b', borderColor: '#cbd5e1' }}>Close</button>
                 </div>
               </div>
             )}
@@ -279,143 +283,176 @@ const UserDashboard = () => {
         </div>
       )}
 
-      {/* --- HEADER & NOTIFICATIONS --- */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '15px 20px', borderBottom: '3px solid #0056b3', borderRadius: '8px 8px 0 0', boxShadow: '0 2px 5px rgba(0,0,0,0.05)' }}>
+      {/* HEADER */}
+      <div style={styles.header}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ fontSize: '2.5rem' }}>🏛️</div>
+          <div style={{ fontSize: '2.5rem' }}><img src="/images/ts_logo.png" alt="Logo" style={{ width: '50px', height: '50px' }} /></div>
           <div>
-            <h2 style={{ margin: 0, color: '#0056b3', textTransform: 'uppercase', fontSize:'1.5rem' }}>Civic Connect</h2>
-            <p style={{ margin: 0, color: '#666', fontSize: '0.85rem' }}>Citizen Reporting Portal</p>
+            <h2 style={{ margin: 0, color: '#0f172a', fontSize:'1.5rem' }}>Civic Connect</h2>
+            <p style={{ margin: 0, color: '#64748b', fontSize: '0.85rem' }}>Citizen Reporting Portal</p>
           </div>
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          
-          {/* 🔥 BELL ICON WITH COUNT 🔥 */}
-          <div style={{ position: 'relative', cursor: 'pointer' }} onClick={toggleNotifications}>
+           <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => { setShowNotifications(!showNotifications); setUnreadCount(0); }}>
             <span style={{ fontSize: '1.5rem' }}>🔔</span>
-            {/* Show badge ONLY if unreadCount > 0 */}
-            {unreadCount > 0 && (
-                <span style={{
-                    position:'absolute', top:-5, right:-5, background:'red', color:'white', 
-                    borderRadius:'50%', width:'20px', height:'20px', fontSize:'0.75rem', 
-                    display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold'
-                }}>
-                    {unreadCount}
-                </span>
-            )}
-            
+            {unreadCount > 0 && <span style={styles.badge}>{unreadCount}</span>}
             {showNotifications && (
-              <div style={{ position: 'absolute', right: 0, top: '40px', background: 'white', border: '1px solid #ddd', width: '300px', boxShadow: '0 4px 10px rgba(0,0,0,0.1)', borderRadius: '5px', zIndex: 10 }}>
-                <div style={{ padding: '10px', borderBottom: '1px solid #eee', fontWeight: 'bold', background:'#f8f9fa', display:'flex', justifyContent:'space-between' }}>
-                    <span>Notifications</span>
-                    <span style={{fontSize:'0.8rem', color:'#666', cursor:'pointer'}} onClick={() => setNotifications([])}>Clear</span>
-                </div>
+              <div style={styles.notifDropdown}>
+                <div style={styles.notifHeader}><span>Notifications</span><span onClick={() => setNotifications([])} style={{cursor:'pointer'}}>Clear</span></div>
                 <div style={{maxHeight:'300px', overflowY:'auto'}}>
-                    {notifications.length === 0 ? <div style={{padding:'15px', color:'#999', textAlign:'center'}}>No new alerts.</div> : 
-                        notifications.map(n => (
-                            <div key={n.id} style={{padding:'10px', fontSize:'0.85rem', borderBottom:'1px solid #eee', background: n.type === 'alert' ? '#fff3cd' : 'white'}}>
-                                {n.msg}
-                            </div>
-                        ))
-                    }
+                    {notifications.length === 0 ? <div style={{padding:'15px', textAlign:'center', color:'#999'}}>No new alerts.</div> : notifications.map(n => (
+                        <div key={n.id} style={{padding:'10px', fontSize:'0.85rem', borderBottom:'1px solid #eee', background: n.type === 'alert' ? '#fff3cd' : 'white'}}>{n.msg}</div>
+                    ))}
                 </div>
               </div>
             )}
           </div>
-
-          <div style={{ textAlign: 'right', display: { xs: 'none', md: 'block' } }}>
-            <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>{user?.email}</div>
-            <div style={{ fontSize: '0.8rem', color: 'green' }}>● Citizen</div>
-          </div>
-          <button onClick={() => setShowProfile(true)} className="btn-gov" style={{ padding: '8px 12px' }}>Profile</button>
-          <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} className="btn-gov" style={{ background: '#dc3545', padding: '8px 12px' }}>Logout</button>
+          <button onClick={() => setShowProfile(true)} className="btn btn-outline" style={{ color: '#0f172a', borderColor: '#cbd5e1' }}>Profile</button>
+          <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} className="btn btn-primary" style={{ background: '#ef4444', borderColor:'#ef4444' }}>Logout</button>
         </div>
       </div>
 
-      {/* --- STATS OVERVIEW --- */}
+      {/* STATS OVERVIEW */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', margin: '20px 0' }}>
-        <StatCard label="Total Reports" value={stats.total} color="#0d6efd" bg="#e7f1ff" />
-        <StatCard label="Pending" value={stats.pending} color="#856404" bg="#fff3cd" />
-        <StatCard label="In Progress" value={stats.inProgress} color="#0f5132" bg="#d1e7dd" />
-        <StatCard label="Resolved" value={stats.resolved} color="#383d41" bg="#e2e3e5" />
+        <StatCard label="Total Reports" value={stats.total} color="#2563eb" bg="#eff6ff" />
+        <StatCard label="Pending" value={stats.pending} color="#d97706" bg="#fffbeb" />
+        <StatCard label="In Progress" value={stats.inProgress} color="#059669" bg="#ecfdf5" />
+        <StatCard label="Resolved" value={stats.resolved} color="#475569" bg="#f1f5f9" />
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '25px', alignItems: 'start' }}>
         
-        {/* --- REPORT FORM --- */}
-        <div className="gov-card" style={{ padding: '25px', position: 'sticky', top: '20px', borderTop:'4px solid #0056b3' }}>
-          <h3 style={{ margin: '0 0 15px', color: '#0056b3', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>📝 New Report</h3>
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {/* NEW REPORT FORM */}
+        <div className="gov-card" style={{ padding: '25px', position: 'sticky', top: '20px', borderTop:'5px solid #2563eb' }}>
+          <h3 style={{ margin: '0 0 20px', color: '#0f172a' }}>📝 New Report</h3>
+          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
+            {/* Visual Category Selector */}
             <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Category</label>
-              <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '5px' }}>
-                <option>Roads</option><option>Garbage</option><option>Electricity</option><option>Water</option><option>Traffic</option>
-              </select>
+                <label style={styles.label}>Select Category</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                    {CATEGORIES.map(cat => (
+                        <div 
+                            key={cat.id} 
+                            onClick={() => setFormData({...formData, category: cat.id})}
+                            className={`cat-btn ${formData.category === cat.id ? 'cat-selected' : ''}`}
+                            style={{ 
+                                border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', 
+                                textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', background: 'white'
+                            }}
+                        >
+                            <div style={{ fontSize: '1.5rem' }}>{cat.icon}</div>
+                            <div style={{ fontSize: '0.75rem', fontWeight: '600', marginTop: '5px' }}>{cat.label}</div>
+                        </div>
+                    ))}
+                </div>
             </div>
+
             <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Title</label>
-              <input placeholder="Short title..." value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '5px' }} />
+              <label style={styles.label}>What is the issue?</label>
+              <input placeholder="e.g. Deep pothole on Main St" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={styles.input} />
+              <textarea placeholder="Describe the problem..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required style={{...styles.input, marginTop:'10px'}} />
             </div>
+
             <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Description</label>
-              <textarea placeholder="Describe issue details..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px', marginTop: '5px' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Location</label>
-              <div style={{ display: 'flex', gap: '5px', marginTop: '5px' }}>
-                <input placeholder="Coords will appear here" value={formData.location} readOnly style={{ flex: 1, padding: '5px', background: '#e9ecef', border: '1px solid #ccc', borderRadius: '4px' }} />
-                <button type="button" onClick={handleGPS} style={{ flex : 1,padding: '10px', background: '#333', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>📍 Get GPS</button>
+              <label style={styles.label}>Location</label>
+              <div style={{ display: 'flex', gap: '5px' }}>
+                <input placeholder="Coordinates..." value={formData.location} readOnly style={{...styles.input, background:'#f1f5f9'}} />
+                <button type="button" onClick={handleGPS} style={{ padding: '0 15px', background: '#334155', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>📍</button>
               </div>
             </div>
+
+            {/* Drag & Drop Image */}
             <div>
-              <label style={{ fontSize: '0.85rem', fontWeight: 'bold' }}>Photo</label>
-              <input id="fileInput" type="file" onChange={e => setImage(e.target.files[0])} style={{ marginTop: '5px', width: '100%' }} />
+                <label style={styles.label}>Evidence Photo</label>
+                <div 
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#2563eb'; }}
+                    onDragLeave={(e) => { e.currentTarget.style.borderColor = '#cbd5e1'; }}
+                    onDrop={handleFileDrop}
+                    onClick={() => fileInputRef.current.click()}
+                    style={{ 
+                        border: '2px dashed #cbd5e1', borderRadius: '8px', padding: '20px', 
+                        textAlign: 'center', cursor: 'pointer', background: previewUrl ? `url(${previewUrl}) center/cover` : '#f8fafc',
+                        height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative'
+                    }}
+                >
+                    {previewUrl ? 
+                        <div style={{background:'rgba(0,0,0,0.5)', color:'white', padding:'5px 10px', borderRadius:'4px'}}>Click to change</div> : 
+                        <div style={{color:'#64748b'}}>
+                            <span style={{fontSize:'1.5rem'}}>☁️</span><br/>
+                            <span style={{fontSize:'0.85rem'}}>Drag photo or Click to upload</span>
+                        </div>
+                    }
+                    <input type="file" ref={fileInputRef} onChange={handleFileSelect} style={{display:'none'}} />
+                </div>
             </div>
-            <button type="submit" className="btn-gov" style={{ marginTop: '10px' }} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Submit Report'}
+
+            {/* Priority Flag */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', padding: '10px', borderRadius: '6px', border: '1px solid #fecaca' }}>
+                <input type="checkbox" checked={isUrgent} onChange={(e) => setIsUrgent(e.target.checked)} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                <div>
+                    <span style={{ display: 'block', fontWeight: 'bold', color: '#b91c1c', fontSize: '0.9rem' }}>High Priority / Safety Hazard</span>
+                    <span style={{ fontSize: '0.75rem', color: '#991b1b' }}>Mark if this poses immediate danger (e.g. live wire)</span>
+                </div>
+            </div>
+
+            <button type="submit" className="btn btn-primary" disabled={submitting}>
+                {submitting ? 'Submitting Report...' : 'Submit Report'}
             </button>
           </form>
         </div>
 
         {/* --- COMPLAINT LIST --- */}
         <div>
-          <div style={{ background: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <input placeholder="🔍 Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ flex: 2, padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
-            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ flex: 1, padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }}>
+          <div style={{ background: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', marginBottom: '20px', display: 'flex', gap: '10px' }}>
+            <input placeholder="🔍 Search reports..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+            <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
               <option value="All">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {loading ? <p style={{ textAlign: 'center' }}>Loading history...</p> : 
-             filteredComplaints.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', background: '#f8f9fa', borderRadius: '8px', color: '#888' }}>No reports found.</div>
+            {loading ? (
+                <>
+                    <SkeletonCard />
+                    <SkeletonCard />
+                    <SkeletonCard />
+                </>
+            ) : filteredComplaints.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '50px', background: 'white', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+                  <div style={{ fontSize: '2rem', marginBottom: '10px' }}>📭</div>
+                  <div style={{ color: '#64748b' }}>No reports found. Good job keeping the city clean!</div>
+              </div>
             ) : (
               filteredComplaints.map(c => (
                 <div key={c.id} className="gov-card" style={{ padding: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
-                  <div style={{ width: '80px', height: '80px', background: '#eee', borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
-                    {c.image_url ? <img src={c.image_url} alt="Ev" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>📷</div>}
+                  <div style={{ width: '80px', height: '80px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, border:'1px solid #e2e8f0' }}>
+                    {c.image_url ? <img src={c.image_url} alt="Ev" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ width: '100%', height: '100%', background:'#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📷</div>}
                   </div>
                   
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '5px' }}>
-                      <span style={{ fontSize: '0.8rem', fontWeight: 'bold', color: '#0056b3', background: '#e7f1ff', padding: '2px 8px', borderRadius: '4px' }}>{c.category}</span>
-                      <span style={{ fontSize: '0.75rem', color: '#666' }}>{new Date(c.created_at).toLocaleDateString()}</span>
+                      <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#2563eb', background: '#eff6ff', padding: '2px 8px', borderRadius: '4px' }}>{c.category}</span>
+                      <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{new Date(c.created_at).toLocaleDateString()}</span>
                     </div>
-                    <h4 style={{ margin: '0 0 5px' }}>{c.title}</h4>
-                    <p style={{ margin: 0, color: '#666', fontSize: '0.9rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '300px' }}>{c.description}</p>
+                    <h4 style={{ margin: '0 0 5px', color: '#0f172a' }}>{c.title}</h4>
+                    <p style={{ margin: 0, color: '#64748b', fontSize: '0.9rem' }}>{c.description.substring(0, 60)}...</p>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
+                  <div style={{ textAlign: 'right' }}>
                     <span style={{ 
-                      padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase',
-                      background: c.status === 'Resolved' ? '#d1e7dd' : c.status === 'Pending' ? '#fff3cd' : '#cff4fc',
-                      color: c.status === 'Resolved' ? '#0f5132' : c.status === 'Pending' ? '#856404' : '#055160'
+                      padding: '4px 10px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 'bold', display: 'inline-block', marginBottom: '8px',
+                      background: c.status === 'Resolved' ? '#dcfce7' : c.status === 'Pending' ? '#fef3c7' : '#e0f2fe',
+                      color: c.status === 'Resolved' ? '#166534' : c.status === 'Pending' ? '#92400e' : '#075985'
                     }}>
                       {c.status}
                     </span>
-                    <button onClick={() => setSelectedComplaint(c)} className="btn-gov" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>View</button>
+                    <br/>
+                    {/* ✅ FIXED: Button now opens the modal */}
+                    <button onClick={() => setSelectedComplaint(c)} style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>
+                        View Details
+                    </button>
                   </div>
                 </div>
               ))
@@ -428,11 +465,33 @@ const UserDashboard = () => {
   );
 };
 
+// --- SUB-COMPONENTS ---
+const SkeletonCard = () => (
+    <div style={{ background: 'white', padding: '20px', borderRadius: '12px', display: 'flex', gap: '20px', border: '1px solid #f1f5f9' }}>
+        <div className="skeleton" style={{ width: '80px', height: '80px' }}></div>
+        <div style={{ flex: 1 }}>
+            <div className="skeleton" style={{ width: '30%', height: '15px', marginBottom: '10px' }}></div>
+            <div className="skeleton" style={{ width: '60%', height: '20px', marginBottom: '10px' }}></div>
+            <div className="skeleton" style={{ width: '90%', height: '15px' }}></div>
+        </div>
+    </div>
+);
+
 const StatCard = ({ label, value, color, bg }) => (
     <div className="gov-card" style={{ textAlign: 'center', background: bg, borderLeft: `4px solid ${color}`, padding: '15px' }}>
         <h3 style={{ margin: 0, fontSize: '1.8rem', color: color }}>{value}</h3>
         <span style={{ fontSize: '0.85rem', color: '#555' }}>{label}</span>
     </div>
 );
+
+// --- STYLES OBJECT ---
+const styles = {
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', padding: '15px 25px', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', marginBottom: '20px' },
+    badge: { position:'absolute', top:-5, right:-5, background:'#ef4444', color:'white', borderRadius:'50%', width:'18px', height:'18px', fontSize:'0.7rem', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:'bold' },
+    notifDropdown: { position: 'absolute', right: 0, top: '45px', background: 'white', border: '1px solid #e2e8f0', width: '320px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', borderRadius: '8px', zIndex: 50 },
+    notifHeader: { padding: '12px', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', background:'#f8fafc', display:'flex', justifyContent:'space-between', fontSize:'0.9rem' },
+    label: { display: 'block', marginBottom: '8px', fontWeight: '600', color: '#334155', fontSize: '0.9rem' },
+    input: { width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.95rem', outline: 'none' }
+};
 
 export default UserDashboard;

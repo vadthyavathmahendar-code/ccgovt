@@ -6,12 +6,11 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true); // Default to true to prevent form flash
+  const [checkingSession, setCheckingSession] = useState(true); 
   const navigate = useNavigate();
 
-  // 1. The Traffic Controller
+  // --- 1. THE TRAFFIC CONTROLLER (LOGIC UNCHANGED) ---
   useEffect(() => {
-    // Function to check role and redirect
     const checkRoleAndRedirect = async (userId) => {
       try {
         const { data: profile } = await supabase
@@ -24,7 +23,7 @@ const Login = () => {
         
         if (role === 'admin') navigate('/admin-dashboard');
         else if (role === 'employee') navigate('/employee-dashboard');
-        else navigate('/user-dashboard'); // Default
+        else navigate('/user-dashboard'); 
       } catch (error) {
         console.error("Error checking role:", error);
         navigate('/user-dashboard');
@@ -34,21 +33,17 @@ const Login = () => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // User is logged in! Check role and redirect.
         await checkRoleAndRedirect(session.user.id);
       } else {
-        // No user found, show the login form
         setCheckingSession(false);
       }
     };
     
-    // Run the initial check
     checkSession();
 
-    // Listen for auth changes (like after Google redirect finishes)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
-        setCheckingSession(true); // Show loading while we redirect
+        setCheckingSession(true); 
         await checkRoleAndRedirect(session.user.id);
       }
     });
@@ -66,87 +61,180 @@ const Login = () => {
       alert(error.message);
       setLoading(false);
     } 
-    // If success, the onAuthStateChange listener above will handle the redirect
   };
 
-  const handleGoogleLogin = async () => {
-    // 🚨 CRITICAL FIX: Force redirect to the CURRENT website origin
-    const currentURL = window.location.origin; 
-
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        // Redirect back to /login so the 'useEffect' above can check the role
-        redirectTo: `${currentURL}/login`
-      }
-    });
-    if (error) alert(error.message);
-  };
-
-  // ✅ LOADING SCREEN (Prevents seeing the form if you are already logged in)
+  // --- 2. LOADING SCREEN ---
   if (checkingSession) {
     return (
-      <div className="fade-in" style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column' }}>
-        <div style={{ 
-          border: '4px solid #f3f3f3', 
-          borderTop: '4px solid #0056b3', 
-          borderRadius: '50%', 
-          width: '40px', 
-          height: '40px', 
-          animation: 'spin 1s linear infinite', 
-          marginBottom: '15px' 
-        }}></div>
-        <h3 style={{ color: '#0056b3' }}>Verifying Credentials...</h3>
+      <div className="fade-in" style={styles.loadingContainer}>
+        <div style={styles.spinner}></div>
+        <h3 style={{ color: '#0f172a', fontWeight: '600', marginTop: '20px' }}>Verifying Credentials...</h3>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
   }
 
+  // --- 3. MAIN UI ---
   return (
-    <div className="fade-in" style={{ padding: '40px 20px', display: 'flex', justifyContent: 'center' }}>
-      <div className="gov-card" style={{ width: '100%', maxWidth: '450px', padding: '0', borderTop: '4px solid #0056b3' }}>
+    <div className="fade-in" style={styles.pageContainer}>
+      
+      <div className="gov-card" style={styles.loginCard}>
         
-        {/* Header */}
-        <div style={{ padding: '20px', background: '#f8f9fa', borderBottom: '1px solid #e9ecef', textAlign: 'center' }}>
-          <img src="/images/ts_logo.png" alt="Logo" style={{ height: '50px', marginBottom: '10px' }} />
-          <h2 style={{ margin: 0, color: '#0056b3' }}>Sign In</h2>
-          <p style={{ margin: 0, fontSize: '0.9rem', color: '#666' }}> To Civic Connect </p>
+        {/* Header Section */}
+        <div style={styles.cardHeader}>
+          
+          <h2 style={styles.title}>Welcome Back</h2>
+          <p style={styles.subtitle}>Sign in to Civic Connect</p>
         </div>
         
+        {/* Form Section */}
         <div style={{ padding: '30px' }}>
-          
-          {/* Login Form */}
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Email ID</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+              <label style={styles.label}>Email Address</label>
+              <input 
+                type="email" 
+                value={email} 
+                onChange={e => setEmail(e.target.value)} 
+                required 
+                placeholder="name@gmail.com"
+                style={styles.input} 
+              />
             </div>
+
             <div>
-              <label style={{ display: 'block', marginBottom: '5px', fontWeight: '600', color: '#333' }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} required style={{ width: '100%', padding: '10px', border: '1px solid #ccc', borderRadius: '4px' }} />
+              <label style={styles.label}>Password</label>
+              <input 
+                type="password" 
+                value={password} 
+                onChange={e => setPassword(e.target.value)} 
+                required 
+                placeholder="••••••••"
+                style={styles.input} 
+              />
             </div>
-            <button type="submit" className="btn-gov" disabled={loading}>
-              {loading ? 'Authenticating...' : 'Login'}
+
+            <button type="submit" className="btn btn-primary" disabled={loading} style={styles.submitBtn}>
+              {loading ? 'Authenticating...' : ' Login'}
             </button>
           </form>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', margin: '20px 0' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
-            <span style={{ padding: '0 10px', color: '#888', fontSize: '0.85rem' }}>OR</span>
-            <div style={{ flex: 1, height: '1px', background: '#e0e0e0' }}></div>
+          {/* Footer Section */}
+          <div style={styles.divider}>
+            <span style={{ background: 'white', padding: '0 10px', color: '#94a3b8', fontSize: '0.85rem' }}>OR</span>
           </div>
 
-         
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
+              Don't have an account? <Link to="/signup" style={styles.link}>Create Account</Link>
+            </p>
+          </div>
         </div>
 
-        {/* Footer */}
-        <div style={{ padding: '15px', background: '#f8f9fa', borderTop: '1px solid #e9ecef', textAlign: 'center', fontSize: '0.9rem' }}>
-          Don't have an account? <Link to="/signup" style={{ color: '#0056b3', fontWeight: 'bold' }}>Create account here</Link>
-        </div>
       </div>
     </div>
   );
+};
+
+// --- STYLES ---
+const styles = {
+  pageContainer: {
+    minHeight: '80vh',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: '#f8fafc', // Light gray background
+    padding: '20px'
+  },
+  loadingContainer: {
+    height: '100vh',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    background: '#f8fafc'
+  },
+  spinner: {
+    border: '4px solid #e2e8f0',
+    borderTop: '4px solid #2563eb',
+    borderRadius: '50%',
+    width: '50px',
+    height: '50px',
+    animation: 'spin 1s linear infinite'
+  },
+  loginCard: {
+    width: '100%',
+    maxWidth: '420px',
+    padding: '0', // Reset padding because we use inner sections
+    borderTop: '5px solid #2563eb', // Nice accent bar at top
+    overflow: 'hidden'
+  },
+  cardHeader: {
+    background: '#f1f5f9',
+    padding: '40px 30px 20px',
+    textAlign: 'center',
+    borderBottom: '1px solid #e2e8f0'
+  },
+  logoCircle: {
+    fontSize: '2.5rem',
+    marginBottom: '10px',
+    display: 'inline-block',
+    background: 'white',
+    width: '70px',
+    height: '70px',
+    lineHeight: '70px',
+    borderRadius: '50%',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+  },
+  title: {
+    margin: '10px 0 5px',
+    color: '#0f172a',
+    fontSize: '1.75rem',
+    fontWeight: '700'
+  },
+  subtitle: {
+    margin: 0,
+    color: '#64748b',
+    fontSize: '1rem'
+  },
+  label: {
+    display: 'block',
+    marginBottom: '8px',
+    fontWeight: '600',
+    color: '#334155',
+    fontSize: '0.9rem'
+  },
+  input: {
+    width: '100%',
+    padding: '12px 15px',
+    border: '1px solid #cbd5e1',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    color: '#1e293b',
+    outline: 'none',
+    transition: 'border-color 0.2s',
+    background: '#f8fafc'
+  },
+  submitBtn: {
+    width: '100%',
+    justifyContent: 'center',
+    marginTop: '10px',
+    padding: '14px'
+  },
+  divider: {
+    position: 'relative',
+    textAlign: 'center',
+    borderTop: '1px solid #e2e8f0',
+    marginTop: '30px',
+    marginBottom: '30px',
+    height: '0px' // Height 0 so the border sits in the middle
+  },
+  link: {
+    color: '#2563eb',
+    fontWeight: '600',
+    textDecoration: 'none'
+  }
 };
 
 export default Login;
