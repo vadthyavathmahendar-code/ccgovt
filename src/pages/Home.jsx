@@ -60,7 +60,7 @@ const Home = () => {
             </h1>
             
             <p style={styles.heroText}>
-              Don't just complain—report it. We connect citizens directly with city officials to fix potholes, garbage, and streetlights.
+              Don't just complain—report it. We connect citizens directly with officials to fix potholes, garbage, and streetlights.
             </p>
 
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
