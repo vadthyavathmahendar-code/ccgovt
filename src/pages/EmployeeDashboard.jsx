@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import ProfileModal from '../components/ProfileModal'; // Import new modal
+import ProfileModal from '../pages/Profile'; // Import new modal
 import toast from 'react-hot-toast'; // Import Toast
 
 const EmployeeDashboard = () => {

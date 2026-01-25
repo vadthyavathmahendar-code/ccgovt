@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import ProfileModal from '../components/ProfileModal';
+import ProfileModal from '../pages/Profile';
 import { createPortal } from 'react-dom'; // For the Details Modal
 
 const UserDashboard = () => {
