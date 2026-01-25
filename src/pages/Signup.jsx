@@ -28,6 +28,8 @@ const Signup = () => {
 
     const { fullName, email, password, confirmPassword } = formData;
 
+    console.log("🚀 Starting Signup for:", email); // DEBUG LOG
+
     // 1. Basic Validation
     if (password !== confirmPassword) {
       alert("❌ Passwords do not match!");
@@ -35,7 +37,7 @@ const Signup = () => {
       return;
     }
 
-    // 2. Secret Code Validation (Your Logic)
+    // 2. Secret Code Validation
     if (role === 'employee' && secretCode !== 'CITYWORKER') {
       setLoading(false);
       return alert("⛔ Invalid Employee Code");
@@ -46,12 +48,18 @@ const Signup = () => {
     }
 
     try {
-      // 3. CHECK IF USER ALREADY EXISTS
-      const { data: existingUser } = await supabase
+      // 3. CHECK IF USER ALREADY EXISTS (FIXED)
+      // We use .maybeSingle() instead of .single() to prevent 406 Errors
+      const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email)
-        .single();
+        .maybeSingle(); 
+
+      if (checkError) {
+        console.error("⚠️ Error checking existing user:", checkError);
+        // We continue anyway, because sometimes RLS policies hide the user
+      }
 
       if (existingUser) {
         alert("⚠️ User already exists! Please go to Login.");
@@ -66,10 +74,12 @@ const Signup = () => {
         options: {
           data: {
             full_name: fullName,
-            role: role
+            role: role // Important: This triggers the SQL function to create the profile
           },
         },
       });
+
+      console.log("📡 Supabase Response:", { data, error }); // DEBUG LOG
 
       if (error) throw error;
 
@@ -78,6 +88,7 @@ const Signup = () => {
       navigate('/login');
 
     } catch (error) {
+      console.error("💥 Signup Error:", error);
       alert("Error: " + error.message);
     } finally {
       setLoading(false);
@@ -207,7 +218,7 @@ const Signup = () => {
 // --- STYLES ---
 const styles = {
   pageContainer: {
-    minHeight: '90vh', // Slightly taller for signup
+    minHeight: '90vh',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -216,7 +227,7 @@ const styles = {
   },
   signupCard: {
     width: '100%',
-    maxWidth: '480px', // Slightly wider than login
+    maxWidth: '480px',
     padding: '0',
     borderTop: '5px solid #2563eb',
     overflow: 'hidden'
@@ -285,9 +296,9 @@ const styles = {
   secretInput: {
     width: '100%',
     padding: '10px',
-    border: '1px solid #ef4444', // Red border for sensitive field
+    border: '1px solid #ef4444',
     borderRadius: '6px',
-    background: '#fef2f2', // Light red background
+    background: '#fef2f2',
     color: '#b91c1c',
     fontSize: '0.9rem'
   },

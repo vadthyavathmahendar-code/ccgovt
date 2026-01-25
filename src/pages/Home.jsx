@@ -1,7 +1,46 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '../supabaseClient';
+import LoadingScreen from '../components/LoadingScreen'; // <--- IMPORT THE NEW COMPONENT
 
 const Home = () => {
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+
+  // --- TRAFFIC CONTROLLER LOGIC ---
+  useEffect(() => {
+    const checkSession = async () => {
+      // 1. Artificial delay for smoother UX (prevents flickering)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // 2. User is logged in! Let's find out who they are.
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        const role = profile?.role || 'citizen';
+
+        // 3. Redirect based on Role
+        if (role === 'admin') navigate('/admin-dashboard');
+        else if (role === 'employee') navigate('/employee-dashboard');
+        else navigate('/user-dashboard');
+      } else {
+        // 4. Not logged in? Stop loading and show the Landing Page.
+        setLoading(false);
+      }
+    };
+
+    checkSession();
+  }, [navigate]);
+
+  // 
+  // 5. Show the Professional Loading Screen while checking
+  if (loading) return <LoadingScreen message="Verifying Credentials..." />;
 
   return (
     <div className="fade-in">
@@ -21,7 +60,7 @@ const Home = () => {
             </h1>
             
             <p style={styles.heroText}>
-              Don't just complain—report it. We connect citizens directly with city officials to fix potholes, garbage, and streetlights .
+              Don't just complain—report it. We connect citizens directly with city officials to fix potholes, garbage, and streetlights.
             </p>
 
             <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
@@ -88,25 +127,24 @@ const FeatureCard = ({ icon, title, desc }) => (
 const styles = {
   heroSection: {
     height: '85vh',
-    backgroundImage: 'url("/images/hyd_banner.jpg")', // Ensure this image exists in public/images/
+    backgroundImage: 'url("/images/hyd_banner.jpg")', // Make sure this image exists in public/images/
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     position: 'relative',
     display: 'flex',
-    alignItems: 'center', // Vertically centers the container
+    alignItems: 'center',
   },
   heroOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.9) 40%, rgba(15, 23, 42, 0.2) 100%)', // Darker on the left for text readability
+    background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.9) 40%, rgba(15, 23, 42, 0.2) 100%)',
   },
   heroContainer: {
     position: 'relative',
     zIndex: 10,
     width: '100%',
     display: 'flex',
-    justifyContent: 'flex-start', // Forces the content inside container to the left
-    alignItems: 'center',
+    justifyContent: 'flex-start',
   },
   heroContent: {
     maxWidth: '650px',
