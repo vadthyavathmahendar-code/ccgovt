@@ -6,7 +6,7 @@ const LoadingScreen = ({ message = "Loading Civic Connect..." }) => {
       {/* Animated Logo Container */}
       <div style={styles.logoWrapper}>
         <div style={styles.pulseRing}></div>
-        <div style={{ fontSize: '3rem', position: 'relative', zIndex: 2 }}>🏛️</div>
+        <div style={{ fontSize: '3rem', position: 'relative', zIndex: 2 }}><img src="/images/cc_logo.png" alt="Logo" style={{ width: '100%', height: '100%' }} /></div>
       </div>
 
       {/* Loading Text */}

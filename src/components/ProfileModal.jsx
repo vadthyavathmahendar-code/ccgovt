@@ -100,17 +100,17 @@ const ProfileModal = ({ onClose }) => {
           
           {/* --- FRONT SIDE --- */}
           <div style={styles.cardFront}>
-            <button onClick={onClose} style={{...styles.closeBtn, left: '10px', top: '15px'}}>&times;</button>
+            <button onClick={onClose} style={{...styles.closeBtn, left: '15px', top: '15px'}}>&times;</button>
             
             <div style={styles.cardHeader}>
-               <span style={{fontSize: '2rem'}}><img src="/images/cc_logo.png" alt="Logo" style={{ width: '80px', height: '60px' }} /></span>
+               <span style={{fontSize: '2rem'}}>🏛️</span>
                <div style={{textAlign: 'right'}}>
                  <div style={styles.headerTitle}>CIVIC CONNECT</div>
                  <div style={styles.headerSubtitle}>OFFICIAL DIGITAL ID</div>
                </div>
             </div>
             
-            <div style={{display: 'flex', flex: 1, gap: '20px', alignItems: 'center', justifyContent: 'center'}}>
+            <div style={{display: 'flex', marginTop: '10px', gap: '20px', alignItems: 'center', height: '100%'}}>
               <div style={styles.photoContainer} onClick={() => fileInputRef.current.click()} title="Click to change photo">
                 <input type="file" ref={fileInputRef} onChange={uploadAvatar} accept="image/*" style={{ display: 'none' }} disabled={uploading} />
                 {uploading ? <span style={{fontSize:'0.6rem'}}>Wait...</span> : 
@@ -140,31 +140,29 @@ const ProfileModal = ({ onClose }) => {
 
           {/* --- BACK SIDE --- */}
           <div style={styles.cardBack}>
-             {/* Close Button - Moved to Top Right to avoid collision */}
-             <button onClick={onClose} style={{...styles.closeBtn, right: '10px', top: '10px', left: 'auto'}}>&times;</button>
+             {/* Close Button - Top Right Absolute */}
+             <button onClick={onClose} style={{...styles.closeBtn, right: '15px', left: 'auto', top: '15px'}}>&times;</button>
              
-             <h3 style={{margin: '0 0 10px 0', color: '#1e293b', borderBottom: '2px solid #e2e8f0', paddingBottom: '5px', fontSize:'1rem', paddingRight: '30px'}}>
+             <h3 style={{margin: '0 0 10px 0', color: '#1e293b', borderBottom: '2px solid #e2e8f0', paddingBottom: '8px', fontSize:'1rem', paddingRight: '40px'}}>
                Update Information
              </h3>
              
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-               <div>
-                 <label style={styles.formLabel}>Full Name</label>
-                 <input value={fullName} onChange={e => setFullName(e.target.value)} style={styles.input} />
-               </div>
-               
-               <div>
-                 <label style={styles.formLabel}>Mobile Number</label>
-                 <input value={phone} onChange={e => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 10) setPhone(val); }} placeholder="9999999999" style={styles.input} />
-               </div>
-               
-               <div>
-                 <label style={styles.formLabel}>Residential Address</label>
-                 <textarea value={address} onChange={e => setAddress(e.target.value)} style={{...styles.input, height: '40px', resize: 'none'}} />
-               </div>
+             <div style={styles.formGroup}>
+               <label style={styles.formLabel}>Full Name</label>
+               <input value={fullName} onChange={e => setFullName(e.target.value)} style={styles.input} />
              </div>
              
-             <div style={{display: 'flex', gap: '10px', marginTop: '2px'}}>
+             <div style={styles.formGroup}>
+               <label style={styles.formLabel}>Mobile Number</label>
+               <input value={phone} onChange={e => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 10) setPhone(val); }} placeholder="9999999999" style={styles.input} />
+             </div>
+             
+             <div style={styles.formGroup}>
+               <label style={styles.formLabel}>Residential Address</label>
+               <textarea value={address} onChange={e => setAddress(e.target.value)} style={{...styles.input, height: '45px', resize: 'none'}} />
+             </div>
+             
+             <div style={{display: 'flex', gap: '10px', marginTop: 'auto'}}>
                <button onClick={() => setIsFlipped(false)} style={styles.cancelBtn}>Cancel</button>
                <button onClick={handleSave} style={styles.saveBtn}>Save Changes</button>
              </div>
@@ -179,26 +177,29 @@ const ProfileModal = ({ onClose }) => {
 
 // --- STYLES ---
 const styles = {
-  // 1. Z-INDEX FIX: 90 is lower than GovHeader (100) but higher than Dashboard
+  // 1. Z-INDEX FIX: 90 is usually lower than Header (100) but higher than Content (1)
+  // 2. ALIGNMENT FIX: 'inset: 0' forces full screen coverage without scrollbar shift
   overlay: { 
     position: 'fixed', 
-    inset: 0, 
+    inset: 0, // Top/Left/Right/Bottom: 0
     background: 'rgba(0, 0, 0, 0.65)', 
-    backdropFilter: 'blur(8px)',      
-    WebkitBackdropFilter: 'blur(8px)',   
-    zIndex: 90, // <--- Sits BEHIND header (100)
+    backdropFilter: 'blur(10px)',      
+    WebkitBackdropFilter: 'blur(10px)',   
+    zIndex: 90, // <--- LOWERED to sit BEHIND the Header
     display: 'flex', 
     justifyContent: 'center', 
     alignItems: 'center',
     boxSizing: 'border-box'
   },
   
+  // 3. OPTICAL CENTERING: 'marginTop: -50px' lifts it slightly
   perspectiveContainer: { 
     perspective: '1000px', 
     width: '450px', 
     height: '280px', 
     position: 'relative',
-    marginTop: '-40px' 
+    marginTop: '-50px', 
+    boxSizing: 'border-box' 
   },
 
   cardInner: { position: 'relative', width: '100%', height: '100%', textAlign: 'left', transition: 'transform 0.8s', transformStyle: 'preserve-3d' },
@@ -206,7 +207,7 @@ const styles = {
   cardFront: { 
     position: 'absolute', inset: 0, backfaceVisibility: 'hidden', 
     background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', 
-    borderRadius: '20px', padding: '25px', 
+    borderRadius: '20px', padding: '20px', 
     boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', 
     display: 'flex', flexDirection: 'column',
     boxSizing: 'border-box'
@@ -260,7 +261,8 @@ const styles = {
     transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
   },
 
-  formLabel: { display: 'block', fontSize: '0.7rem', fontWeight: '600', color: '#475569', marginBottom: '2px' },
+  formGroup: { marginBottom: '8px' },
+  formLabel: { display: 'block', fontSize: '0.7rem', fontWeight: '600', color: '#475569', marginBottom: '3px' },
   input: { width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', transition: '0.2s', background: '#f8fafc', boxSizing: 'border-box' },
   saveBtn: { flex: 1, padding: '8px', background: '#0f172a', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' },
   cancelBtn: { padding: '8px 20px', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }
