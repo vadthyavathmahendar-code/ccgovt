@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import ProfileModal from './Profile';
+import ProfileModal from '../components/ProfileModal';
+import { createPortal } from 'react-dom'; // For the Details Modal
 
 const UserDashboard = () => {
   // --- STATE ---
@@ -11,9 +12,9 @@ const UserDashboard = () => {
   
   // Form States
   const [formData, setFormData] = useState({ title: '', desc: '', location: '', category: 'Roads' });
-  const [isUrgent, setIsUrgent] = useState(false); // FEATURE 4: Priority Flag
+  const [isUrgent, setIsUrgent] = useState(false); 
   const [image, setImage] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null); // For Drag & Drop Preview
+  const [previewUrl, setPreviewUrl] = useState(null); 
   const [submitting, setSubmitting] = useState(false);
   const fileInputRef = useRef(null);
   
@@ -21,9 +22,10 @@ const UserDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
+  
+  // Modals
   const [showProfile, setShowProfile] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null); 
-  const [isEditing, setIsEditing] = useState(false); 
   
   // Notification Logic
   const [showNotifications, setShowNotifications] = useState(false);
@@ -59,9 +61,6 @@ const UserDashboard = () => {
 
   // --- 2. DATA FETCHING ---
   const fetchHistory = async (id) => {
-    // Artificial delay to show off the Skeleton Loader (Optional, remove in production)
-    // await new Promise(r => setTimeout(r, 800)); 
-
     const { data } = await supabase
       .from('complaints')
       .select('*')
@@ -103,7 +102,6 @@ const UserDashboard = () => {
     } else { alert("GPS not supported."); }
   };
 
-  // FEATURE 2: Drag & Drop Handlers
   const handleFileDrop = (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
@@ -133,7 +131,6 @@ const UserDashboard = () => {
       imageUrl = data.publicUrl;
     }
 
-    // FEATURE 4: Handle Urgent Flag
     const finalTitle = isUrgent ? `⚠️ [URGENT] ${formData.title}` : formData.title;
 
     const { error } = await supabase.from('complaints').insert([{
@@ -166,18 +163,15 @@ const UserDashboard = () => {
     return matchesSearch && matchesStatus;
   });
 
-  // FEATURE 1: Category Config
   const CATEGORIES = [
       { id: 'Roads', icon: '🛣️', label: 'Roads' },
       { id: 'Garbage', icon: '🗑️', label: 'Garbage' },
       { id: 'Electricity', icon: '⚡', label: 'Electric' },
-     
   ];
 
   return (
     <div className="container fade-in" style={{ maxWidth: '1200px', margin: '0 auto', padding: '20px' }}>
       
-      {/* GLOBAL STYLES FOR SKELETON & ANIMATIONS */}
       <style>{`
         @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
         .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 6px; }
@@ -188,6 +182,14 @@ const UserDashboard = () => {
 
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
       
+      {/* DETAILS MODAL */}
+      {selectedComplaint && (
+        <ComplaintDetailModal 
+          complaint={selectedComplaint} 
+          onClose={() => setSelectedComplaint(null)} 
+        />
+      )}
+
       {/* HEADER */}
       <div style={styles.header}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
@@ -199,7 +201,6 @@ const UserDashboard = () => {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-           {/* Notification Bell (Same as before) */}
            <div style={{ position: 'relative', cursor: 'pointer' }} onClick={() => { setShowNotifications(!showNotifications); setUnreadCount(0); }}>
             <span style={{ fontSize: '1.5rem' }}>🔔</span>
             {unreadCount > 0 && <span style={styles.badge}>{unreadCount}</span>}
@@ -219,7 +220,7 @@ const UserDashboard = () => {
         </div>
       </div>
 
-      {/* STATS OVERVIEW */}
+      {/* STATS */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '15px', margin: '20px 0' }}>
         <StatCard label="Total Reports" value={stats.total} color="#2563eb" bg="#eff6ff" />
         <StatCard label="Pending" value={stats.pending} color="#d97706" bg="#fffbeb" />
@@ -229,12 +230,11 @@ const UserDashboard = () => {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '25px', alignItems: 'start' }}>
         
-        {/* --- NEW REPORT FORM (FEATURE 1, 2, 4) --- */}
+        {/* NEW REPORT FORM */}
         <div className="gov-card" style={{ padding: '25px', position: 'sticky', top: '20px', borderTop:'5px solid #2563eb' }}>
           <h3 style={{ margin: '0 0 20px', color: '#0f172a' }}>📝 New Report</h3>
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             
-            {/* FEATURE 1: Visual Category Selector */}
             <div>
                 <label style={styles.label}>Select Category</label>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
@@ -255,14 +255,12 @@ const UserDashboard = () => {
                 </div>
             </div>
 
-            {/* Title & Desc */}
             <div>
               <label style={styles.label}>What is the issue?</label>
               <input placeholder="e.g. Deep pothole on Main St" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} required style={styles.input} />
               <textarea placeholder="Describe the problem..." rows="3" value={formData.desc} onChange={e => setFormData({...formData, desc: e.target.value})} required style={{...styles.input, marginTop:'10px'}} />
             </div>
 
-            {/* Location */}
             <div>
               <label style={styles.label}>Location</label>
               <div style={{ display: 'flex', gap: '5px' }}>
@@ -271,7 +269,6 @@ const UserDashboard = () => {
               </div>
             </div>
 
-            {/* FEATURE 2: Drag & Drop Image */}
             <div>
                 <label style={styles.label}>Evidence Photo</label>
                 <div 
@@ -296,7 +293,6 @@ const UserDashboard = () => {
                 </div>
             </div>
 
-            {/* FEATURE 4: Priority Flag */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#fef2f2', padding: '10px', borderRadius: '6px', border: '1px solid #fecaca' }}>
                 <input 
                     type="checkbox" 
@@ -316,18 +312,22 @@ const UserDashboard = () => {
           </form>
         </div>
 
-        {/* --- COMPLAINT LIST WITH SKELETONS (FEATURE 3) --- */}
+        {/* --- COMPLAINT LIST --- */}
         <div>
-          {/* Filters */}
           <div style={{ background: 'white', padding: '15px', borderRadius: '8px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', marginBottom: '20px', display: 'flex', gap: '10px' }}>
             <input placeholder="🔍 Search reports..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={{ flex: 1, padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }} />
+            
+            {/* UPDATED FILTER SELECT */}
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} style={{ padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px' }}>
-              <option value="All">All Status</option><option value="Pending">Pending</option><option value="In Progress">In Progress</option><option value="Resolved">Resolved</option>
+              <option value="All">All Status</option>
+              <option value="Pending">Pending</option>
+              <option value="Assigned">Assigned</option> {/* Added Option */}
+              <option value="In Progress">In Progress</option>
+              <option value="Resolved">Resolved</option>
             </select>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            {/* FEATURE 3: Skeleton Loading State */}
             {loading ? (
                 <>
                     <SkeletonCard />
@@ -364,8 +364,12 @@ const UserDashboard = () => {
                       {c.status}
                     </span>
                     <br/>
-                    {/* Simplified View Button just for layout, modal logic is same as before but abbreviated for length */}
-                    <button style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}>View Details</button>
+                    <button 
+                        onClick={() => setSelectedComplaint(c)} 
+                        style={{ background: 'none', border: 'none', color: '#2563eb', fontSize: '0.85rem', cursor: 'pointer', textDecoration: 'underline' }}
+                    >
+                        View Details
+                    </button>
                   </div>
                 </div>
               ))
@@ -380,7 +384,49 @@ const UserDashboard = () => {
 
 // --- SUB-COMPONENTS ---
 
-// Feature 3: The Skeleton Card
+const ComplaintDetailModal = ({ complaint, onClose }) => {
+    return createPortal(
+        <div style={modalStyles.overlay} onClick={onClose}>
+            <div style={modalStyles.modal} onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} style={modalStyles.closeBtn}>&times;</button>
+                
+                <h2 style={{margin:'0 0 10px', color:'#1e293b'}}>{complaint.title}</h2>
+                <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
+                    <span style={{background:'#eff6ff', color:'#2563eb', padding:'4px 10px', borderRadius:'15px', fontSize:'0.8rem', fontWeight:'bold'}}>{complaint.category}</span>
+                    <span style={{background: complaint.status==='Resolved'?'#dcfce7':'#fef3c7', color: complaint.status==='Resolved'?'#166534':'#92400e', padding:'4px 10px', borderRadius:'15px', fontSize:'0.8rem', fontWeight:'bold'}}>{complaint.status}</span>
+                </div>
+
+                <div style={{marginBottom:'20px'}}>
+                    <h4 style={modalStyles.heading}>Description</h4>
+                    <p style={{color:'#475569', lineHeight:'1.5'}}>{complaint.description}</p>
+                </div>
+
+                {complaint.image_url && (
+                    <div style={{marginBottom:'20px'}}>
+                        <h4 style={modalStyles.heading}>Attached Evidence</h4>
+                        <img src={complaint.image_url} alt="Proof" style={{width:'100%', maxHeight:'250px', objectFit:'cover', borderRadius:'8px', border:'1px solid #e2e8f0'}} />
+                    </div>
+                )}
+
+                {complaint.status === 'Resolved' && (
+                    <div style={{background:'#f0fdf4', padding:'15px', borderRadius:'8px', border:'1px solid #bbf7d0', marginTop:'20px'}}>
+                        <h3 style={{margin:'0 0 10px', color:'#15803d', fontSize:'1.1rem'}}>✅ Official Resolution</h3>
+                        <p style={{color:'#14532d', marginBottom:'10px'}}><strong>Officer's Note:</strong> {complaint.admin_reply || "Issue resolved."}</p>
+                        {complaint.resolve_image_url && (
+                            <img src={complaint.resolve_image_url} alt="Resolved" style={{width:'100%', maxHeight:'200px', objectFit:'cover', borderRadius:'6px'}} />
+                        )}
+                    </div>
+                )}
+
+                <div style={{marginTop:'20px', fontSize:'0.85rem', color:'#64748b'}}>
+                    📍 Location: {complaint.location || 'N/A'}
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+};
+
 const SkeletonCard = () => (
     <div style={{ background: 'white', padding: '20px', borderRadius: '12px', display: 'flex', gap: '20px', border: '1px solid #f1f5f9' }}>
         <div className="skeleton" style={{ width: '80px', height: '80px' }}></div>
@@ -407,6 +453,13 @@ const styles = {
     notifHeader: { padding: '12px', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', background:'#f8fafc', display:'flex', justifyContent:'space-between', fontSize:'0.9rem' },
     label: { display: 'block', marginBottom: '8px', fontWeight: '600', color: '#334155', fontSize: '0.9rem' },
     input: { width: '100%', padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '0.95rem', outline: 'none' }
+};
+
+const modalStyles = {
+    overlay: { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(5px)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
+    modal: { background:'white', width:'90%', maxWidth:'600px', borderRadius:'12px', padding:'30px', position:'relative', maxHeight:'90vh', overflowY:'auto', boxShadow:'0 20px 25px -5px rgba(0,0,0,0.1)' },
+    closeBtn: { position:'absolute', top:'15px', right:'15px', background:'#f1f5f9', border:'none', borderRadius:'50%', width:'30px', height:'30px', cursor:'pointer', fontSize:'1.2rem', color:'#64748b', display:'flex', alignItems:'center', justifyContent:'center' },
+    heading: { margin:'0 0 8px', fontSize:'0.9rem', color:'#64748b', textTransform:'uppercase', letterSpacing:'0.5px' }
 };
 
 export default UserDashboard;

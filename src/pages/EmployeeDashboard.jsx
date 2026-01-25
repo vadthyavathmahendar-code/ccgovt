@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import ProfileModal from './Profile'; 
+import ProfileModal from '../components/ProfileModal'; // Import new modal
+import toast from 'react-hot-toast'; // Import Toast
 
 const EmployeeDashboard = () => {
   const [tasks, setTasks] = useState([]);
@@ -73,6 +74,7 @@ const EmployeeDashboard = () => {
   const startWork = async (id) => {
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'In Progress' } : t));
     await supabase.from('complaints').update({ status: 'In Progress' }).eq('id', id);
+    toast.success("Task Started! 🚧");
   };
 
   const handleProofSelect = (e) => {
@@ -84,12 +86,15 @@ const EmployeeDashboard = () => {
   };
 
   const submitResolution = async (id) => {
-    if (!notes || !proofImage) return alert("⚠️ Please provide notes and a photo.");
+    if (!notes || !proofImage) return toast.error("⚠️ Please provide notes and a photo.");
     setSubmitting(true);
+    const loadingToast = toast.loading("Submitting resolution...");
     
     try {
       const fileName = `proof_${Date.now()}_${proofImage.name.replace(/\s/g, '')}`;
-      await supabase.storage.from('complaint_images').upload(fileName, proofImage);
+      const { error: uploadError } = await supabase.storage.from('complaint_images').upload(fileName, proofImage);
+      if (uploadError) throw uploadError;
+      
       const { data } = supabase.storage.from('complaint_images').getPublicUrl(fileName);
       
       const { error } = await supabase.from('complaints').update({ 
@@ -100,12 +105,12 @@ const EmployeeDashboard = () => {
 
       if(error) throw error;
 
-      alert("✅ Resolution Submitted!");
+      toast.success("Resolution Submitted! ✅", { id: loadingToast });
       setResolvingId(null); setNotes(''); setProofImage(null); setProofPreview(null);
       fetchTasks(workerDetails.email);
 
     } catch (err) {
-      alert("Error: " + err.message);
+      toast.error("Error: " + err.message, { id: loadingToast });
     } finally {
       setSubmitting(false);
     }
@@ -117,7 +122,7 @@ const EmployeeDashboard = () => {
     if(coords && coords.length >= 2) {
         window.open(`https://www.google.com/maps?q=${coords[0]},${coords[1]}`, '_blank');
     } else {
-        alert("Invalid GPS format");
+        toast.error("Invalid GPS format");
     }
   };
 
@@ -151,6 +156,7 @@ const EmployeeDashboard = () => {
         .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: bold; background: #eff6ff; }
       `}</style>
 
+      {/* NEW PROFILE MODAL */}
       {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       {/* HEADER */}
@@ -176,7 +182,7 @@ const EmployeeDashboard = () => {
         <StatCard label="Jobs Completed" value={stats.completed} color="#475569" bg="#f1f5f9" />
       </div>
 
-      {/* TABS (Modern Segmented Control) */}
+      {/* TABS */}
       <div style={{ display: 'flex', borderBottom: '1px solid #e2e8f0', marginBottom: '20px' }}>
         <button 
             className={`tab-btn ${activeTab === 'active' ? 'tab-active' : ''}`} 
@@ -203,8 +209,8 @@ const EmployeeDashboard = () => {
             </>
         ) : displayedTasks.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '50px', background: 'white', borderRadius: '12px', border: '1px dashed #cbd5e1' }}>
-             <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🎉</div>
-             <div style={{ color: '#64748b' }}>All caught up! No tasks in this section.</div>
+              <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🎉</div>
+              <div style={{ color: '#64748b' }}>All caught up! No tasks in this section.</div>
           </div>
         ) : (
           displayedTasks.map(t => {
@@ -240,7 +246,7 @@ const EmployeeDashboard = () => {
                             </h3>
                             <span style={{ fontSize:'0.75rem', fontWeight:'bold', color:'#2563eb', background:'#eff6ff', padding:'4px 10px', borderRadius:'15px' }}>{t.category}</span>
                         </div>
-                       
+                        
                         <p style={{ color: '#475569', marginBottom: '20px', lineHeight:'1.6' }}>{t.description}</p>
                         
                         <div style={{display:'flex', gap:'10px', marginBottom:'20px'}}>
