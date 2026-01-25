@@ -1,27 +1,37 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // <--- Added useRef
 import { supabase } from '../supabaseClient';
 
 const ProfileModal = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
+  const [uploading, setUploading] = useState(false); // <--- New State for upload
+  const [isFlipped, setIsFlipped] = useState(false);
+  const fileInputRef = useRef(null); // <--- Reference for hidden input
   
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState(null); // <--- New State for Photo
   const [role, setRole] = useState('citizen');
 
+  // --- FETCH DATA ---
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         setUser(session.user);
-        const { data } = await supabase.from('profiles').select('role, full_name, phone, address').eq('id', session.user.id).single();
+        const { data } = await supabase
+          .from('profiles')
+          .select('*') // Get all columns including avatar_url
+          .eq('id', session.user.id)
+          .maybeSingle();
+          
         if (data) {
           setRole(data.role || 'citizen');
           setFullName(data.full_name || '');
           setPhone(data.phone || '');
           setAddress(data.address || '');
+          if (data.avatar_url) setAvatarUrl(data.avatar_url);
         }
       }
       setLoading(false);
@@ -29,155 +39,257 @@ const ProfileModal = ({ onClose }) => {
     fetchProfile();
   }, []);
 
-  const handleSave = async () => {
-    const { error } = await supabase.from('profiles').update({ full_name: fullName, phone, address }).eq('id', user.id);
+  // --- HANDLE PHOTO UPLOAD ---
+  const uploadAvatar = async (event) => {
+    try {
+      setUploading(true);
+      if (!event.target.files || event.target.files.length === 0) {
+        throw new Error('You must select an image to upload.');
+      }
+
+      const file = event.target.files[0];
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // 1. Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      // 2. Get Public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // 3. Update Profile Table with URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl, updated_at: new Date() })
+        .eq('id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      alert('📸 Photo Updated Successfully!');
+
+    } catch (error) {
+      alert('Error uploading avatar: ' + error.message);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // --- SAVE DETAILS ---
+  const handleSave = async (e) => {
+    e.stopPropagation();
+    
+    // Simple Validation: Phone must be 10 digits
+    if (phone && !/^\d{10}$/.test(phone)) {
+      alert('⚠️ Phone number must be exactly 10 digits.');
+      return;
+    }
+
+    const { error } = await supabase.from('profiles').update({ 
+      full_name: fullName, phone, address, updated_at: new Date() 
+    }).eq('id', user.id);
+
     if (!error) {
       alert('✅ Details Updated Successfully');
-      setEditing(false);
+      setIsFlipped(false);
     } else {
-      alert('Error updating details.');
+      alert('Error: ' + error.message);
     }
   };
 
   if (loading) return null;
 
-  const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000-0000';
-  const roleLabel = role === 'admin' ? 'ADMINISTRATOR' : role === 'employee' ? 'FIELD OFFICER' : 'CITIZEN';
-  const idColor = role === 'admin' ? '#dc3545' : role === 'employee' ? '#eab308' : '#0056b3';
+  const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000';
+  const getRoleColor = () => {
+    if (role === 'admin') return 'linear-gradient(135deg, #b91c1c 0%, #ef4444 100%)'; 
+    if (role === 'employee') return 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)'; 
+    return 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)'; 
+  };
 
   return (
-    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 1000, display: 'flex', justifyContent: 'center', alignItems: 'center', backdropFilter: 'blur(3px)' }}>
+    <div style={styles.overlay} onClick={onClose}>
       
-      <div className="gov-card" style={{ 
-        width: '500px', background: '#fff', position: 'relative', 
-        border: '1px solid #ccc', borderRadius: '10px', overflow: 'hidden',
-        boxShadow: '0 15px 40px rgba(0,0,0,0.4)'
-      }}>
-        
-        {/* HEADER */}
-        <div style={{ background: 'linear-gradient(to right, #f8f9fa, #e9ecef)', padding: '15px 20px', borderBottom: '3px solid #eab308', display: 'flex', alignItems: 'center', gap: '15px' }}>
-           <div style={{ fontSize: '2.8rem', lineHeight: 1 }}>🏛️</div>
-           <div>
-             <h3 style={{ margin: 0, color: '#333', fontSize: '1.2rem', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Government of Telangana</h3>
-             <p style={{ margin: 0, fontSize: '0.75rem', color: '#666', fontWeight: 'bold' }}>Civic Services Identity Card</p>
-           </div>
-           <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', fontSize: '2rem', lineHeight: '0.8', cursor: 'pointer', color: '#999' }}>&times;</button>
-        </div>
-
-        {/* BODY */}
-        <div style={{ padding: '25px', display: 'flex', gap: '25px', background: '#fff', position:'relative', minHeight:'280px' }}>
+      <div style={styles.perspectiveContainer} onClick={(e) => e.stopPropagation()}>
+        <div style={{ ...styles.cardInner, transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
           
-          {/* WATERMARK BACKGROUND */}
-          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: '10rem', opacity: 0.03, pointerEvents: 'none' }}>🏛️</div>
+          {/* --- FRONT SIDE --- */}
+          <div style={styles.cardFront}>
+            <button onClick={onClose} style={styles.closeBtn}>&times;</button>
 
-          {/* LEFT: PHOTO & QR */}
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', width: '130px' }}>
-            <div style={{ 
-              width: '110px', height: '130px', background: '#f1f3f5', border: '1px solid #dee2e6', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3.5rem', color: '#adb5bd', borderRadius:'4px' 
-            }}>
-              👤
+            <div style={styles.cardHeader}>
+               <span style={{fontSize: '2rem'}}>🏛️</span>
+               <div style={{textAlign: 'right'}}>
+                 <div style={styles.headerTitle}>CIVIC CONNECT</div>
+                 <div style={styles.headerSubtitle}>OFFICIAL DIGITAL ID</div>
+               </div>
             </div>
-            {/* Fake QR */}
-            <div style={{ 
-              width: '90px', height: '90px', background: '#000', color:'white', 
-              display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.6rem', textAlign:'center',
-              backgroundImage: 'repeating-linear-gradient(45deg, #333 0, #333 2px, #000 0, #000 50%)'
-            }}>
-              <div style={{background:'white', padding:'2px', color:'black', fontWeight:'bold'}}>TS-GOV</div>
-            </div>
-          </div>
 
-          {/* RIGHT: DETAILS */}
-          <div style={{ flex: 1, zIndex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-            
-            {editing ? (
-              // EDIT FORM
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#666' }}>FULL NAME</label>
-                  <input value={fullName} onChange={e => setFullName(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius:'4px' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#666' }}>MOBILE NUMBER</label>
-                  <input value={phone} onChange={e => setPhone(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius:'4px' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.7rem', fontWeight: 'bold', color: '#666' }}>RESIDENTIAL ADDRESS</label>
-                  <textarea rows="2" value={address} onChange={e => setAddress(e.target.value)} style={{ width: '100%', padding: '8px', border: '1px solid #ccc', borderRadius:'4px' }} placeholder="H.No, Street, District" />
-                </div>
+            <div style={{display: 'flex', marginTop: '20px', gap: '20px'}}>
+              
+              {/* PHOTO AREA (Clickable) */}
+              <div 
+                style={styles.photoContainer} 
+                onClick={() => fileInputRef.current.click()} // Trigger hidden input
+                title="Click to change photo"
+              >
+                 {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={uploadAvatar}
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  disabled={uploading}
+                />
+
+                {uploading ? (
+                  <span style={{fontSize:'0.6rem'}}>Wait...</span>
+                ) : avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'15px'}} />
+                ) : (
+                  <div style={{fontSize: '3rem'}}>👤</div>
+                )}
+
+                <div style={styles.roleBadge(getRoleColor())}>{role.toUpperCase()}</div>
                 
-                {/* Save/Cancel Buttons */}
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                   <button onClick={handleSave} style={{ flex: 1, padding: '8px', background: '#198754', color: 'white', border: 'none', cursor: 'pointer', borderRadius:'4px', fontWeight:'bold' }}>Save</button>
-                   <button onClick={() => setEditing(false)} style={{ padding: '8px 15px', background: '#6c757d', color: 'white', border: 'none', cursor: 'pointer', borderRadius:'4px' }}>Cancel</button>
+                {/* Camera Icon Overlay */}
+                <div style={styles.cameraOverlay}>📷</div>
+              </div>
+
+              <div style={{flex: 1}}>
+                <div style={styles.label}>FULL NAME</div>
+                <div style={styles.valueLarge}>{fullName || 'Citizen'}</div>
+                <div style={styles.row}>
+                  <div><div style={styles.label}>ID NUMBER</div><div style={styles.valueMono}>{cardId}</div></div>
+                  <div><div style={styles.label}>STATUS</div><div style={{...styles.value, color: '#10b981', display:'flex', alignItems:'center', gap:'4px', fontWeight:'bold', fontSize:'0.9rem'}}>✅ Active</div></div>
                 </div>
               </div>
-            ) : (
-              // ID CARD VIEW
-              <>
-                <div>
-                   <div style={{ marginBottom: '15px', borderBottom:'1px dashed #ccc', paddingBottom:'10px' }}>
-                      <label style={{ fontSize: '0.65rem', color: '#888', fontWeight: 'bold', letterSpacing: '1px' }}>CARD NO</label>
-                      <div style={{ fontSize: '0.9rem', color: '#0056b3', fontFamily: 'monospace', fontWeight:'bold' }}>{cardId}</div>
-                   </div>
+            </div>
 
-                   <div style={{ marginBottom: '10px' }}>
-                      <label style={{ display: 'block', fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>NAME</label>
-                      <div style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#000', textTransform:'uppercase' }}>{fullName || '---'}</div>
-                   </div>
-                   
-                   <div style={{ display:'flex', gap:'20px', marginBottom:'10px' }}>
-                      <div>
-                          <label style={{ display: 'block', fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>MOBILE</label>
-                          <div style={{ fontSize: '0.95rem', color: '#333' }}>{phone || '---'}</div>
-                      </div>
-                      <div>
-                          <label style={{ display: 'block', fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>VALID</label>
-                          <div style={{ fontSize: '0.95rem', color: '#333' }}>Lifetime</div>
-                      </div>
-                   </div>
-
-                   <div style={{ marginBottom: '10px' }}>
-                      <label style={{ display: 'block', fontSize: '0.65rem', color: '#888', fontWeight: 'bold' }}>ADDRESS</label>
-                      <div style={{ fontSize: '0.85rem', color: '#444', lineHeight:'1.4', height:'40px', overflow:'hidden' }}>{address || 'Address not updated.'}</div>
-                   </div>
-                </div>
-
-                {/* BOTTOM ACTION ROW */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '10px' }}>
-                   <span style={{ 
-                      background: idColor, color: 'white', padding: '5px 15px', 
-                      borderRadius: '20px', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px'
-                    }}>
-                      {roleLabel}
-                   </span>
-
-                   {/* NEW EDIT BUTTON PLACEMENT */}
-                   <button 
-                     onClick={() => setEditing(true)} 
-                     style={{ 
-                       background: 'none', border: '1px solid #0056b3', color: '#0056b3', 
-                       padding:'5px 12px', borderRadius:'4px', fontSize:'0.75rem', cursor: 'pointer', fontWeight:'bold',
-                       display: 'flex', alignItems: 'center', gap: '5px'
-                     }}
-                   >
-                     ✏️ Edit Details
-                   </button>
-                </div>
-              </>
-            )}
+            <div style={styles.cardFooter}>
+              <div style={styles.qrPlaceholder}><div style={{fontSize:'0.6rem', fontWeight:'bold', textAlign:'center', lineHeight:'1.2'}}>TS<br/>GOV</div></div>
+              <div style={{textAlign: 'right'}}>
+                <button onClick={() => setIsFlipped(true)} style={styles.editBtn}>⚙️ Update Details</button>
+              </div>
+            </div>
           </div>
-        </div>
 
-        {/* BOTTOM BAR CODE STRIP */}
-        <div style={{ height: '30px', background: '#e9ecef', borderTop: '1px solid #ccc', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6 }}>
-           <div style={{ letterSpacing: '3px', fontSize: '0.6rem', fontFamily: 'monospace' }}>||| || ||| | |||| ||| | || |||||</div>
-        </div>
+          {/* --- BACK SIDE --- */}
+          <div style={styles.cardBack}>
+             <button onClick={onClose} style={styles.closeBtn}>&times;</button>
+             <h3 style={{margin: '0 0 20px 0', color: '#1e293b', borderBottom: '2px solid #e2e8f0', paddingBottom: '10px', fontSize:'1.1rem'}}>Update Information</h3>
+             
+             <div style={styles.formGroup}><label style={styles.formLabel}>Full Name</label><input value={fullName} onChange={e => setFullName(e.target.value)} style={styles.input} /></div>
+             
+             {/* Phone Input with Validation Styling */}
+             <div style={styles.formGroup}>
+               <label style={styles.formLabel}>Mobile Number (10 Digits)</label>
+               <input 
+                 value={phone} 
+                 onChange={e => {
+                   const val = e.target.value.replace(/\D/g, ''); // Remove non-numbers instantly
+                   if (val.length <= 10) setPhone(val);
+                 }} 
+                 placeholder="9999999999"
+                 style={styles.input} 
+               />
+             </div>
 
+             <div style={styles.formGroup}><label style={styles.formLabel}>Residential Address</label><textarea value={address} onChange={e => setAddress(e.target.value)} style={{...styles.input, height: '60px', resize: 'none'}} /></div>
+
+             <div style={{display: 'flex', gap: '10px', marginTop: 'auto'}}>
+               <button onClick={() => setIsFlipped(false)} style={styles.cancelBtn}>Cancel</button>
+               <button onClick={handleSave} style={styles.saveBtn}>Save Changes</button>
+             </div>
+          </div>
+
+        </div>
       </div>
     </div>
   );
+};
+
+// --- STYLES ---
+const styles = {
+  overlay: {
+    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+    background: 'rgba(15, 23, 42, 0.6)', backdropFilter: 'blur(5px)',
+    zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center'
+  },
+  perspectiveContainer: {
+    perspective: '1000px', width: '450px', height: '280px', position: 'relative', marginTop: '-50px'
+  },
+  cardInner: {
+    position: 'relative', width: '100%', height: '100%', textAlign: 'left',
+    transition: 'transform 0.8s', transformStyle: 'preserve-3d'
+  },
+  cardFront: {
+    position: 'absolute', inset: 0, backfaceVisibility: 'hidden',
+    background: 'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
+    borderRadius: '20px', padding: '25px',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+    display: 'flex', flexDirection: 'column'
+  },
+  cardBack: {
+    position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)',
+    background: '#ffffff', borderRadius: '20px', padding: '25px',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column'
+  },
+  closeBtn: {
+    position: 'absolute', top: '15px', left: '15px', width: '30px', height: '30px',
+    background: '#fee2e2', color: '#ef4444', borderRadius: '50%', border: 'none',
+    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontWeight: 'bold', fontSize: '1.2rem', zIndex: 100
+  },
+  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' },
+  headerTitle: { fontSize: '1.2rem', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.5px' },
+  headerSubtitle: { fontSize: '0.6rem', fontWeight: 'bold', color: '#64748b', letterSpacing: '2px' },
+  
+  photoContainer: {
+    width: '80px', height: '80px', background: '#e2e8f0', borderRadius: '15px',
+    display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative',
+    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', overflow: 'hidden'
+  },
+  cameraOverlay: {
+    position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', color: 'white',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0,
+    transition: '0.2s', borderRadius: '15px', fontSize: '1.5rem',
+    ':hover': { opacity: 1 } // Note: Inline styles don't support pseudo-selectors easily, added for structure logic
+  },
+  roleBadge: (gradient) => ({
+    position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)',
+    background: gradient, color: 'white', fontSize: '0.6rem', fontWeight: 'bold',
+    padding: '4px 8px', borderRadius: '10px', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(0,0,0,0.2)', zIndex: 10
+  }),
+  label: { fontSize: '0.6rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' },
+  valueLarge: { fontSize: '1.2rem', fontWeight: '700', color: '#1e293b', marginBottom: '10px' },
+  valueMono: { fontFamily: 'monospace', fontSize: '0.9rem', color: '#334155', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' },
+  row: { display: 'flex', gap: '20px' },
+  cardFooter: { marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'end' },
+  qrPlaceholder: {
+    width: '40px', height: '40px', background: '#0f172a', color: 'white',
+    display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px'
+  },
+  editBtn: {
+    background: 'none', border: '1px solid #2563eb', color: '#2563eb', fontWeight: '600',
+    cursor: 'pointer', fontSize: '0.75rem', padding: '6px 12px', borderRadius: '20px',
+    display: 'flex', alignItems: 'center', gap: '5px', transition: '0.2s'
+  },
+  formGroup: { marginBottom: '12px' },
+  formLabel: { display: 'block', fontSize: '0.75rem', fontWeight: '600', color: '#475569', marginBottom: '4px' },
+  input: {
+    width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid #cbd5e1',
+    fontSize: '0.9rem', outline: 'none', transition: '0.2s', background: '#f8fafc'
+  },
+  saveBtn: { flex: 1, padding: '10px', background: '#0f172a', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600' },
+  cancelBtn: { padding: '10px 20px', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600' }
 };
 
 export default ProfileModal;

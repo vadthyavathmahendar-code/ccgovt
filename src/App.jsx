@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 // Import Layout Components
 import GovHeader from './components/GovHeader';
 import GovFooter from './components/GovFooter';
-import ScrollToTop from './components/ScrollToTop'; // <--- 1. IMPORT THIS
+import ScrollToTop from './components/ScrollToTop';
 
 // Import Pages
 import Home from './pages/Home';
@@ -17,20 +17,21 @@ import Services from './pages/Services';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
+
+// --- CHANGED: Import from 'pages', not 'components' ---
 import Profile from './pages/Profile'; 
 
 function App() {
   return (
     <Router>
-      {/* 2. PLACE IT HERE: Inside Router, but before everything else */}
       <ScrollToTop />
 
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         
-        {/* 3. HEADER */}
+        {/* HEADER */}
         <GovHeader />
         
-        {/* 4. MAIN CONTENT */}
+        {/* MAIN CONTENT */}
         <div style={{ flex: 1 }}>
           <Routes>
             {/* Public Routes */}
@@ -46,12 +47,12 @@ function App() {
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/employee-dashboard" element={<EmployeeDashboard />} />
             
-            {/* Common Profile Page */}
+            {/* --- CHANGED: Profile Page Route --- */}
             <Route path="/profile" element={<Profile />} />
           </Routes>
         </div>
 
-        {/* 5. FOOTER */}
+        {/* FOOTER */}
         <GovFooter />
         
       </div>
