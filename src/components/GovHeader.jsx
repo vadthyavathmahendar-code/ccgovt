@@ -26,7 +26,7 @@ const GovHeader = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', cursor: 'pointer' }} onClick={() => navigate('/')}>
           {/* TS LOGO */}
           <img 
-            src="https://upload.wikimedia.org/wikipedia/commons/thumb/f/f7/Government_of_Telangana_Logo.png/600px-Government_of_Telangana_Logo.png" 
+            src="/images/cc_logo.png" 
             alt="Telangana Govt Logo" 
             style={{ height: '85px', width: 'auto', objectFit: 'contain' }} 
           />

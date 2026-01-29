@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
+import toast, { Toaster } from 'react-hot-toast';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -9,7 +10,7 @@ const Login = () => {
   const [checkingSession, setCheckingSession] = useState(true); 
   const navigate = useNavigate();
 
-  // --- 1. THE TRAFFIC CONTROLLER (LOGIC UNCHANGED) ---
+  // --- 1. SESSION & ROLE CHECKER ---
   useEffect(() => {
     const checkRoleAndRedirect = async (userId) => {
       try {
@@ -21,9 +22,14 @@ const Login = () => {
         
         const role = profile?.role;
         
-        if (role === 'admin') navigate('/admin-dashboard');
-        else if (role === 'employee') navigate('/employee-dashboard');
-        else navigate('/user-dashboard'); 
+        // HIERARCHY LOGIC
+        if (role === 'super_admin' || role === 'dept_admin') {
+            navigate('/admin-dashboard');
+        } else if (role === 'employee') {
+            navigate('/employee-dashboard');
+        } else {
+            navigate('/user-dashboard'); // Default for citizen
+        }
       } catch (error) {
         console.error("Error checking role:", error);
         navigate('/user-dashboard');
@@ -55,12 +61,14 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (error) {
-      alert(error.message);
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success("Login Successful!");
+    } catch (error) {
+      toast.error(error.message);
       setLoading(false);
-    } 
+    }
   };
 
   // --- 2. LOADING SCREEN ---
@@ -68,7 +76,7 @@ const Login = () => {
     return (
       <div className="fade-in" style={styles.loadingContainer}>
         <div style={styles.spinner}></div>
-        <h3 style={{ color: '#0f172a', fontWeight: '600', marginTop: '20px' }}>Verifying Credentials...</h3>
+        <h3 style={{ color: '#0f172a', fontWeight: '600', marginTop: '20px' }}>Verifying Identity...</h3>
         <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -77,14 +85,16 @@ const Login = () => {
   // --- 3. MAIN UI ---
   return (
     <div className="fade-in" style={styles.pageContainer}>
-      
+      <Toaster />
       <div className="gov-card" style={styles.loginCard}>
         
         {/* Header Section */}
         <div style={styles.cardHeader}>
-          
-          <h2 style={styles.title}>Welcome Back</h2>
-          <p style={styles.subtitle}>Sign in to Civic Connect</p>
+          <div style={styles.logoWrapper}>
+             <img src="/images/cc_logo.png" alt="Logo" style={{height:'100%', width:'auto'}} />
+          </div>
+          <h2 style={styles.title}>Civic Connect</h2>
+          <p style={styles.subtitle}>Secure Portal Access</p>
         </div>
         
         {/* Form Section */}
@@ -98,7 +108,7 @@ const Login = () => {
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
-                placeholder="name@gmail.com"
+                placeholder="official@domain.com"
                 style={styles.input} 
               />
             </div>
@@ -116,7 +126,7 @@ const Login = () => {
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={loading} style={styles.submitBtn}>
-              {loading ? 'Authenticating...' : ' Login'}
+              {loading ? 'Authenticating...' : 'Secure Login'}
             </button>
           </form>
 
@@ -127,7 +137,7 @@ const Login = () => {
 
           <div style={{ textAlign: 'center' }}>
             <p style={{ color: '#64748b', fontSize: '0.9rem' }}>
-              Don't have an account? <Link to="/signup" style={styles.link}>Create Account</Link>
+              First time user? <Link to="/signup" style={styles.link}>Register Here</Link>
             </p>
           </div>
         </div>
@@ -140,11 +150,11 @@ const Login = () => {
 // --- STYLES ---
 const styles = {
   pageContainer: {
-    minHeight: '80vh',
+    minHeight: '90vh',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    background: '#f8fafc', // Light gray background
+    background: '#f8fafc', 
     padding: '20px'
   },
   loadingContainer: {
@@ -166,32 +176,28 @@ const styles = {
   loginCard: {
     width: '100%',
     maxWidth: '420px',
-    padding: '0', // Reset padding because we use inner sections
-    borderTop: '5px solid #2563eb', // Nice accent bar at top
+    padding: '0', 
+    borderTop: '5px solid #2563eb', 
     overflow: 'hidden'
   },
   cardHeader: {
     background: '#f1f5f9',
-    padding: '40px 30px 20px',
+    padding: '35px 30px 20px',
     textAlign: 'center',
     borderBottom: '1px solid #e2e8f0'
   },
-  logoCircle: {
-    fontSize: '2.5rem',
-    marginBottom: '10px',
-    display: 'inline-block',
-    background: 'white',
-    width: '70px',
+  logoWrapper: {
     height: '70px',
-    lineHeight: '70px',
-    borderRadius: '50%',
-    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)'
+    marginBottom: '10px',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center'
   },
   title: {
     margin: '10px 0 5px',
     color: '#0f172a',
     fontSize: '1.75rem',
-    fontWeight: '700'
+    fontWeight: '800'
   },
   subtitle: {
     margin: 0,
@@ -214,7 +220,8 @@ const styles = {
     color: '#1e293b',
     outline: 'none',
     transition: 'border-color 0.2s',
-    background: '#f8fafc'
+    background: '#f8fafc',
+    boxSizing: 'border-box'
   },
   submitBtn: {
     width: '100%',
@@ -228,7 +235,7 @@ const styles = {
     borderTop: '1px solid #e2e8f0',
     marginTop: '30px',
     marginBottom: '30px',
-    height: '0px' // Height 0 so the border sits in the middle
+    height: '0px'
   },
   link: {
     color: '#2563eb',
