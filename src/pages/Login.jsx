@@ -94,7 +94,7 @@ const Login = () => {
              <img src="/images/cc_logo.png" alt="Logo" style={{height:'100%', width:'auto'}} />
           </div>
           <h2 style={styles.title}>Civic Connect</h2>
-          <p style={styles.subtitle}>Secure Portal Access</p>
+          <p style={styles.subtitle}>Login to acess</p>
         </div>
         
         {/* Form Section */}
@@ -108,7 +108,7 @@ const Login = () => {
                 value={email} 
                 onChange={e => setEmail(e.target.value)} 
                 required 
-                placeholder="official@domain.com"
+                placeholder="example@gmial.com"
                 style={styles.input} 
               />
             </div>
@@ -126,7 +126,7 @@ const Login = () => {
             </div>
 
             <button type="submit" className="btn btn-primary" disabled={loading} style={styles.submitBtn}>
-              {loading ? 'Authenticating...' : 'Secure Login'}
+              {loading ? 'Authenticating...' : ' Login'}
             </button>
           </form>
 
