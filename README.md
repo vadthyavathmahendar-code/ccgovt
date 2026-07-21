@@ -1,19 +1,72 @@
-# React + Vite
+# Civics Connect Enterprise
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+> **AI-Powered Smart Municipal Operations Platform using React, Supabase, ServiceNow, and Gemini AI**
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Overview
 
-## React Compiler
+Civics Connect Enterprise bridges citizen engagement with enterprise-grade municipal operations management. Citizens report issues, track resolutions in real-time, and interact via an AI assistant through a modern React web application. Operations, SLAs, group assignments, and supervisor approvals are managed via a custom ServiceNow Scoped Engine (`x_snc_civic_mgmt`).
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🔒 Environment & Security Configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
-# Mini-project
-# Mini-project
-# mini_proj
+Copy the template `.env.example` file to `.env` in your local workspace:
+
+```bash
+cp .env.example .env
+```
+
+Populate the `.env` file with your credentials:
+
+```env
+VITE_SUPABASE_URL=https://your-supabase-project-id.supabase.co
+VITE_SUPABASE_ANON_KEY=your-supabase-anon-publishable-key
+VITE_APP_ENV=development
+```
+
+> **Security Note**: Never commit `.env` or plaintext API keys to Git. Environment keys are strictly validated at application startup using `src/config/env.js`.
+
+---
+
+## 🗄️ Database Setup (Supabase PostgreSQL)
+
+Database migrations are located in `supabase/migrations/`.
+
+Run the initial Sprint 1 migration script in your Supabase SQL Editor:
+* `supabase/migrations/20260721000000_sprint_01_security_and_system_config.sql`
+
+This creates the baseline `system_configurations` metadata table, configures Row Level Security (RLS) policies, indexes key columns, and installs initial system feature flags.
+
+---
+
+## 🛠️ Local Development & Scripts
+
+### 1. Install Dependencies
+```bash
+npm install
+```
+
+### 2. Start Development Server
+```bash
+npm run dev
+```
+
+### 3. Run Test Suite
+```bash
+npm test
+```
+
+### 4. Build Production Bundle
+```bash
+npm run build
+```
+
+---
+
+## 🌿 Git Flow Branching Architecture
+
+* `main`: Production releases (tagged with SemVer e.g., `v1.0.0`)
+* `develop`: Active integration branch
+* `feature/sprint-01-security-hardening`: Sprint 1 Security & Configuration branch

@@ -1,7 +1,8 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient } from '@supabase/supabase-js';
+import { env } from './config/env';
 
-// Replace these with your actual details from the Supabase Dashboard
-const supabaseUrl = 'https://twofkoqxtievknvamvgb.supabase.co'
-const supabaseKey = 'sb_publishable_FaaDJGr_1Tt8QwB0FFXyGA_T_2O-lrX'
-
-export const supabase = createClient(supabaseUrl, supabaseKey)
+/**
+ * Initializes the Supabase client using validated environment configuration.
+ * Hardcoded credentials have been completely removed.
+ */
+export const supabase = createClient(env.SUPABASE_URL, env.SUPABASE_ANON_KEY);
