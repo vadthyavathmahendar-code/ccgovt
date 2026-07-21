@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
-import LoadingScreen from '../components/LoadingScreen'; // <--- IMPORT THE NEW COMPONENT
+import LoadingScreen from '../components/LoadingScreen';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -9,182 +9,205 @@ const Home = () => {
 
   // --- TRAFFIC CONTROLLER LOGIC ---
   useEffect(() => {
+    let isMounted = true;
+
     const checkSession = async () => {
-      // 1. Artificial delay for smoother UX (prevents flickering)
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session && isMounted) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
 
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        // 2. User is logged in! Let's find out who they are.
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
-          .single();
+          const role = profile?.role || 'citizen';
 
-        const role = profile?.role || 'citizen';
-
-        // 3. Redirect based on Role
-        if (role === 'admin') navigate('/admin-dashboard');
-        else if (role === 'employee') navigate('/employee-dashboard');
-        else navigate('/user-dashboard');
-      } else {
-        // 4. Not logged in? Stop loading and show the Landing Page.
-        setLoading(false);
+          if (role === 'super_admin' || role === 'dept_admin' || role === 'commissioner') {
+            navigate('/admin-dashboard', { replace: true });
+          } else if (role === 'employee') {
+            navigate('/employee-dashboard', { replace: true });
+          } else {
+            navigate('/user-dashboard', { replace: true });
+          }
+        }
+      } catch (err) {
+        console.error('Session check error:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
     checkSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
-  // 
-  // 5. Show the Professional Loading Screen while checking
   if (loading) return <LoadingScreen message="Verifying Credentials..." />;
 
   return (
     <div className="fade-in">
-      
-      {/* 1. HERO SECTION */}
+      {/* HERO SECTION */}
       <section style={styles.heroSection}>
-        {/* Gradient Overlay */}
         <div style={styles.heroOverlay}></div>
 
         <div className="container" style={styles.heroContainer}>
           <div style={styles.heroContent}>
-            
             <span style={styles.badge}>🚀 Better Cities, Faster</span>
             
             <h1 style={styles.heroTitle}>
               Civic <span style={{ color: '#60a5fa' }}>Connect</span>
             </h1>
-            
-            <p style={styles.heroText}>
-              Don't just complain—report it. We connect citizens directly with officials to fix potholes, garbage, and streetlights.
+
+            <p style={styles.heroSubtitle}>
+              Empowering Citizens, Streamlining Municipal Governance. Report issues, track progress, and build better communities together.
             </p>
 
-            <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-              <button onClick={() => navigate('/login')} className="btn btn-primary">
-                Login 
+            <div style={styles.buttonGroup}>
+              <button 
+                onClick={() => navigate('/login')} 
+                style={styles.primaryBtn}
+              >
+                Get Started
               </button>
-              <button onClick={() => navigate('/signup')} className="btn btn-outline">
-                Create Account
+
+              <button 
+                onClick={() => navigate('/services')} 
+                style={styles.secondaryBtn}
+              >
+                View Services
               </button>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* 2. FEATURES GRID (Floating Overlap) */}
-      <section style={{ background: '#f8fafc', paddingBottom: '80px' }}>
-        <div className="container">
-          <div style={styles.gridContainer}>
-            <FeatureCard 
-              icon="📸" 
-              title="Snap & Upload" 
-              desc="See an issue? Take a photo. Our AI automatically tags the category and location for you." 
-            />
-            <FeatureCard 
-              icon="📍" 
-              title="GPS Precision" 
-              desc="No need to explain the address. We use satellite geolocation to pinpoint the exact repair spot." 
-            />
-            <FeatureCard 
-              icon="✅" 
-              title="Verified Proof" 
-              desc="Transparency first. See 'Before' and 'After' photos for every single complaint you raise." 
-            />
-          </div>
+      {/* QUICK STATS */}
+      <section style={styles.statsSection}>
+        <div className="container" style={styles.statsGrid}>
+          <StatCard number="24/7" label="Support Active" icon="⚡" />
+          <StatCard number="100%" label="Transparent Process" icon="🛡️" />
+          <StatCard number="Fast" label="Resolution SLA" icon="⏱️" />
         </div>
       </section>
-
-      {/* 3. CALL TO ACTION STRIP */}
-      <section style={{ background: '#1e293b', color: 'white', padding: '60px 0', textAlign: 'center' }}>
-        <div className="container">
-          <h2 style={{ margin: '0 0 10px' }}>Ready to clean up your city?</h2>
-          <p style={{ color: '#94a3b8', marginBottom: '30px' }}>Join 5,000+ active citizens making a difference today.</p>
-          <button onClick={() => navigate('/signup')} className="btn" style={{ background: '#f59e0b', color: 'black' }}>
-            Get Started Now
-          </button>
-        </div>
-      </section>
-
     </div>
   );
 };
 
-// --- SUB-COMPONENTS ---
-const FeatureCard = ({ icon, title, desc }) => (
-  <div className="gov-card">
-    <div style={{ fontSize: '2.5rem', marginBottom: '15px', background: '#eff6ff', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>{icon}</div>
-    <h3 style={{ fontSize: '1.25rem', fontWeight: '700', margin: '0 0 10px', color: '#1e293b' }}>{title}</h3>
-    <p style={{ color: '#64748b', margin: 0 }}>{desc}</p>
+const StatCard = ({ number, label, icon }) => (
+  <div style={styles.statCard}>
+    <span style={{ fontSize: '2rem' }}>{icon}</span>
+    <h3 style={styles.statNumber}>{number}</h3>
+    <p style={styles.statLabel}>{label}</p>
   </div>
 );
 
-// --- LOCAL STYLES ---
 const styles = {
   heroSection: {
-    height: '85vh',
-    backgroundImage: 'url("/images/hyd_banner.jpg")', // Make sure this image exists in public/images/
-    backgroundSize: 'cover',
-    backgroundPosition: 'center',
     position: 'relative',
+    minHeight: '70vh',
     display: 'flex',
     alignItems: 'center',
+    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    color: 'white',
+    overflow: 'hidden',
   },
   heroOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.9) 40%, rgba(15, 23, 42, 0.2) 100%)',
+    background: 'radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%)',
   },
   heroContainer: {
     position: 'relative',
-    zIndex: 10,
-    width: '100%',
-    display: 'flex',
-    justifyContent: 'flex-start',
+    zIndex: 1,
+    padding: '60px 20px',
   },
   heroContent: {
     maxWidth: '650px',
-    color: 'white',
-    textAlign: 'left',
   },
   badge: {
-    background: 'rgba(37, 99, 235, 0.2)',
-    color: '#60a5fa',
-    padding: '8px 16px',
-    borderRadius: '30px',
+    display: 'inline-block',
+    padding: '6px 16px',
+    borderRadius: '20px',
+    background: 'rgba(255, 255, 255, 0.1)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
     fontSize: '0.85rem',
     fontWeight: '600',
-    border: '1px solid rgba(96, 165, 250, 0.3)',
-    marginBottom: '25px',
-    display: 'inline-block',
-    backdropFilter: 'blur(4px)',
+    marginBottom: '20px',
   },
   heroTitle: {
-    fontSize: '4rem',
+    fontSize: '3.5rem',
     fontWeight: '800',
     lineHeight: '1.1',
-    margin: '0 0 20px 0',
+    marginBottom: '20px',
     letterSpacing: '-1px',
   },
-  heroText: {
-    fontSize: '1.25rem',
-    color: '#cbd5e1',
-    marginBottom: '40px',
+  heroSubtitle: {
+    fontSize: '1.15rem',
+    color: '#94a3b8',
     lineHeight: '1.6',
-    maxWidth: '500px',
+    marginBottom: '35px',
   },
-  gridContainer: {
+  buttonGroup: {
+    display: 'flex',
+    gap: '15px',
+    flexWrap: 'wrap',
+  },
+  primaryBtn: {
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    padding: '14px 32px',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  secondaryBtn: {
+    background: 'transparent',
+    color: 'white',
+    border: '1px solid rgba(255, 255, 255, 0.3)',
+    padding: '14px 32px',
+    borderRadius: '8px',
+    fontSize: '1rem',
+    fontWeight: '600',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  },
+  statsSection: {
+    padding: '40px 0',
+    background: '#f8fafc',
+    borderBottom: '1px solid #e2e8f0',
+  },
+  statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '30px',
-    marginTop: '-80px',
-    position: 'relative',
-    zIndex: 20,
-  }
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '20px',
+  },
+  statCard: {
+    background: 'white',
+    padding: '25px',
+    borderRadius: '12px',
+    textAlign: 'center',
+    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)',
+  },
+  statNumber: {
+    margin: '10px 0 5px',
+    fontSize: '1.8rem',
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  statLabel: {
+    margin: 0,
+    color: '#64748b',
+    fontSize: '0.9rem',
+  },
 };
 
 export default Home;
