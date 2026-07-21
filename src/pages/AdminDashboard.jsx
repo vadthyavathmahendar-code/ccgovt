@@ -123,10 +123,11 @@ const AdminDashboard = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        const { error: profileError } = await supabase.from('profiles').insert([{
-          id: authData.user.id, full_name: newUser.fullName, phone: newUser.phone,
-          role: finalRole, department: finalDept, govt_id_type: newUser.idType, govt_id_number: newUser.idNumber.toUpperCase()
-        }]);
+        const { error: profileError } = await supabase.from('profiles').upsert([{
+          id: authData.user.id, full_name: newUser.fullName, email: newUser.email, phone: newUser.phone,
+          role: finalRole, department: finalDept, govt_id_type: newUser.idType, govt_id_number: newUser.idNumber.toUpperCase(),
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'id' });
         if (profileError) throw profileError;
 
         toast.success("User Created Successfully!", { id: toastId });

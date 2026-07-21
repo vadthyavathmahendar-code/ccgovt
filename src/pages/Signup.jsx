@@ -87,17 +87,20 @@ const Signup = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 4. Create Profile
-        const { error: profileError } = await supabase.from('profiles').insert([{
-          id: authData.user.id,
-          full_name: fullName,
-          email: email,
-          phone: phone,
-          role: finalRole,
-          department: finalDept,
-          govt_id_type: finalIdType,
-          govt_id_number: finalIdNumber
-        }]);
+        // 4. Create or Update Profile (Idempotent Upsert)
+        const { error: profileError } = await supabase.from('profiles').upsert([
+          {
+            id: authData.user.id,
+            full_name: fullName,
+            email: email,
+            phone: phone,
+            role: finalRole,
+            department: finalDept,
+            govt_id_type: finalIdType,
+            govt_id_number: finalIdNumber,
+            updated_at: new Date().toISOString(),
+          },
+        ], { onConflict: 'id' });
 
         if (profileError) throw profileError;
 
