@@ -1,5 +1,5 @@
 -- ==============================================================================
--- CIVICS CONNECT ENTERPRISE - SPRINT 03 MIGRATION
+-- CIVICS CONNECT ENTERPRISE - SPRINT 03 MIGRATION (FAILSAFE REVISION)
 -- Migration Name: 20260721000002_sprint_03_enterprise_schema_and_rls.sql
 -- Target Database: Supabase PostgreSQL Engine
 -- ==============================================================================
@@ -47,13 +47,23 @@ CREATE TABLE IF NOT EXISTS public.complaints (
     resolved_at TIMESTAMP WITH TIME ZONE
 );
 
--- Check Constraints for Data Quality
+-- 2b. Data Sanitization Step for Pre-Existing Legacy Rows
+UPDATE public.complaints 
+SET priority = 'Medium' 
+WHERE priority IS NULL OR priority NOT IN ('Low', 'Medium', 'High', 'Critical');
+
+UPDATE public.complaints 
+SET status = 'Pending' 
+WHERE status IS NULL OR status NOT IN ('Pending', 'Triaged', 'Assigned', 'In Progress', 'Resolved', 'Rejected', 'Closed');
+
+-- 2c. Attach Check Constraints Safely
 DO $$ 
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_complaint_status') THEN
         ALTER TABLE public.complaints ADD CONSTRAINT check_complaint_status 
         CHECK (status IN ('Pending', 'Triaged', 'Assigned', 'In Progress', 'Resolved', 'Rejected', 'Closed'));
     END IF;
+    
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_complaint_priority') THEN
         ALTER TABLE public.complaints ADD CONSTRAINT check_complaint_priority 
         CHECK (priority IN ('Low', 'Medium', 'High', 'Critical'));
@@ -124,93 +134,84 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- 9. Row Level Security Policies
 
 -- Wards Policies: Public Read
-CREATE POLICY "Allow public read access to wards" 
-ON public.wards FOR SELECT USING (true);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow public read access to wards') THEN
+        CREATE POLICY "Allow public read access to wards" ON public.wards FOR SELECT USING (true);
+    END IF;
+END $$;
 
 -- Complaints Policies:
--- A: Citizens can read their own complaints
-CREATE POLICY "Citizens can select own complaints" 
-ON public.complaints FOR SELECT 
-USING (auth.uid() = user_id);
-
--- B: Staff, Dept Heads, Commissioners & Admins can read complaints
-CREATE POLICY "Staff and Admins can view complaints" 
-ON public.complaints FOR SELECT 
-USING (
-    EXISTS (
-        SELECT 1 FROM public.profiles p 
-        WHERE p.id = auth.uid() 
-        AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
-    )
-);
-
--- C: Citizens can insert new complaints
-CREATE POLICY "Citizens can insert complaints" 
-ON public.complaints FOR INSERT 
-WITH CHECK (auth.uid() = user_id);
-
--- D: Staff and Admins can update complaints
-CREATE POLICY "Staff and Admins can update complaints" 
-ON public.complaints FOR UPDATE 
-USING (
-    EXISTS (
-        SELECT 1 FROM public.profiles p 
-        WHERE p.id = auth.uid() 
-        AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
-    )
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Citizens can select own complaints') THEN
+        CREATE POLICY "Citizens can select own complaints" ON public.complaints FOR SELECT USING (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff and Admins can view complaints') THEN
+        CREATE POLICY "Staff and Admins can view complaints" ON public.complaints FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
+            )
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Citizens can insert complaints') THEN
+        CREATE POLICY "Citizens can insert complaints" ON public.complaints FOR INSERT WITH CHECK (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff and Admins can update complaints') THEN
+        CREATE POLICY "Staff and Admins can update complaints" ON public.complaints FOR UPDATE USING (
+            EXISTS (
+                SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
+            )
+        );
+    END IF;
+END $$;
 
 -- Complaint Updates Policies:
-CREATE POLICY "Users and Staff can read complaint updates" 
-ON public.complaint_updates FOR SELECT 
-USING (
-    EXISTS (
-        SELECT 1 FROM public.complaints c 
-        WHERE c.id = complaint_updates.complaint_id 
-        AND (c.user_id = auth.uid() OR EXISTS (
-            SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
-        ))
-    )
-);
-
-CREATE POLICY "Staff can insert complaint updates" 
-ON public.complaint_updates FOR INSERT 
-WITH CHECK (auth.role() = 'authenticated');
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users and Staff can read complaint updates') THEN
+        CREATE POLICY "Users and Staff can read complaint updates" ON public.complaint_updates FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM public.complaints c WHERE c.id = complaint_updates.complaint_id AND (c.user_id = auth.uid() OR EXISTS (
+                    SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
+                ))
+            )
+        );
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff can insert complaint updates') THEN
+        CREATE POLICY "Staff can insert complaint updates" ON public.complaint_updates FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+    END IF;
+END $$;
 
 -- Complaint Feedback Policies:
-CREATE POLICY "Citizens can read and insert own feedback" 
-ON public.complaint_feedback FOR ALL 
-USING (auth.uid() = user_id)
-WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Staff can view complaint feedback" 
-ON public.complaint_feedback FOR SELECT 
-USING (
-    EXISTS (
-        SELECT 1 FROM public.profiles p 
-        WHERE p.id = auth.uid() 
-        AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
-    )
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Citizens can read and insert own feedback') THEN
+        CREATE POLICY "Citizens can read and insert own feedback" ON public.complaint_feedback FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff can view complaint feedback') THEN
+        CREATE POLICY "Staff can view complaint feedback" ON public.complaint_feedback FOR SELECT USING (
+            EXISTS (
+                SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
+            )
+        );
+    END IF;
+END $$;
 
 -- Attachments Policies:
-CREATE POLICY "Users can access complaint attachments" 
-ON public.attachments FOR ALL 
-USING (
-    EXISTS (
-        SELECT 1 FROM public.complaints c 
-        WHERE c.id = attachments.complaint_id 
-        AND (c.user_id = auth.uid() OR EXISTS (
-            SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
-        ))
-    )
-);
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Users can access complaint attachments') THEN
+        CREATE POLICY "Users can access complaint attachments" ON public.attachments FOR ALL USING (
+            EXISTS (
+                SELECT 1 FROM public.complaints c WHERE c.id = attachments.complaint_id AND (c.user_id = auth.uid() OR EXISTS (
+                    SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('employee', 'dept_admin', 'commissioner', 'super_admin')
+                ))
+            )
+        );
+    END IF;
+END $$;
 
 -- 10. Seed Data Setup for Wards
 INSERT INTO public.wards (ward_name, ward_number, zone_name, boundary_lat, boundary_lng)
 VALUES 
     ('Banjara Hills', 93, 'Khairatabad Zone', 17.4156, 78.4347),
-    ('Jubilee Hills', 94, 'Khairatabad Zone', 17.4319, 78.4072),
+    ('Jubilee Hills', 94, 'Khairatabad Zone', 17.4072, 17.4319),
     ('Madhapur', 107, 'Serilingampally Zone', 17.4483, 78.3915),
     ('Charminar', 49, 'Charminar Zone', 17.3616, 78.4747),
     ('Secunderabad', 147, 'Secunderabad Zone', 17.4399, 78.4983)
