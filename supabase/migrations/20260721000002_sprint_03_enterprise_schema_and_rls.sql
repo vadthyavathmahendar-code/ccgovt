@@ -1,5 +1,5 @@
 -- ==============================================================================
--- CIVICS CONNECT ENTERPRISE - SPRINT 03 MIGRATION (FAILSAFE REVISION)
+-- CIVICS CONNECT ENTERPRISE - SPRINT 03 MIGRATION (COMPLETE & BACKWARD COMPATIBLE)
 -- Migration Name: 20260721000002_sprint_03_enterprise_schema_and_rls.sql
 -- Target Database: Supabase PostgreSQL Engine
 -- ==============================================================================
@@ -17,7 +17,14 @@ CREATE TABLE IF NOT EXISTS public.wards (
 
 COMMENT ON TABLE public.wards IS 'Stores municipal ward boundaries and geographic zones.';
 
--- 2. Refine & Upgrade Main Complaints Table Schema
+-- 2. Create Broadcasts / System Announcements Table
+CREATE TABLE IF NOT EXISTS public.broadcasts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    message TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+);
+
+-- 3. Refine & Upgrade Main Complaints Table Schema
 CREATE TABLE IF NOT EXISTS public.complaints (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -27,9 +34,10 @@ CREATE TABLE IF NOT EXISTS public.complaints (
     subcategory VARCHAR(50),
     priority VARCHAR(20) DEFAULT 'Medium' NOT NULL,
     status VARCHAR(30) DEFAULT 'Pending' NOT NULL,
+    location TEXT,
+    civic_address TEXT,
     latitude DECIMAL(10, 6),
     longitude DECIMAL(10, 6),
-    civic_address TEXT,
     ward_id UUID REFERENCES public.wards(id) ON DELETE SET NULL,
     servicenow_ticket_number VARCHAR(50),
     servicenow_sys_id VARCHAR(50),
@@ -47,7 +55,13 @@ CREATE TABLE IF NOT EXISTS public.complaints (
     resolved_at TIMESTAMP WITH TIME ZONE
 );
 
--- 2b. Data Sanitization Step for Pre-Existing Legacy Rows
+-- 3b. Data Sanitization & Fallback Columns for Pre-Existing Legacy Rows
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS subcategory VARCHAR(50);
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS resolve_image_url TEXT;
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS admin_reply TEXT;
+ALTER TABLE public.complaints ADD COLUMN IF NOT EXISTS assigned_to VARCHAR(150);
+
 UPDATE public.complaints 
 SET priority = 'Medium' 
 WHERE priority IS NULL OR priority NOT IN ('Low', 'Medium', 'High', 'Critical');
@@ -56,7 +70,7 @@ UPDATE public.complaints
 SET status = 'Pending' 
 WHERE status IS NULL OR status NOT IN ('Pending', 'Triaged', 'Assigned', 'In Progress', 'Resolved', 'Rejected', 'Closed');
 
--- 2c. Attach Check Constraints Safely
+-- 3c. Attach Check Constraints Safely
 DO $$ 
 BEGIN 
     IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'check_complaint_status') THEN
@@ -70,7 +84,7 @@ BEGIN
     END IF;
 END $$;
 
--- 3. Create Complaint Activity Updates / Audit History Table
+-- 4. Create Complaint Activity Updates / Audit History Table
 CREATE TABLE IF NOT EXISTS public.complaint_updates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     complaint_id UUID NOT NULL REFERENCES public.complaints(id) ON DELETE CASCADE,
@@ -82,7 +96,7 @@ CREATE TABLE IF NOT EXISTS public.complaint_updates (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 4. Create Citizen Feedback & Ratings Table
+-- 5. Create Citizen Feedback & Ratings Table
 CREATE TABLE IF NOT EXISTS public.complaint_feedback (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     complaint_id UUID UNIQUE NOT NULL REFERENCES public.complaints(id) ON DELETE CASCADE,
@@ -92,7 +106,7 @@ CREATE TABLE IF NOT EXISTS public.complaint_feedback (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 5. Create File Attachments Mapping Table
+-- 6. Create File Attachments Mapping Table
 CREATE TABLE IF NOT EXISTS public.attachments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     complaint_id UUID NOT NULL REFERENCES public.complaints(id) ON DELETE CASCADE,
@@ -103,7 +117,7 @@ CREATE TABLE IF NOT EXISTS public.attachments (
     uploaded_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 6. Create System Transaction Audit Logs Table
+-- 7. Create System Transaction Audit Logs Table
 CREATE TABLE IF NOT EXISTS public.audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -114,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.audit_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- 7. Performance & GIS Indexes
+-- 8. Performance & GIS Indexes
 CREATE INDEX IF NOT EXISTS idx_complaints_user_id ON public.complaints(user_id);
 CREATE INDEX IF NOT EXISTS idx_complaints_status ON public.complaints(status);
 CREATE INDEX IF NOT EXISTS idx_complaints_category ON public.complaints(category);
@@ -123,20 +137,35 @@ CREATE INDEX IF NOT EXISTS idx_complaints_sn_ticket ON public.complaints(service
 CREATE INDEX IF NOT EXISTS idx_complaints_geo ON public.complaints(latitude, longitude);
 CREATE INDEX IF NOT EXISTS idx_complaint_updates_cid ON public.complaint_updates(complaint_id);
 
--- 8. Enable Row Level Security (RLS) across all tables
+-- 9. Enable Row Level Security (RLS) across all tables
 ALTER TABLE public.wards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.broadcasts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaints ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaint_updates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.complaint_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
--- 9. Row Level Security Policies
+-- 10. Row Level Security Policies
 
 -- Wards Policies: Public Read
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow public read access to wards') THEN
         CREATE POLICY "Allow public read access to wards" ON public.wards FOR SELECT USING (true);
+    END IF;
+END $$;
+
+-- Broadcasts Policies: Public Read, Admin Write
+DO $$ BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow public read access to broadcasts') THEN
+        CREATE POLICY "Allow public read access to broadcasts" ON public.broadcasts FOR SELECT USING (true);
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Allow staff insert to broadcasts') THEN
+        CREATE POLICY "Allow staff insert to broadcasts" ON public.broadcasts FOR INSERT WITH CHECK (
+            EXISTS (
+                SELECT 1 FROM public.profiles p WHERE p.id = auth.uid() AND p.role IN ('dept_admin', 'commissioner', 'super_admin')
+            )
+        );
     END IF;
 END $$;
 
@@ -207,11 +236,11 @@ DO $$ BEGIN
     END IF;
 END $$;
 
--- 10. Seed Data Setup for Wards
+-- 11. Seed Data Setup for Wards
 INSERT INTO public.wards (ward_name, ward_number, zone_name, boundary_lat, boundary_lng)
 VALUES 
     ('Banjara Hills', 93, 'Khairatabad Zone', 17.4156, 78.4347),
-    ('Jubilee Hills', 94, 'Khairatabad Zone', 17.4072, 17.4319),
+    ('Jubilee Hills', 94, 'Khairatabad Zone', 17.4319, 78.4072),
     ('Madhapur', 107, 'Serilingampally Zone', 17.4483, 78.3915),
     ('Charminar', 49, 'Charminar Zone', 17.3616, 78.4747),
     ('Secunderabad', 147, 'Secunderabad Zone', 17.4399, 78.4983)
