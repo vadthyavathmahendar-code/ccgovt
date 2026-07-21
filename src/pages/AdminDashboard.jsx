@@ -537,7 +537,7 @@ const styles = {
   logContainer: { height: '150px', overflowY: 'auto', background: '#f8f9fa', padding: '10px', borderRadius: '5px', border: '1px solid #eee' },
   logItem: { fontSize: '0.85rem', marginBottom: '8px', borderBottom: '1px dashed #ddd', paddingBottom: '4px' },
   
-  badge: (cat) => ({ background: '#e2e6ea', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', color: '#495057', marginLeft:'10px' }),
+  badge: () => ({ background: '#e2e6ea', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', color: '#495057', marginLeft:'10px' }),
   roleBadge: (role) => ({ padding: '4px 10px', borderRadius: '12px', background: role==='super_admin'?'#ffd700':'#17a2b8', color: role==='super_admin'?'#000':'#fff', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginTop:'5px', display:'inline-block' }),
   statusBadge: (status) => ({ padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', background: status==='Resolved'?'#d1e7dd':status==='Rejected'?'#f8d7da':'#fff3cd', color: status==='Resolved'?'#0f5132':status==='Rejected'?'#842029':'#664d03' }),
 

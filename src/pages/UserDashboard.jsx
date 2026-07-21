@@ -34,32 +34,7 @@ const UserDashboard = () => {
 
   const navigate = useNavigate();
 
-  // --- 1. INITIALIZATION ---
-  useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return navigate('/');
-      setUser(session.user);
-      fetchHistory(session.user.id);
-      fetchBroadcasts(); 
-    };
-    checkUser();
-
-    // Real-time Listeners
-    const sub = supabase.channel('user_dashboard')
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
-        handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
-        supabase.auth.getSession().then(({ data }) => { if(data.session) fetchHistory(data.session.user.id); });
-      })
-      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
-        handleNewNotification(`📢 ADMIN ALERT: ${payload.new.message}`);
-      })
-      .subscribe();
-
-    return () => supabase.removeChannel(sub);
-  }, [navigate]);
-
-  // --- 2. DATA FETCHING ---
+  // --- 2. DATA FETCHING & HELPERS ---
   const fetchHistory = async (id) => {
     const { data } = await supabase
       .from('complaints')
@@ -92,6 +67,31 @@ const UserDashboard = () => {
     setNotifications(prev => [{ id: Date.now(), msg: msg, type: 'alert' }, ...prev]);
     setUnreadCount(prev => prev + 1);
   };
+
+  // --- 1. INITIALIZATION ---
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return navigate('/');
+      setUser(session.user);
+      fetchHistory(session.user.id);
+      fetchBroadcasts(); 
+    };
+    checkUser();
+
+    // Real-time Listeners
+    const sub = supabase.channel('user_dashboard')
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
+        handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
+        supabase.auth.getSession().then(({ data }) => { if(data.session) fetchHistory(data.session.user.id); });
+      })
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
+        handleNewNotification(`📢 ADMIN ALERT: ${payload.new.message}`);
+      })
+      .subscribe();
+
+    return () => supabase.removeChannel(sub);
+  }, [navigate]);
 
   // --- 3. ACTIONS ---
   const handleGPS = () => {
