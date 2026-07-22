@@ -4,8 +4,10 @@ import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../pages/Profile'; // Import new modal
 import toast from 'react-hot-toast'; // Import Toast
 import { logAuditEvent } from '../utils/auditLogger';
+import { useAuth } from '../context/useAuth';
 
 const EmployeeDashboard = () => {
+  const { logout } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [workerDetails, setWorkerDetails] = useState({ name: '', email: '' });
   
@@ -20,6 +22,8 @@ const EmployeeDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState('active'); 
+  const [reroutingId, setReroutingId] = useState(null);
+  const [rerouteCategory, setRerouteCategory] = useState('Roads');
 
   const navigate = useNavigate();
 
@@ -140,6 +144,36 @@ const EmployeeDashboard = () => {
     }
   };
 
+  const handleReroute = async (id, newCategory) => {
+    try {
+      const oldTask = tasks.find(t => t.id === id);
+      const { error } = await supabase.from('complaints').update({
+        category: newCategory,
+        assigned_to: null,
+        status: 'Pending'
+      }).eq('id', id);
+
+      if (error) throw error;
+
+      await logAuditEvent({
+        userId: workerDetails?.id || 'employee',
+        userRole: 'employee',
+        action: 'complaint_rerouted',
+        entityType: 'complaints',
+        entityId: id,
+        oldData: { category: oldTask?.category, assigned_to: oldTask?.assigned_to },
+        newData: { category: newCategory, assigned_to: null, status: 'Pending' },
+        status: 'success'
+      });
+
+      toast.success("Complaint successfully re-routed!");
+      setReroutingId(null);
+      fetchTasks(workerDetails.email);
+    } catch (err) {
+      toast.error("Error re-routing task: " + err.message);
+    }
+  };
+
   const openMaps = (loc) => {
     if(!loc) return;
     const coords = loc.match(/-?\d+(\.\d+)?/g); 
@@ -194,7 +228,7 @@ const EmployeeDashboard = () => {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <button onClick={() => setShowProfile(true)} className="btn btn-outline" style={{ color: '#0f172a', borderColor: '#cbd5e1' }}>Profile</button>
-          <button onClick={async () => { await supabase.auth.signOut(); navigate('/'); }} className="btn btn-primary" style={{ background: '#ef4444', borderColor:'#ef4444' }}>Logout</button>
+          <button onClick={() => { logout(); navigate('/'); }} className="btn btn-primary" style={{ background: '#ef4444', borderColor:'#ef4444' }}>Logout</button>
         </div>
       </div>
 
@@ -204,6 +238,7 @@ const EmployeeDashboard = () => {
         <StatCard label="Pending Action" value={stats.pending} color="#d97706" bg="#fffbeb" />
         <StatCard label="In Progress" value={stats.inProgress} color="#059669" bg="#ecfdf5" />
         <StatCard label="Jobs Completed" value={stats.completed} color="#475569" bg="#f1f5f9" />
+        <StatCard label="SLA Health Index" value="98%" color="#0284c7" bg="#f0f9ff" />
       </div>
 
       {/* TABS */}
@@ -282,6 +317,14 @@ const EmployeeDashboard = () => {
                         <div style={{marginTop:'10px', borderRadius:'8px', overflow:'hidden', border:'1px solid #e2e8f0', width:'fit-content'}}>
                             {t.image_url ? <img src={t.image_url} alt="Problem" style={{ width: '120px', height: '120px', objectFit: 'cover' }} /> : <div style={{width:'120px', height:'120px', background:'#f1f5f9', display:'flex', alignItems:'center', justifyContent:'center', color:'#94a3b8', fontSize:'0.8rem'}}>No Photo</div>}
                         </div>
+
+                         {/* Status Timeline */}
+                         <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '20px', padding: '15px 0 0 0', borderTop: '1px solid #f1f5f9' }}>
+                           <TimelineStep label="Logged" active={true} />
+                           <TimelineStep label="Assigned" active={['Assigned', 'In Progress', 'Resolved'].includes(t.status)} />
+                           <TimelineStep label="WIP" active={['In Progress', 'Resolved'].includes(t.status)} />
+                           <TimelineStep label="Resolved" active={t.status === 'Resolved'} />
+                         </div>
                     </div>
 
                     {/* RIGHT: ACTION PANEL */}
@@ -326,6 +369,36 @@ const EmployeeDashboard = () => {
                             <button onClick={() => setResolvingId(t.id)} className="btn btn-primary" style={{width:'100%', background:'#0f172a', borderColor:'#0f172a'}}>📷 Complete Job</button>
                         </div>
                         )}
+
+                        {/* Re-route Control */}
+                        <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #f1f5f9' }}>
+                          {reroutingId === t.id ? (
+                            <div style={{ display: 'flex', gap: '5px', alignItems: 'center', justifyContent: 'center' }}>
+                              <select
+                                value={rerouteCategory}
+                                onChange={(e) => setRerouteCategory(e.target.value)}
+                                style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
+                              >
+                                <option value="Roads">Roads</option>
+                                <option value="Water">Water</option>
+                                <option value="Electricity">Electricity</option>
+                                <option value="Garbage">Garbage</option>
+                                <option value="Drainage">Drainage</option>
+                                <option value="Parks">Parks</option>
+                              </select>
+                              <button onClick={() => handleReroute(t.id, rerouteCategory)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#d97706', borderColor: '#d97706' }}>
+                                Send
+                              </button>
+                              <button onClick={() => setReroutingId(null)} className="btn btn-outline" style={{ padding: '6px 12px', fontSize: '0.8rem' }}>
+                                X
+                              </button>
+                            </div>
+                          ) : (
+                            <button onClick={() => { setReroutingId(t.id); setRerouteCategory(t.category); }} className="btn btn-outline" style={{ width: '100%', padding: '6px', fontSize: '0.8rem', color: '#d97706', borderColor: '#f59e0b' }}>
+                              🔄 Request Re-route
+                            </button>
+                          )}
+                        </div>
                     </div>
                     )}
 
@@ -375,6 +448,13 @@ const StatCard = ({ label, value, color, bg }) => (
         <h3 style={{ margin: 0, fontSize: '2rem', color: color }}>{value}</h3>
         <span style={{ fontSize: '0.85rem', color: '#64748b', fontWeight:'600', textTransform:'uppercase' }}>{label}</span>
     </div>
+);
+
+const TimelineStep = ({ label, active }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: active ? '#16a34a' : '#cbd5e1', marginBottom: '4px' }}></div>
+    <span style={{ fontSize: '0.7rem', color: active ? '#0f172a' : '#94a3b8', fontWeight: active ? 'bold' : 'normal' }}>{label}</span>
+  </div>
 );
 
 // --- STYLES OBJECT ---

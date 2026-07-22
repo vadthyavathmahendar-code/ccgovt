@@ -74,26 +74,27 @@ export const AuthProvider = ({ children }) => {
   const logout = async () => {
     const currentUserId = user?.id;
     const currentUserRole = role;
-    setLoading(true);
+
+    // 1. Instantly clear local session states to trigger immediate UI redirect
+    setUser(null);
+    setProfile(null);
+    setRole(null);
+
+    // 2. Perform background logging and signOut without blocking user redirection
     try {
       if (currentUserId) {
-        await logAuditEvent({
+        logAuditEvent({
           userId: currentUserId,
           userRole: currentUserRole || 'citizen',
           action: 'auth_logout',
           entityType: 'auth',
           entityId: currentUserId,
           status: 'success'
-        });
+        }).catch(err => console.error('Logout logging warning:', err));
       }
-      await supabase.auth.signOut();
+      supabase.auth.signOut().catch(err => console.error('Supabase signOut warning:', err));
     } catch (err) {
-      console.error('Logout error:', err);
-    } finally {
-      setUser(null);
-      setProfile(null);
-      setRole(null);
-      setLoading(false);
+      console.error('Logout error handler:', err);
     }
   };
 

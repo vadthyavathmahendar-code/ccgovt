@@ -5,6 +5,7 @@ import ProfileModal from '../pages/Profile';
 import { logAuditEvent } from '../utils/auditLogger';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/useTheme';
+import toast from 'react-hot-toast';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
@@ -39,6 +40,11 @@ const UserDashboard = () => {
   // Modals
   const [showProfile, setShowProfile] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null); 
+  const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  
+  // Feedback states
+  const [feedbackRating, setFeedbackRating] = useState(5);
+  const [feedbackComments, setFeedbackComments] = useState('');
   
   // Notification Logic
   const [showNotifications, setShowNotifications] = useState(false);
@@ -168,16 +174,75 @@ const UserDashboard = () => {
         });
       }
 
-      alert("🎉 Report Logged Successfully!");
+      toast.success("🎉 Report Logged Successfully!");
       setFormData({ title: '', desc: '', location: '', category: 'Roads' });
       setIsUrgent(false);
       setImage(null);
       setPreviewUrl(null);
       fetchHistory(user.id);
     } catch (err) {
-      alert("Error logging report: " + err.message);
+      toast.error("Error logging report: " + err.message);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitFeedback = async () => {
+    if (!selectedComplaint) return;
+    try {
+      const { error } = await supabase.from('complaint_feedback').insert([{
+        complaint_id: selectedComplaint.id,
+        rating: feedbackRating,
+        comments: feedbackComments,
+        user_id: user.id
+      }]);
+      if (error) throw error;
+      
+      await logAuditEvent({
+        userId: user.id,
+        userRole: 'citizen',
+        action: 'feedback_submitted',
+        entityType: 'complaints',
+        entityId: selectedComplaint.id,
+        newData: { rating: feedbackRating, comments: feedbackComments },
+        status: 'success'
+      });
+      
+      toast.success("Thank you for your feedback! ⭐");
+      setFeedbackComments('');
+      setSelectedComplaint(null);
+    } catch (err) {
+      toast.error("Error submitting feedback: " + err.message);
+    }
+  };
+
+  const reopenComplaint = async () => {
+    if (!selectedComplaint) return;
+    try {
+      const { error } = await supabase.from('complaints').update({
+        status: 'Pending',
+        assigned_to: null,
+        resolve_image_url: null
+      }).eq('id', selectedComplaint.id);
+      
+      if (error) throw error;
+
+      await logAuditEvent({
+        userId: user.id,
+        userRole: 'citizen',
+        action: 'complaint_reopened',
+        entityType: 'complaints',
+        entityId: selectedComplaint.id,
+        oldData: { status: selectedComplaint.status },
+        newData: { status: 'Pending' },
+        status: 'success'
+      });
+
+      toast.success("Issue Reopened successfully! 🚨");
+      setSelectedComplaint(null);
+      fetchHistory(user.id);
+    } catch (err) {
+      toast.error("Error reopening issue: " + err.message);
     }
   };
 
@@ -211,6 +276,9 @@ const UserDashboard = () => {
           </div>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <Button variant="danger" size="sm" onClick={() => setShowEmergencyModal(true)} style={{ fontWeight: 'bold' }}>
+              🚨 Emergency SOS
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setShowNotifications(!showNotifications)}>
               🔔 Notifications {unreadCount > 0 && <span style={{ background: themeColors.danger, color: '#fff', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem' }}>{unreadCount}</span>}
             </Button>
@@ -417,7 +485,7 @@ const UserDashboard = () => {
 
       {selectedComplaint && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' }}>
-          <div style={{ background: themeColors.surface, padding: '24px', borderRadius: borderRadius.lg, maxWidth: '500px', width: '100%', boxShadow: shadows.lg }}>
+          <div style={{ background: themeColors.surface, padding: '24px', borderRadius: borderRadius.lg, maxWidth: '500px', width: '100%', boxShadow: shadows.lg, color: themeColors.textPrimary }}>
             <h3 style={{ margin: '0 0 10px', fontSize: typography.fontSize.xl }}>Report #{String(selectedComplaint.id).slice(0, 8)}</h3>
             <p><strong>Title:</strong> {selectedComplaint.title}</p>
             <p><strong>Category:</strong> {selectedComplaint.category}</p>
@@ -427,8 +495,90 @@ const UserDashboard = () => {
             {selectedComplaint.image_url && (
               <img src={selectedComplaint.image_url} alt="Evidence" style={{ width: '100%', maxHeight: '200px', objectFit: 'cover', borderRadius: borderRadius.md, marginTop: '10px' }} />
             )}
+
+            {/* FEEDBACK & REOPEN WORKFLOW PANEL */}
+            {['Resolved', 'Rejected'].includes(selectedComplaint.status) && (
+              <div style={{ marginTop: '20px', padding: '15px', background: themeColors.surfaceSecondary, borderRadius: borderRadius.md, border: `1px solid ${themeColors.border}` }}>
+                <h4 style={{ margin: '0 0 8px', fontSize: typography.fontSize.sm, fontWeight: 'bold' }}>Resolution Feedback & Action</h4>
+                
+                {/* Rating Input */}
+                <div style={{ display: 'flex', gap: '5px', marginBottom: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: typography.fontSize.xs }}>Rating:</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setFeedbackRating(star)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', color: star <= feedbackRating ? '#fbbf24' : '#cbd5e1' }}
+                    >
+                      ★
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  placeholder="Tell us what you think of the resolution..."
+                  value={feedbackComments}
+                  onChange={(e) => setFeedbackComments(e.target.value)}
+                  style={{ width: '100%', padding: '8px', borderRadius: borderRadius.sm, border: `1px solid ${themeColors.border}`, fontSize: '0.8rem', background: themeColors.surface, color: themeColors.textPrimary, resize: 'none', marginBottom: '10px' }}
+                  rows={2}
+                />
+
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <Button variant="primary" size="sm" onClick={submitFeedback}>
+                    Submit Rating
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={reopenComplaint} style={{ color: themeColors.danger, borderColor: themeColors.danger }}>
+                    Reopen Issue
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div style={{ marginTop: '20px', textAlign: 'right' }}>
-              <Button variant="primary" size="sm" onClick={() => setSelectedComplaint(null)}>Close</Button>
+              <Button variant="outline" size="sm" onClick={() => setSelectedComplaint(null)}>Close</Button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* EMERGENCY SOS MODAL */}
+      {showEmergencyModal && createPortal(
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1060, padding: '20px' }}>
+          <div style={{ background: themeColors.surface, padding: '24px', borderRadius: borderRadius.lg, maxWidth: '450px', width: '100%', boxShadow: shadows.lg, color: themeColors.textPrimary }}>
+            <h3 style={{ margin: '0 0 10px', fontSize: typography.fontSize.xl, color: themeColors.danger }}>🚨 Emergency SOS Response Panel</h3>
+            <p style={{ fontSize: typography.fontSize.sm, color: themeColors.textSecondary, marginBottom: '20px' }}>
+              If there is an active life-safety hazard, chemical spill, fire, or collapse, call the emergency control rooms immediately:
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: themeColors.surfaceSecondary, borderRadius: borderRadius.md }}>
+                <strong>🔥 Fire & Rescue Services</strong>
+                <a href="tel:101" style={{ color: themeColors.primary, fontWeight: 'bold' }}>Dial 101</a>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: themeColors.surfaceSecondary, borderRadius: borderRadius.md }}>
+                <strong>🚑 Ambulance & Medical</strong>
+                <a href="tel:108" style={{ color: themeColors.primary, fontWeight: 'bold' }}>Dial 108</a>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', background: themeColors.surfaceSecondary, borderRadius: borderRadius.md }}>
+                <strong>🏛️ Municipal Disaster Control Room</strong>
+                <a href="tel:04021111111" style={{ color: themeColors.primary, fontWeight: 'bold' }}>Dial 040-21111111</a>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <Button variant="primary" size="sm" onClick={() => {
+                logAuditEvent({
+                  userId: user?.id || null,
+                  userRole: 'citizen',
+                  action: 'emergency_sos_triggered',
+                  entityType: 'system',
+                  status: 'success'
+                });
+                setShowEmergencyModal(false);
+                toast.success("Emergency logged. Help is on the way!");
+              }}>
+                Acknowledge & Close
+              </Button>
             </div>
           </div>
         </div>,
