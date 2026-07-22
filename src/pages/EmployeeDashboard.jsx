@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../pages/Profile'; // Import new modal
 import toast from 'react-hot-toast'; // Import Toast
+import { logAuditEvent } from '../utils/auditLogger';
 
 const EmployeeDashboard = () => {
   const [tasks, setTasks] = useState([]);
@@ -72,8 +73,19 @@ const EmployeeDashboard = () => {
 
   // --- 2. ACTIONS ---
   const startWork = async (id) => {
+    const oldTask = tasks.find(t => t.id === id);
     setTasks(prev => prev.map(t => t.id === id ? { ...t, status: 'In Progress' } : t));
     await supabase.from('complaints').update({ status: 'In Progress' }).eq('id', id);
+    await logAuditEvent({
+      userId: workerDetails?.id,
+      userRole: 'employee',
+      action: 'complaint_status_changed',
+      entityType: 'complaints',
+      entityId: id,
+      oldData: oldTask ? { status: oldTask.status } : null,
+      newData: { status: 'In Progress' },
+      status: 'success'
+    });
     toast.success("Task Started! 🚧");
   };
 
@@ -97,6 +109,7 @@ const EmployeeDashboard = () => {
       
       const { data } = supabase.storage.from('complaint_images').getPublicUrl(fileName);
       
+      const oldTask = tasks.find(t => t.id === id);
       const { error } = await supabase.from('complaints').update({ 
         status: 'Resolved', 
         admin_reply: notes, 
@@ -104,6 +117,17 @@ const EmployeeDashboard = () => {
       }).eq('id', id);
 
       if(error) throw error;
+
+      await logAuditEvent({
+        userId: workerDetails?.id,
+        userRole: 'employee',
+        action: 'complaint_status_changed',
+        entityType: 'complaints',
+        entityId: id,
+        oldData: oldTask ? { status: oldTask.status, admin_reply: oldTask.admin_reply } : null,
+        newData: { status: 'Resolved', admin_reply: notes, resolve_image_url: data.publicUrl },
+        status: 'success'
+      });
 
       toast.success("Resolution Submitted! ✅", { id: loadingToast });
       setResolvingId(null); setNotes(''); setProofImage(null); setProofPreview(null);

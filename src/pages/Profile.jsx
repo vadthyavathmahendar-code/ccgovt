@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const ProfileModal = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
@@ -54,6 +55,17 @@ const ProfileModal = ({ onClose }) => {
       const { error: updateError } = await supabase.from('profiles').update({ avatar_url: publicUrl, updated_at: new Date() }).eq('id', user.id);
       if (updateError) throw updateError;
 
+      await logAuditEvent({
+        userId: user.id,
+        userRole: role,
+        action: 'profile_update',
+        entityType: 'profiles',
+        entityId: user.id,
+        oldData: { avatar_url: avatarUrl },
+        newData: { avatar_url: publicUrl },
+        status: 'success'
+      });
+
       setAvatarUrl(publicUrl);
       toast.success('📸 Photo Updated Successfully!');
 
@@ -76,6 +88,16 @@ const ProfileModal = ({ onClose }) => {
     }).eq('id', user.id);
 
     if (!error) {
+      await logAuditEvent({
+        userId: user.id,
+        userRole: role,
+        action: 'profile_update',
+        entityType: 'profiles',
+        entityId: user.id,
+        oldData: { full_name: fullName, phone, address }, // approximate old data
+        newData: { full_name: fullName, phone, address },
+        status: 'success'
+      });
       toast.success('✅ Details Updated Successfully');
       setIsFlipped(false);
     } else {

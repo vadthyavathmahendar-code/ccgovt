@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../pages/Profile';
+import { logAuditEvent } from '../utils/auditLogger';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/useTheme';
 import Card from '../components/ui/Card';
@@ -141,7 +142,7 @@ const UserDashboard = () => {
         publicImageUrl = urlData.publicUrl;
       }
 
-      const { error: dbError } = await supabase.from('complaints').insert([{
+      const { data: insertedData, error: dbError } = await supabase.from('complaints').insert([{
         user_id: user.id,
         title: formData.title,
         description: formData.desc,
@@ -150,9 +151,22 @@ const UserDashboard = () => {
         image_url: publicImageUrl,
         is_urgent: isUrgent, 
         status: 'Pending'
-      }]);
+      }]).select();
 
       if (dbError) throw dbError;
+
+      const createdComplaint = insertedData?.[0];
+      if (createdComplaint) {
+        await logAuditEvent({
+          userId: user.id,
+          userRole: 'citizen',
+          action: 'complaint_created',
+          entityType: 'complaints',
+          entityId: createdComplaint.id,
+          newData: createdComplaint,
+          status: 'success'
+        });
+      }
 
       alert("🎉 Report Logged Successfully!");
       setFormData({ title: '', desc: '', location: '', category: 'Roads' });

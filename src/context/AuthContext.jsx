@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { AuthContext } from './AuthContextInstance';
+import { logAuditEvent } from '../utils/auditLogger';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -71,8 +72,20 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const logout = async () => {
+    const currentUserId = user?.id;
+    const currentUserRole = role;
     setLoading(true);
     try {
+      if (currentUserId) {
+        await logAuditEvent({
+          userId: currentUserId,
+          userRole: currentUserRole || 'citizen',
+          action: 'auth_logout',
+          entityType: 'auth',
+          entityId: currentUserId,
+          status: 'success'
+        });
+      }
       await supabase.auth.signOut();
     } catch (err) {
       console.error('Logout error:', err);

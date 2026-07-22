@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -63,7 +64,36 @@ const Login = () => {
     
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (error) {
+        await logAuditEvent({
+          userId: null,
+          userRole: 'anonymous',
+          action: 'auth_failed_login',
+          entityType: 'auth',
+          oldData: { email },
+          status: 'failed'
+        });
+        throw error;
+      }
+      
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+        await logAuditEvent({
+          userId: session.user.id,
+          userRole: profile?.role || 'citizen',
+          action: 'auth_login',
+          entityType: 'auth',
+          entityId: session.user.id,
+          newData: { email },
+          status: 'success'
+        });
+      }
+
       toast.success("Login Successful!");
     } catch (error) {
       toast.error(error.message);

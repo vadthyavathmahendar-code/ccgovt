@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { logAuditEvent } from '../utils/auditLogger';
 
 const Signup = () => {
   // --- STATE ---
@@ -100,6 +101,17 @@ const Signup = () => {
         }]);
 
         if (profileError) throw profileError;
+
+        // Log user_created audit event
+        await logAuditEvent({
+          userId: authData.user.id,
+          userRole: finalRole,
+          action: 'user_created',
+          entityType: 'profiles',
+          entityId: authData.user.id,
+          newData: { email, full_name: fullName, role: finalRole },
+          status: 'success'
+        });
 
         toast.success(`✅ ${role.toUpperCase()} Account Created!`);
         setTimeout(() => navigate('/'), 2000);

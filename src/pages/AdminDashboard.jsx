@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { logAuditEvent } from '../utils/auditLogger';
+import AuditLogsConsole from '../components/AuditLogsConsole';
 
 const AdminDashboard = () => {
   // --- STATE MANAGEMENT ---
@@ -123,11 +125,22 @@ const AdminDashboard = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        const { error: profileError } = await supabase.from('profiles').insert([{
-          id: authData.user.id, full_name: newUser.fullName, phone: newUser.phone,
-          role: finalRole, department: finalDept, govt_id_type: newUser.idType, govt_id_number: newUser.idNumber.toUpperCase()
-        }]);
+        const { error: profileError } = await supabase.from('profiles').upsert([{
+          id: authData.user.id, full_name: newUser.fullName, email: newUser.email, phone: newUser.phone,
+          role: finalRole, department: finalDept, govt_id_type: newUser.idType, govt_id_number: newUser.idNumber.toUpperCase(),
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'id' });
         if (profileError) throw profileError;
+
+        await logAuditEvent({
+          userId: adminProfile?.id,
+          userRole: adminProfile?.role,
+          action: 'user_created',
+          entityType: 'profiles',
+          entityId: authData.user.id,
+          newData: { email: newUser.email, full_name: newUser.fullName, role: finalRole, department: finalDept },
+          status: 'success'
+        });
 
         toast.success("User Created Successfully!", { id: toastId });
         setShowAddUserModal(false);
@@ -141,9 +154,20 @@ const AdminDashboard = () => {
 
   const handleAssignWorker = async (email) => {
     if (!assigningComplaintId) return;
+    const oldComplaint = complaints.find(c => c.id === assigningComplaintId);
     const { error } = await supabase.from('complaints').update({ assigned_to: email, status: 'Assigned' }).eq('id', assigningComplaintId);
     if (error) { toast.error(error.message); } 
     else { 
+        await logAuditEvent({
+          userId: adminProfile?.id,
+          userRole: adminProfile?.role,
+          action: 'complaint_assigned',
+          entityType: 'complaints',
+          entityId: assigningComplaintId,
+          oldData: oldComplaint ? { assigned_to: oldComplaint.assigned_to, status: oldComplaint.status } : null,
+          newData: { assigned_to: email, status: 'Assigned' },
+          status: 'success'
+        });
         toast.success(`Assigned to ${email}`);
         addLog(`Assigned Report #${String(assigningComplaintId).slice(0,4)} to ${email}`); 
         setAssigningComplaintId(null); 
@@ -153,9 +177,20 @@ const AdminDashboard = () => {
 
   const handleReject = async (id) => {
       if(!window.confirm("Are you sure you want to reject this complaint?")) return;
+      const oldComplaint = complaints.find(c => c.id === id);
       const { error } = await supabase.from('complaints').update({ status: 'Rejected', assigned_to: null }).eq('id', id);
       if (error) toast.error(error.message);
       else {
+          await logAuditEvent({
+            userId: adminProfile?.id,
+            userRole: adminProfile?.role,
+            action: 'complaint_status_changed',
+            entityType: 'complaints',
+            entityId: id,
+            oldData: oldComplaint ? { status: oldComplaint.status, assigned_to: oldComplaint.assigned_to } : null,
+            newData: { status: 'Rejected', assigned_to: null },
+            status: 'success'
+          });
           toast.success("Complaint Rejected");
           fetchAllData(adminProfile);
       }
@@ -164,6 +199,14 @@ const AdminDashboard = () => {
   const handleBroadcast = async () => {
     if(!broadcastMsg) return;
     await supabase.from('broadcasts').insert([{ message: broadcastMsg }]);
+    await logAuditEvent({
+      userId: adminProfile?.id,
+      userRole: adminProfile?.role,
+      action: 'broadcast_created',
+      entityType: 'broadcasts',
+      newData: { message: broadcastMsg },
+      status: 'success'
+    });
     toast.success("Broadcast Sent!");
     setBroadcastMsg('');
   };
@@ -349,6 +392,7 @@ const AdminDashboard = () => {
           <NavBtn active={activeTab === 'complaints'} onClick={() => setActiveTab('complaints')} icon="🚨" label="Complaints" />
           <NavBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon="👥" label="Staff & Users" />
           <NavBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon="📈" label="Analytics" />
+          <NavBtn active={activeTab === 'audit_logs'} onClick={() => setActiveTab('audit_logs')} icon="📋" label="Audit Logs" />
         </nav>
         <div style={styles.sidebarFooter}>
             <button onClick={() => setShowProfileModal(true)} style={styles.profileBtn}>
@@ -493,6 +537,13 @@ const AdminDashboard = () => {
                     </div>
                 </div>
             </div>
+        )}
+
+        {activeTab === 'audit_logs' && (
+          <div className="fade-in">
+             <h2 style={styles.pageTitle}>Security Audit Logs Ledger</h2>
+             <AuditLogsConsole />
+          </div>
         )}
       </main>
     </div>
