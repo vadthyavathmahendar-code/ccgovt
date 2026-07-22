@@ -80,6 +80,19 @@ const Signup = () => {
     }
 
     try {
+      // Check if email already registered in profiles to provide friendly error
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      if (existingProfile) {
+        toast.error("❌ Email is already registered!");
+        setLoading(false);
+        return;
+      }
+
       // 3. Create Auth User
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -88,8 +101,8 @@ const Signup = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // 4. Create Profile
-        const { error: profileError } = await supabase.from('profiles').insert([{
+        // 4. Create or update Profile using upsert to avoid race conditions with triggers
+        const { error: profileError } = await supabase.from('profiles').upsert([{
           id: authData.user.id,
           full_name: fullName,
           email: email,
@@ -97,8 +110,9 @@ const Signup = () => {
           role: finalRole,
           department: finalDept,
           govt_id_type: finalIdType,
-          govt_id_number: finalIdNumber
-        }]);
+          govt_id_number: finalIdNumber,
+          updated_at: new Date().toISOString()
+        }], { onConflict: 'id' });
 
         if (profileError) throw profileError;
 
