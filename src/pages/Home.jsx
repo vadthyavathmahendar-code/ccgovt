@@ -131,6 +131,7 @@ const styles = {
   },
   heroContent: {
     maxWidth: '650px',
+    textAlign: 'left',
   },
   badge: {
     display: 'inline-block',
