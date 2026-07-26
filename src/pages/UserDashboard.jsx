@@ -30,6 +30,8 @@ const UserDashboard = () => {
   const [image, setImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null); 
   const [submitting, setSubmitting] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const fileInputRef = useRef(null);
   
   // Filter & UI States
@@ -138,11 +140,46 @@ const UserDashboard = () => {
     }
   };
 
+  const validateFile = (file) => {
+    if (!file) return false;
+    const validTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast.error("❌ Invalid file type. Please upload a PNG, JPEG, or WEBP image.");
+      return false;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("❌ File is too large. Photo evidence must be under 5MB.");
+      return false;
+    }
+    return true;
+  };
+
   const handleImageChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
+    if (file && validateFile(file)) {
       setImage(file);
       setPreviewUrl(URL.createObjectURL(file)); 
+    } else if (e.target) {
+      e.target.value = null;
+    }
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && validateFile(file)) {
+      setImage(file);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
@@ -157,7 +194,13 @@ const UserDashboard = () => {
         const fileName = `${Date.now()}_${Math.random()}.${fileExt}`;
         const filePath = `user_uploads/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage.from('complaints').upload(filePath, image);
+        setUploadProgress(10);
+        const { error: uploadError } = await supabase.storage.from('complaints').upload(filePath, image, {
+          onUploadProgress: (progress) => {
+            const percentage = Math.round((progress.loaded / progress.total) * 100);
+            setUploadProgress(percentage);
+          }
+        });
         if (uploadError) throw uploadError;
 
         const { data: urlData } = supabase.storage.from('complaints').getPublicUrl(filePath);
@@ -195,6 +238,7 @@ const UserDashboard = () => {
       setIsUrgent(false);
       setImage(null);
       setPreviewUrl(null);
+      setUploadProgress(0);
       fetchHistory(user.id);
     } catch (err) {
       toast.error("Error logging report: " + err.message);
@@ -389,15 +433,59 @@ const UserDashboard = () => {
                 <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: '6px' }}>
                   Upload Photo Evidence
                 </label>
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  style={{ fontSize: typography.fontSize.xs }}
-                />
+                <div
+                  onDragOver={handleDragOver}
+                  onDragLeave={handleDragLeave}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: `2px dashed ${isDragging ? themeColors.primary : themeColors.border}`,
+                    borderRadius: borderRadius.md,
+                    padding: '20px',
+                    textAlign: 'center',
+                    background: isDragging ? themeColors.surfaceSecondary : themeColors.surface,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    marginBottom: '10px'
+                  }}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    style={{ display: 'none' }}
+                  />
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📸</div>
+                  <p style={{ fontSize: typography.fontSize.sm, color: themeColors.textPrimary, margin: '0 0 4px 0', fontWeight: '550' }}>
+                    {image ? image.name : 'Drag & drop your image here, or click to browse'}
+                  </p>
+                  <p style={{ fontSize: typography.fontSize.xs, color: themeColors.textSecondary, margin: 0 }}>
+                    PNG, JPEG or WEBP (Max 5MB)
+                  </p>
+                </div>
                 {previewUrl && (
-                  <img src={previewUrl} alt="Upload preview" style={{ marginTop: '10px', height: '80px', borderRadius: borderRadius.md, objectFit: 'cover' }} />
+                  <div style={{ position: 'relative', display: 'inline-block', marginTop: '10px' }}>
+                    <img src={previewUrl} alt="Upload preview" style={{ height: '80px', borderRadius: borderRadius.md, objectFit: 'cover', border: `1px solid ${themeColors.border}` }} />
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.stopPropagation(); setImage(null); setPreviewUrl(null); }}
+                      style={{ position: 'absolute', top: '-5px', right: '-5px', background: themeColors.danger, color: 'white', border: 'none', borderRadius: '50%', width: '20px', height: '20px', fontSize: '10px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      ✖
+                    </button>
+                  </div>
+                )}
+                {uploadProgress > 0 && (
+                  <div style={{ marginTop: '10px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: typography.fontSize.xs, color: themeColors.textSecondary, marginBottom: '4px' }}>
+                      <span>Uploading evidence...</span>
+                      <span>{uploadProgress}%</span>
+                    </div>
+                    <div style={{ width: '100%', background: themeColors.border, height: '6px', borderRadius: '3px', overflow: 'hidden' }}>
+                      <div style={{ width: `${uploadProgress}%`, background: themeColors.primary, height: '100%', transition: 'width 0.1s ease' }} />
+                    </div>
+                  </div>
                 )}
               </div>
 
