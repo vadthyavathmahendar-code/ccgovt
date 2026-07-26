@@ -110,17 +110,19 @@ const StatCard = ({ number, label, icon }) => (
 const styles = {
   heroSection: {
     position: 'relative',
-    minHeight: '70vh',
+    minHeight: '75vh',
     display: 'flex',
     alignItems: 'center',
-    background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+    backgroundImage: 'url("/images/hyd_banner.jpg")',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
     color: 'white',
     overflow: 'hidden',
   },
   heroOverlay: {
     position: 'absolute',
     top: 0, left: 0, right: 0, bottom: 0,
-    background: 'radial-gradient(circle at 80% 20%, rgba(37, 99, 235, 0.15) 0%, transparent 50%)',
+    background: 'linear-gradient(90deg, rgba(15, 23, 42, 0.95) 0%, rgba(15, 23, 42, 0.85) 45%, rgba(15, 23, 42, 0.15) 100%)',
   },
   heroContainer: {
     position: 'relative',
