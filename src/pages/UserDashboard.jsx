@@ -14,6 +14,7 @@ import Textarea from '../components/ui/Textarea';
 import Badge from '../components/ui/Badge';
 import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
+import MapView from '../components/MapView';
 import { borderRadius, shadows, typography, spacing } from '../styles/designTokens';
 
 const UserDashboard = () => {
@@ -32,6 +33,7 @@ const UserDashboard = () => {
   const [submitting, setSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [mapLocation, setMapLocation] = useState(null);
   const fileInputRef = useRef(null);
   
   // Filter & UI States
@@ -130,14 +132,9 @@ const UserDashboard = () => {
   }, [navigate]);
 
   // --- ACTIONS ---
-  const handleGPS = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        setFormData(prev => ({ ...prev, location: `Lat: ${pos.coords.latitude.toFixed(4)}, Long: ${pos.coords.longitude.toFixed(4)}` }));
-      });
-    } else {
-      alert("GPS not supported");
-    }
+  const handleLocationSelected = (loc) => {
+    setMapLocation(loc);
+    setFormData(prev => ({ ...prev, location: loc.address }));
   };
 
   const validateFile = (file) => {
@@ -215,7 +212,10 @@ const UserDashboard = () => {
         location: formData.location,
         image_url: publicImageUrl,
         is_urgent: isUrgent, 
-        status: 'Pending'
+        status: 'Pending',
+        priority: isUrgent ? 'High' : 'Medium',
+        latitude: mapLocation ? mapLocation.latitude : null,
+        longitude: mapLocation ? mapLocation.longitude : null
       }]).select();
 
       if (dbError) throw dbError;
@@ -239,6 +239,7 @@ const UserDashboard = () => {
       setImage(null);
       setPreviewUrl(null);
       setUploadProgress(0);
+      setMapLocation(null);
       fetchHistory(user.id);
     } catch (err) {
       toast.error("Error logging report: " + err.message);
@@ -404,20 +405,22 @@ const UserDashboard = () => {
                 ]}
               />
 
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end' }}>
-                <div style={{ flex: 1 }}>
-                  <Input
-                    label="Location / Civic Address"
-                    id="location-input"
-                    value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-                    placeholder="Enter landmark or civic address"
-                    required
-                  />
-                </div>
-                <Button variant="outline" size="md" onClick={handleGPS} type="button">
-                  📍 GPS
-                </Button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <Input
+                  label="Location / Civic Address"
+                  id="location-input"
+                  value={formData.location}
+                  onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                  placeholder="Enter landmark or civic address"
+                  required
+                />
+                <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: '-2px' }}>
+                  Select Location on GIS Map
+                </label>
+                <MapView 
+                  onLocationSelected={handleLocationSelected} 
+                  initialLocation={mapLocation ? [mapLocation.latitude, mapLocation.longitude] : null}
+                />
               </div>
 
               <Textarea
