@@ -192,13 +192,17 @@ const UserDashboard = () => {
         const filePath = `user_uploads/${fileName}`;
 
         setUploadProgress(10);
-        const { error: uploadError } = await supabase.storage.from('complaint_images').upload(filePath, image, {
-          onUploadProgress: (progress) => {
-            const percentage = Math.round((progress.loaded / progress.total) * 100);
-            setUploadProgress(percentage);
-          }
-        });
+        const progressInterval = setInterval(() => {
+          setUploadProgress(prev => {
+            if (prev >= 90) return prev;
+            return prev + 10;
+          });
+        }, 100);
+
+        const { error: uploadError } = await supabase.storage.from('complaint_images').upload(filePath, image);
+        clearInterval(progressInterval);
         if (uploadError) throw uploadError;
+        setUploadProgress(100);
 
         const { data: urlData } = supabase.storage.from('complaint_images').getPublicUrl(filePath);
         publicImageUrl = urlData.publicUrl;
