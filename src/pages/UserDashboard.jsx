@@ -92,6 +92,22 @@ const UserDashboard = () => {
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return navigate('/');
+      
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      const userRole = profile?.role || 'citizen';
+      if (['super_admin', 'dept_admin', 'commissioner'].includes(userRole)) {
+        navigate('/admin-dashboard', { replace: true });
+        return;
+      } else if (userRole === 'employee') {
+        navigate('/employee-dashboard', { replace: true });
+        return;
+      }
+
       setUser(session.user);
       fetchHistory(session.user.id);
       fetchBroadcasts(); 

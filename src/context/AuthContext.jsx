@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error || !data) {
+        console.error('fetchUserProfile error/no-data:', error, 'data:', data);
         setProfile(null);
         setRole('citizen');
         return 'citizen';
@@ -121,7 +122,11 @@ export const AuthProvider = ({ children }) => {
         loading,
         logout,
         getRoleDefaultPath,
-        refreshProfile: () => user && fetchUserProfile(user.id),
+        refreshProfile: (forcedId) => {
+          const idToFetch = forcedId || (user && user.id);
+          if (idToFetch) return fetchUserProfile(idToFetch);
+          return Promise.resolve(null);
+        },
       }}
     >
       {children}

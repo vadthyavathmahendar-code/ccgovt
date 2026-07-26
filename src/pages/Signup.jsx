@@ -3,8 +3,10 @@ import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
+import { useAuth } from '../context/useAuth';
 
 const Signup = () => {
+  const { refreshProfile } = useAuth();
   // --- STATE ---
   const [role, setRole] = useState('citizen'); // 'citizen', 'employee', 'admin'
   const [loading, setLoading] = useState(false);
@@ -115,6 +117,9 @@ const Signup = () => {
         }], { onConflict: 'id' });
 
         if (profileError) throw profileError;
+
+        // Force AuthContext to refresh state from database
+        await refreshProfile(authData.user.id);
 
         // Log user_created audit event
         await logAuditEvent({
