@@ -42,8 +42,15 @@ const LocationSelector = ({ position, setPosition, onAddressResolved }) => {
   };
 
   useEffect(() => {
-    if (position) {
-      map.setView(position, map.getZoom());
+    if (position && map) {
+      try {
+        const zoom = map.getZoom();
+        if (typeof zoom === 'number') {
+          map.setView(position, zoom);
+        }
+      } catch (err) {
+        console.warn('Leaflet setView safe bypass:', err);
+      }
     }
   }, [position, map]);
 

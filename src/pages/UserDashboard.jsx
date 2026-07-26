@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
 import ProfileModal from '../pages/Profile';
@@ -16,6 +16,29 @@ import Skeleton from '../components/ui/Skeleton';
 import EmptyState from '../components/ui/EmptyState';
 import MapView from '../components/MapView';
 import { borderRadius, shadows, typography, spacing } from '../styles/designTokens';
+
+class MapErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.warn("Map rendering error caught:", error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: '12px', background: '#fef2f2', color: '#991b1b', borderRadius: '8px', fontSize: '0.8rem', border: '1px solid #fca5a5', marginTop: '5px' }}>
+          ⚠️ Map visualization temporarily unavailable. You can still type your address manually above.
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const UserDashboard = () => {
   const { themeColors } = useTheme();
@@ -421,10 +444,12 @@ const UserDashboard = () => {
                 <label style={{ display: 'block', fontSize: typography.fontSize.sm, fontWeight: typography.fontWeight.semibold, marginBottom: '-2px' }}>
                   Select Location on GIS Map
                 </label>
-                <MapView 
-                  onLocationSelected={handleLocationSelected} 
-                  initialLocation={mapLocation ? [mapLocation.latitude, mapLocation.longitude] : null}
-                />
+                <MapErrorBoundary>
+                  <MapView 
+                    onLocationSelected={handleLocationSelected} 
+                    initialLocation={mapLocation ? [mapLocation.latitude, mapLocation.longitude] : null}
+                  />
+                </MapErrorBoundary>
               </div>
 
               <Textarea
