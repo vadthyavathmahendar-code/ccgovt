@@ -38,16 +38,26 @@ export const AuthProvider = ({ children }) => {
     let active = true;
 
     const initAuth = async () => {
+      const timeout = new Promise((resolve) => setTimeout(resolve, 1500, 'timeout'));
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!active) return;
-        if (session?.user) {
-          setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUser(null);
-          setProfile(null);
-          setRole(null);
+        const result = await Promise.race([
+          (async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!active) return 'inactive';
+            if (session?.user) {
+              setUser(session.user);
+              await fetchUserProfile(session.user.id);
+            } else {
+              setUser(null);
+              setProfile(null);
+              setRole(null);
+            }
+            return 'resolved';
+          })(),
+          timeout
+        ]);
+        if (result === 'timeout') {
+          console.warn('Session recovery timed out after 1.5s. Bypassing lock.');
         }
       } catch (err) {
         console.error('Error during initAuth:', err);

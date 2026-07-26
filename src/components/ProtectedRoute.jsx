@@ -1,17 +1,14 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
+import LoadingScreen from './LoadingScreen';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, role, loading, getRoleDefaultPath } = useAuth();
   const location = useLocation();
 
   if (loading) {
-    return (
-      <div style={{ height: '80vh', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
-        <p>Verifying Access Security...</p>
-      </div>
-    );
+    return <LoadingScreen message="Verifying Access Security..." />;
   }
 
   if (!user) {
