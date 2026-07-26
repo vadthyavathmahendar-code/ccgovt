@@ -35,9 +35,12 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
-    const restoreSession = async () => {
+    let active = true;
+
+    const initAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
+        if (!active) return;
         if (session?.user) {
           setUser(session.user);
           await fetchUserProfile(session.user.id);
@@ -47,16 +50,22 @@ export const AuthProvider = ({ children }) => {
           setRole(null);
         }
       } catch (err) {
-        console.error('Error restoring session:', err);
+        console.error('Error during initAuth:', err);
       } finally {
-        setLoading(false);
+        if (active) setLoading(false);
       }
     };
 
-    restoreSession();
+    initAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
+      async (event, session) => {
+        if (!active) return;
+        
+        // Skip duplicate initial session trigger on mount
+        if (event === 'INITIAL_SESSION') return;
+
+        setLoading(true);
         if (session?.user) {
           setUser(session.user);
           await fetchUserProfile(session.user.id);
@@ -69,7 +78,10 @@ export const AuthProvider = ({ children }) => {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const logout = async () => {
