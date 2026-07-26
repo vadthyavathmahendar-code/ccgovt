@@ -2,68 +2,31 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate, Link } from 'react-router-dom';
 import toast, { Toaster } from 'react-hot-toast';
+import { useAuth } from '../context/useAuth';
 import { logAuditEvent } from '../utils/auditLogger';
+import LoadingScreen from '../components/LoadingScreen';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true); 
+  const { user, role, loading: authLoading, getRoleDefaultPath } = useAuth();
   const navigate = useNavigate();
 
-  // --- 1. SESSION & ROLE CHECKER ---
+  // --- 1. REDIRECT ON SUCCESSFUL AUTHENTICATION ---
   useEffect(() => {
-    const checkRoleAndRedirect = async (userId) => {
-      try {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', userId)
-          .single();
-        
-        const role = profile?.role;
-        
-        // HIERARCHY LOGIC
-        if (role === 'super_admin' || role === 'dept_admin') {
-            navigate('/admin-dashboard');
-        } else if (role === 'employee') {
-            navigate('/employee-dashboard');
-        } else {
-            navigate('/user-dashboard'); // Default for citizen
-        }
-      } catch (error) {
-        console.error("Error checking role:", error);
-        navigate('/user-dashboard');
-      }
-    };
-
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        await checkRoleAndRedirect(session.user.id);
-      } else {
-        setCheckingSession(false);
-      }
-    };
-    
-    checkSession();
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (session) {
-        setCheckingSession(true); 
-        await checkRoleAndRedirect(session.user.id);
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [navigate]);
+    if (!authLoading && user) {
+      const path = getRoleDefaultPath(role);
+      navigate(path, { replace: true });
+    }
+  }, [user, role, authLoading, navigate, getRoleDefaultPath]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         await logAuditEvent({
           userId: null,
@@ -76,19 +39,19 @@ const Login = () => {
         throw error;
       }
       
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
+      // Log audit details upon sign-in resolver completion
+      if (data?.user) {
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
-          .eq('id', session.user.id)
+          .eq('id', data.user.id)
           .single();
         await logAuditEvent({
-          userId: session.user.id,
+          userId: data.user.id,
           userRole: profile?.role || 'citizen',
           action: 'auth_login',
           entityType: 'auth',
-          entityId: session.user.id,
+          entityId: data.user.id,
           newData: { email },
           status: 'success'
         });
@@ -102,14 +65,8 @@ const Login = () => {
   };
 
   // --- 2. LOADING SCREEN ---
-  if (checkingSession) {
-    return (
-      <div className="fade-in" style={styles.loadingContainer}>
-        <div style={styles.spinner}></div>
-        <h3 style={{ color: '#0f172a', fontWeight: '600', marginTop: '20px' }}>Verifying Identity...</h3>
-        <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
-      </div>
-    );
+  if (authLoading) {
+    return <LoadingScreen message="Verifying Identity..." />;
   }
 
   // --- 3. MAIN UI ---
