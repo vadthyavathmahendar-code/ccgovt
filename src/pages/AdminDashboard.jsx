@@ -5,9 +5,12 @@ import toast, { Toaster } from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
 import AuditLogsConsole from '../components/AuditLogsConsole';
 import { useAuth } from '../context/useAuth';
+import { useTheme } from '../context/useTheme';
 
 const AdminDashboard = () => {
   const { logout } = useAuth();
+  const { theme, toggleTheme, themeColors } = useTheme();
+  
   // --- STATE MANAGEMENT ---
   const [adminProfile, setAdminProfile] = useState(null);
   const [complaints, setComplaints] = useState([]);
@@ -17,6 +20,17 @@ const AdminDashboard = () => {
   // UI States
   const [activeTab, setActiveTab] = useState('overview'); 
   const [loading, setLoading] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isMobile = windowWidth <= 768;
   
   // Modals
   const [assigningComplaintId, setAssigningComplaintId] = useState(null); 
@@ -227,90 +241,92 @@ const AdminDashboard = () => {
   });
 
   const staffList = users.filter(u => u.role === 'employee'); 
+  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background, color: themeColors.primary, fontSize: '1.2rem', fontFamily: 'inherit' }}>🔄 Loading Command Center...</div>;
 
-  if (loading) return <div style={styles.loading}>🔄 Loading Command Center...</div>;
+  const currentBreadcrumb = () => {
+    switch (activeTab) {
+      case 'overview': return 'Command Center > Operations Dashboard';
+      case 'complaints': return 'Command Center > Complaints Queue';
+      case 'users': return 'Operations > Staff & Users';
+      case 'analytics': return 'Analytics > Operations Performance';
+      case 'audit_logs': return 'Security > System Audit Ledger';
+      default: return 'Command Center';
+    }
+  };
 
   return (
-    <div className="fade-in" style={styles.container}>
+    <div className="fade-in" style={{ display: 'flex', height: '100vh', width: '100vw', background: themeColors.background, color: themeColors.textPrimary, overflow: 'hidden', fontFamily: '"Inter", sans-serif' }}>
       <Toaster />
       
       {/* --- 1. ENHANCED ADMIN PROFILE MODAL (ID Card Style) --- */}
       {showProfileModal && (
-          <div style={styles.modalOverlay}>
-              <div className="gov-card fade-in" style={styles.profileCard}>
-                  {/* Header Background */}
-                  <div style={styles.profileHeader}></div>
-                  
-                  {/* Avatar centered over header */}
-                  <div style={styles.profileAvatarContainer}>
-                      <div style={styles.profileAvatar}>
+          <div style={localStyles.modalOverlay}>
+              <div className="gov-card fade-in" style={{ ...localStyles.profileCard, background: themeColors.surface, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}` }}>
+                  <div style={{ height:'100px', background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}></div>
+                  <div style={localStyles.profileAvatarContainer}>
+                      <div style={{ ...localStyles.profileAvatar, background: themeColors.surfaceSecondary, color: themeColors.primary, border: `3px solid ${themeColors.border}` }}>
                           {adminProfile.full_name ? adminProfile.full_name[0].toUpperCase() : 'A'}
                       </div>
                   </div>
 
-                  <div style={styles.profileBody}>
-                      <h2 style={{margin:'0', color:'#333', fontSize:'1.5rem'}}>{adminProfile.full_name}</h2>
-                      <p style={{color:'#777', margin:'5px 0 15px 0', fontSize:'0.9rem'}}>{adminProfile.email}</p>
+                  <div style={localStyles.profileBody}>
+                      <h2 style={{margin:'0', fontSize:'1.5rem'}}>{adminProfile.full_name}</h2>
+                      <p style={{color: themeColors.textSecondary, margin:'5px 0 15px 0', fontSize:'0.9rem'}}>{adminProfile.email}</p>
                       
-                      <span style={styles.roleBadge(adminProfile.role)}>{adminProfile.role.replace('_', ' ')}</span>
+                      <span style={{ padding: '4px 10px', borderRadius: '12px', background: themeColors.primary, color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block' }}>
+                        {adminProfile.role.replace('_', ' ')}
+                      </span>
 
-                      <div style={styles.profileGrid}>
-                          <div style={styles.profileItem}>
-                              <div style={styles.profileLabel}>Department</div>
-                              <div style={styles.profileValue}>{adminProfile.department}</div>
+                      <div style={localStyles.profileGrid}>
+                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px' }}>
+                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Department</div>
+                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>{adminProfile.department}</div>
                           </div>
-                          <div style={styles.profileItem}>
-                              <div style={styles.profileLabel}>Govt ID</div>
-                              <div style={styles.profileValue}>{adminProfile.govt_id_number || 'N/A'}</div>
+                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px' }}>
+                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Govt ID</div>
+                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>{adminProfile.govt_id_number || 'N/A'}</div>
                           </div>
-                          <div style={styles.profileItem}>
-                              <div style={styles.profileLabel}>Phone</div>
-                              <div style={styles.profileValue}>{adminProfile.phone || 'N/A'}</div>
-                          </div>
-                          <div style={styles.profileItem}>
-                              <div style={styles.profileLabel}>Joined</div>
-                              <div style={styles.profileValue}>{new Date(adminProfile.created_at).toLocaleDateString()}</div>
+                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px', gridColumn: 'span 2' }}>
+                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Contact Status</div>
+                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>🟢 Active Operational Agent</div>
                           </div>
                       </div>
-
-                      <button onClick={() => setShowProfileModal(false)} style={styles.closeProfileBtn}>Close Profile</button>
+                      <button onClick={() => setShowProfileModal(false)} style={{ ...localStyles.closeProfileBtn, background: themeColors.primary, color: '#fff' }}>Close Profile Card</button>
                   </div>
               </div>
           </div>
       )}
 
-      {/* --- 2. IMAGE VIEWER MODAL --- */}
+      {/* --- 2. EVIDENCE IMAGE VIEW MODAL --- */}
       {viewingComplaint && (
-          <div style={styles.modalOverlay} onClick={() => setViewingComplaint(null)}>
-              <div className="gov-card fade-in" style={{...styles.modalContent, width:'600px', maxWidth:'95%'}} onClick={e => e.stopPropagation()}>
-                  <div style={styles.modalHeader}>
-                      <h3>📸 Evidence: Report #{String(viewingComplaint.id).slice(0,4)}</h3>
-                      <button onClick={() => setViewingComplaint(null)} style={styles.closeBtn}>✖</button>
+          <div style={localStyles.modalOverlay} onClick={() => setViewingComplaint(null)}>
+              <div className="gov-card fade-in" style={{ ...localStyles.imageModalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }} onClick={e => e.stopPropagation()}>
+                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
+                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>📷 Evidence Vault - Complaint #{String(viewingComplaint.id).slice(0, 8)}</h3>
+                      <button onClick={() => setViewingComplaint(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
                   </div>
-                  <div style={{padding:'20px', display:'flex', gap:'20px', flexWrap:'wrap', justifyContent:'center'}}>
-                      <div style={{textAlign:'center'}}>
-                          <p style={{fontWeight:'bold', color:'#dc3545'}}>BEFORE (Citizen)</p>
-                          <img 
-                              src={viewingComplaint.image_url || 'https://via.placeholder.com/200?text=No+Image'} 
-                              alt="Problem" 
-                              style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:'2px solid #dc3545'}}
-                          />
+                  <div style={{ display:'flex', gap:'20px', padding:'25px', flexWrap:'wrap', justifyContent:'center' }}>
+                      <div>
+                          <h4 style={{textAlign:'center', marginTop:0, color: themeColors.textPrimary}}>Before Resolution</h4>
+                          {viewingComplaint.image_url ? (
+                              <img src={viewingComplaint.image_url} alt="Evidence" style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:`1px solid ${themeColors.border}`}} />
+                          ) : (
+                              <div style={{width:'250px', height:'250px', display:'flex', alignItems:'center', justifyContent:'center', background: themeColors.surfaceSecondary, borderRadius:'8px', border:`2px dashed ${themeColors.border}`, color: themeColors.textSecondary}}>No image uploaded</div>
+                          )}
                       </div>
-                      {viewingComplaint.resolve_image_url ? (
-                          <div style={{textAlign:'center'}}>
-                              <p style={{fontWeight:'bold', color:'#28a745'}}>AFTER (Proof of Work)</p>
-                              <img 
-                                  src={viewingComplaint.resolve_image_url} 
-                                  alt="Solution" 
-                                  style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:'2px solid #28a745'}}
-                              />
-                          </div>
-                      ) : (
-                          <div style={{width:'250px', height:'250px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background:'#f8f9fa', borderRadius:'8px', border:'2px dashed #ccc'}}>
-                              <span style={{fontSize:'2rem'}}>⏳</span>
-                              <p style={{color:'#666', fontSize:'0.9rem', marginTop:'10px'}}>No "After" photo uploaded yet.</p>
-                          </div>
-                      )}
+                      <div>
+                          <h4 style={{textAlign:'center', marginTop:0, color: themeColors.textPrimary}}>After Resolution</h4>
+                          {viewingComplaint.resolve_image_url ? (
+                              <div style={{position:'relative'}}>
+                                  <img src={viewingComplaint.resolve_image_url} alt="Resolution" style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:`1px solid ${themeColors.border}`}} />
+                              </div>
+                          ) : (
+                              <div style={{width:'250px', height:'250px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: themeColors.surfaceSecondary, borderRadius:'8px', border:`2px dashed ${themeColors.border}`, color: themeColors.textSecondary}}>
+                                  <span style={{fontSize:'2rem'}}>⏳</span>
+                                  <p style={{fontSize:'0.9rem', marginTop:'10px'}}>No proof photo uploaded yet.</p>
+                              </div>
+                          )}
+                      </div>
                   </div>
               </div>
           </div>
@@ -318,31 +334,31 @@ const AdminDashboard = () => {
 
       {/* --- 3. ASSIGNMENT MODAL --- */}
       {assigningComplaintId && (
-          <div style={styles.modalOverlay}>
-              <div className="gov-card fade-in" style={styles.modalContent}>
-                  <div style={styles.modalHeader}>
-                      <h3>👤 Assign Task</h3>
-                      <button onClick={() => setAssigningComplaintId(null)} style={styles.closeBtn}>✖</button>
+          <div style={localStyles.modalOverlay}>
+              <div className="gov-card fade-in" style={{ ...localStyles.modalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
+                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👤 Assign Task</h3>
+                      <button onClick={() => setAssigningComplaintId(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
                   </div>
                   <div style={{padding:'20px', maxHeight:'400px', overflowY:'auto'}}>
                       {staffList.sort((a,b) => getWorkerLoad(a.email) - getWorkerLoad(b.email)).map(worker => (
-                          <div key={worker.id} style={styles.workerRow}>
+                          <div key={worker.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${themeColors.border}` }}>
                               <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                                  <div style={styles.avatar}>{worker.full_name ? worker.full_name[0] : 'E'}</div>
+                                  <div style={{ width: '40px', height: '40px', background: themeColors.surfaceSecondary, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: themeColors.primary }}>{worker.full_name ? worker.full_name[0] : 'E'}</div>
                                   <div>
-                                      <div style={{fontWeight:'bold'}}>{worker.full_name}</div>
-                                      <div style={{fontSize:'0.8rem', color:'#666'}}>{worker.email}</div>
+                                      <div style={{fontWeight:'bold', color: themeColors.textPrimary}}>{worker.full_name}</div>
+                                      <div style={{fontSize:'0.8rem', color: themeColors.textSecondary}}>{worker.email}</div>
                                   </div>
                               </div>
                               <div style={{textAlign:'right'}}>
-                                  <span style={{fontSize:'0.75rem', fontWeight:'bold', color: getWorkerLoad(worker.email) < 3 ? 'green' : 'orange', marginRight:'10px'}}>
+                                  <span style={{fontSize:'0.75rem', fontWeight:'bold', color: getWorkerLoad(worker.email) < 3 ? '#16a34a' : '#d97706', marginRight:'10px'}}>
                                       {getWorkerLoad(worker.email)} Tasks
                                   </span>
-                                  <button onClick={() => handleAssignWorker(worker.email)} style={styles.assignActionBtn}>Select</button>
+                                  <button onClick={() => handleAssignWorker(worker.email)} style={{ background: themeColors.primary, color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>Select</button>
                               </div>
                           </div>
                       ))}
-                      {staffList.length === 0 && <p style={{textAlign:'center'}}>No officers found in this department.</p>}
+                      {staffList.length === 0 && <p style={{textAlign:'center', color: themeColors.textSecondary}}>No officers found in this department.</p>}
                   </div>
               </div>
           </div>
@@ -350,221 +366,445 @@ const AdminDashboard = () => {
 
       {/* --- 4. ADD USER MODAL --- */}
       {showAddUserModal && (
-        <div style={styles.modalOverlay}>
-          <div className="gov-card fade-in" style={styles.modalContent}>
-            <div style={styles.modalHeader}>
-                <h3>Add Staff Member</h3>
-                <button onClick={() => setShowAddUserModal(false)} style={styles.closeBtn}>✖</button>
-            </div>
-            <form onSubmit={handleCreateUser} style={{padding:'20px', display:'flex', flexDirection:'column', gap:'15px'}}>
-               <input required placeholder="Full Name" value={newUser.fullName} onChange={e=>setNewUser({...newUser, fullName:e.target.value})} style={styles.input} />
-               <input required type="email" placeholder="Email" value={newUser.email} onChange={e=>setNewUser({...newUser, email:e.target.value})} style={styles.input} />
-               <input required type="password" placeholder="Password" value={newUser.password} onChange={e=>setNewUser({...newUser, password:e.target.value})} style={styles.input} />
-               <input required placeholder="Phone" value={newUser.phone} onChange={e=>setNewUser({...newUser, phone:e.target.value})} style={styles.input} />
-               
-               {adminProfile.role === 'super_admin' && (
-                   <div style={{display:'flex', gap:'10px'}}>
-                       <select value={newUser.role} onChange={e=>setNewUser({...newUser, role:e.target.value})} style={styles.input}>
-                           <option value="employee">Field Officer</option>
-                           <option value="dept_admin">Dept Head</option>
-                       </select>
-                       <select value={newUser.department} onChange={e=>setNewUser({...newUser, department:e.target.value})} style={styles.input}>
-                           {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                           <option value="All">All (Super Only)</option>
-                       </select>
-                   </div>
-               )}
-               <button type="submit" style={{...styles.actionBtn, width:'100%'}}>Create Account</button>
-            </form>
+          <div style={localStyles.modalOverlay}>
+              <div className="gov-card fade-in" style={{ ...localStyles.modalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
+                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👥 Add Staff Account</h3>
+                      <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
+                  </div>
+                  <div style={{padding:'25px'}}>
+                      <form onSubmit={handleCreateUser} style={{display:'flex', flexDirection:'column', gap:'15px'}}>
+                          <input required placeholder="Full Name" value={newUser.fullName} onChange={e=>setNewUser({...newUser, fullName:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
+                          <input required type="email" placeholder="Email" value={newUser.email} onChange={e=>setNewUser({...newUser, email:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
+                          <input required type="password" placeholder="Password" value={newUser.password} onChange={e=>setNewUser({...newUser, password:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
+                          <input required placeholder="Phone" value={newUser.phone} onChange={e=>setNewUser({...newUser, phone:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
+                          
+                          <div>
+                            <label style={{ fontSize: '0.8rem', color: themeColors.textSecondary, display: 'block', marginBottom: '5px' }}>Gov ID Type & Number</label>
+                            <div style={{ display: 'flex', gap: '5px' }}>
+                              <select value={newUser.idType} onChange={e=>setNewUser({...newUser, idType:e.target.value})} style={{ padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
+                                <option value="badge">Badge</option>
+                                <option value="govt_id">Govt ID</option>
+                              </select>
+                              <input required placeholder="ID Number" value={newUser.idNumber} onChange={e=>setNewUser({...newUser, idNumber:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
+                            </div>
+                          </div>
+
+                          {adminProfile.role === 'super_admin' && (
+                              <div style={{display:'flex', gap:'10px'}}>
+                                  <select value={newUser.role} onChange={e=>setNewUser({...newUser, role:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
+                                      <option value="employee">Field Officer</option>
+                                      <option value="dept_admin">Dept Head</option>
+                                  </select>
+                                  <select value={newUser.department} onChange={e=>setNewUser({...newUser, department:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
+                                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                                      <option value="All">All (Super Only)</option>
+                                  </select>
+                              </div>
+                          )}
+                          <button type="submit" style={{ padding: '10px 20px', background: themeColors.primary, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', width:'100%' }}>Create Account</button>
+                      </form>
+                  </div>
+              </div>
           </div>
-        </div>
       )}
 
-      {/* SIDEBAR */}
-      <aside style={styles.sidebar}>
-        <div style={styles.sidebarHeader}>
-            <div style={{fontSize:'2rem', marginBottom:'10px'}}>🏛️</div>
-            <h2 style={{ margin: 0, fontSize:'1.2rem' }}>CIVIC ADMIN</h2>
-            <span style={styles.roleBadge(adminProfile?.role)}>
-                {adminProfile?.role === 'super_admin' ? 'SUPER ADMIN' : adminProfile?.role === 'commissioner' ? 'COMMISSIONER' : `${adminProfile?.department?.toUpperCase()} HEAD`}
-            </span>
+      {/* --- 5. REDESIGNED COLLAPSIBLE SIDEBAR --- */}
+      <aside style={{
+        width: isMobile ? (mobileMenuOpen ? '260px' : '0px') : (sidebarCollapsed ? '80px' : '260px'),
+        background: '#0f172a',
+        color: '#f8fafc',
+        display: 'flex',
+        flexDirection: 'column',
+        flexShrink: 0,
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
+        borderRight: '1px solid #1e293b',
+        position: isMobile ? 'fixed' : 'relative',
+        height: '100vh',
+        zIndex: 1010
+      }}>
+        {/* Sidebar Brand Header */}
+        <div style={{ padding: '24px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start' }}>
+            <div style={{ fontSize: '1.75rem' }}>🏛️</div>
+            {(!sidebarCollapsed || isMobile) && (
+              <div>
+                <h2 style={{ margin: 0, fontSize:'1.1rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>CIVIC ADMIN</h2>
+                <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
+                  {adminProfile?.role?.replace('_', ' ')}
+                </span>
+              </div>
+            )}
         </div>
-        <nav style={styles.nav}>
-          <NavBtn active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon="📊" label="Dashboard" />
-          <NavBtn active={activeTab === 'complaints'} onClick={() => setActiveTab('complaints')} icon="🚨" label="Complaints" />
+
+        {/* Sidebar Selector switcher */}
+        {(!sidebarCollapsed || isMobile) && (
+          <div style={{ padding: '15px 20px' }}>
+            <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: '#64748b', fontWeight: '700', display: 'block', marginBottom: '5px' }}>Operational Suite</label>
+            <select style={{ width: '100%', background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
+              <option>🛡️ Command Control</option>
+              <option>⏱️ SLA Monitor Mode</option>
+              <option>🤖 Executive Analytics</option>
+            </select>
+          </div>
+        )}
+
+        {/* Sidebar Nav links */}
+        <nav style={{ flex: 1, padding: '15px 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <NavBtn active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); if (isMobile) setMobileMenuOpen(false); }} icon="📊" label="Dashboard" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'complaints'} onClick={() => { setActiveTab('complaints'); if (isMobile) setMobileMenuOpen(false); }} icon="🚨" label="Complaints" collapsed={sidebarCollapsed && !isMobile} />
           {adminProfile?.role !== 'commissioner' && (
-            <NavBtn active={activeTab === 'users'} onClick={() => setActiveTab('users')} icon="👥" label="Staff & Users" />
+            <NavBtn active={activeTab === 'users'} onClick={() => { setActiveTab('users'); if (isMobile) setMobileMenuOpen(false); }} icon="👥" label="Staff & Users" collapsed={sidebarCollapsed && !isMobile} />
           )}
-          <NavBtn active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon="📈" label="Analytics" />
+          <NavBtn active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); if (isMobile) setMobileMenuOpen(false); }} icon="📈" label="Analytics" collapsed={sidebarCollapsed && !isMobile} />
           {adminProfile?.role !== 'commissioner' && (
-            <NavBtn active={activeTab === 'audit_logs'} onClick={() => setActiveTab('audit_logs')} icon="📋" label="Audit Logs" />
+            <NavBtn active={activeTab === 'audit_logs'} onClick={() => { setActiveTab('audit_logs'); if (isMobile) setMobileMenuOpen(false); }} icon="📋" label="Audit Logs" collapsed={sidebarCollapsed && !isMobile} />
           )}
         </nav>
-        <div style={styles.sidebarFooter}>
-            <button onClick={() => setShowProfileModal(true)} style={styles.profileBtn}>
-                👤 My Profile
+
+        {/* Sidebar Footer */}
+        <div style={{ padding: '15px 10px', borderTop: '1px solid #1e293b', background: '#090d16', display:'flex', flexDirection:'column', gap:'8px' }}>
+            <button onClick={() => setShowProfileModal(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#1e293b', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
+              <span>👤</span> {(!sidebarCollapsed || isMobile) && 'My Profile'}
             </button>
-            <button onClick={() => { logout(); navigate('/'); }} style={styles.logoutBtn}>Logout</button>
+            <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#b91c1c', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
+              <span>🚪</span> {(!sidebarCollapsed || isMobile) && 'Logout'}
+            </button>
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
-      <main style={styles.main}>
+      {/* Mobile Drawer Overlay */}
+      {isMobile && mobileMenuOpen && (
+        <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1005 }}></div>
+      )}
+
+      {/* --- 6. MAIN CONTENT AREA --- */}
+      <main style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '15px' : '30px', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        
+        {/* Dynamic Header Toolbar */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: themeColors.surface, padding: '15px 20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', flexWrap: 'wrap', gap: '15px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button onClick={() => isMobile ? setMobileMenuOpen(!mobileMenuOpen) : setSidebarCollapsed(!sidebarCollapsed)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.25rem', padding: '6px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: themeColors.textPrimary }}>
+              ☰
+            </button>
+            <div>
+              <span style={{ fontSize: '0.75rem', color: themeColors.textSecondary, fontWeight: 'bold' }}>{currentBreadcrumb()}</span>
+              <h2 style={{ margin: 0, fontSize: '1.15rem', color: themeColors.textPrimary }}>Telangana Municipal Operations Command</h2>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
+            {/* Theme Toggle in Admin */}
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: 'transparent',
+                border: `1px solid ${themeColors.border}`,
+                borderRadius: '20px',
+                padding: '4px 12px',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                color: themeColors.textPrimary,
+                fontWeight: '600',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+              }}
+            >
+              {theme === 'light' ? '🌙 Dark' : '☀️ Light'}
+            </button>
+
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: themeColors.primary, background: themeColors.surfaceSecondary, padding: '4px 10px', borderRadius: '20px' }}>
+              👤 {adminProfile?.full_name?.split(' ')[0] || 'Admin'}
+            </span>
+          </div>
+        </div>
+
+        {/* TAB 1: OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="fade-in">
-            <h2 style={styles.pageTitle}>
-              {adminProfile?.role === 'commissioner' ? '🏛️ Executive Oversight Command' : 'Overview'}
-            </h2>
-            <div style={styles.statsGrid}>
-              <StatCard title="Total Reports" value={complaints.length} color="#007bff" icon="📂" />
-              <StatCard title="Pending" value={complaints.filter(c=>c.status==='Pending').length} color="#dc3545" icon="⚡" />
-              <StatCard title="Resolved" value={complaints.filter(c=>c.status==='Resolved').length} color="#28a745" icon="✅" />
-              {adminProfile?.role === 'commissioner' && (
-                <StatCard title="Escalation Risk" value={complaints.filter(c=>c.is_urgent && c.status==='Pending').length} color="#e11d48" icon="⚠️" />
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+              <StatCard title="Total Reports" value={complaints.length} color="#3b82f6" icon="📂" />
+              <StatCard title="Pending Queue" value={complaints.filter(c=>c.status==='Pending').length} color="#ef4444" icon="⚡" />
+              <StatCard title="Resolved Issues" value={complaints.filter(c=>c.status==='Resolved').length} color="#10b981" icon="✅" />
+              <StatCard title="Escalation Risk" value={complaints.filter(c=>c.is_urgent && c.status==='Pending').length} color="#f59e0b" icon="⚠️" />
+            </div>
+
+            {/* AI operations widget */}
+            <div style={{ padding: '20px', borderRadius: '12px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+              <h3 style={{ margin: '0 0 8px', color: '#fbcfe8', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span>🤖</span> Gemini Executive Operations Summary
+              </h3>
+              <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: '#cbd5e1' }}>
+                Operational triage shows active infrastructure loads are stable. <strong>Roads & Traffic</strong> represent {complaints.length > 0 ? Math.round((complaints.filter(c=>c.category==='Roads').length / complaints.length)*100) : 0}% of complaints. 
+                SLA compliance averages <strong>98%</strong> across Hyderabad sectors. 
+                Action alert: <strong>{complaints.filter(c=>c.is_urgent && c.status==='Pending').length} high-priority risks</strong> are currently pending field officer assignment.
+              </p>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '20px' }}>
+              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📋 Operational Incident Feed</h3>
+                <div style={{ height: '250px', overflowY: 'auto', background: themeColors.surfaceSecondary, padding: '12px', borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+                    {logs.map((log,i) => (
+                      <div key={i} style={{ fontSize: '0.85rem', padding: '8px 0', borderBottom: `1px dashed ${themeColors.border}`, color: themeColors.textPrimary }}>
+                        <strong>{log.user}:</strong> {log.action}
+                      </div>
+                    ))}
+                    {logs.length === 0 && <p style={{ textAlign: 'center', color: themeColors.textSecondary, padding: '20px' }}>No recent activities logged.</p>}
+                </div>
+              </div>
+
+              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📢 Broadcast Alert Strip</h3>
+                <textarea 
+                  value={broadcastMsg} 
+                  onChange={e=>setBroadcastMsg(e.target.value)} 
+                  placeholder="Type an announcement to broadcast to all citizens..." 
+                  style={{ width:'100%', padding:'10px', marginBottom:'15px', borderRadius:'8px', border:`1px solid ${themeColors.border}`, background: themeColors.background, color: themeColors.textPrimary, height: '100px', resize: 'none' }}
+                />
+                <button onClick={handleBroadcast} style={{ width: '100%', padding: '10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                  Send City Broadcast
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: COMPLAINTS MANAGEMENT */}
+        {activeTab === 'complaints' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%' }}>
+                <input 
+                  placeholder="🔍 Search tickets by description..." 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                  style={{ padding: '10px 15px', border: `1px solid ${themeColors.border}`, borderRadius: '8px', background: themeColors.surface, color: themeColors.textPrimary, flex: 1, minWidth: '200px' }} 
+                />
+                <select 
+                  value={statusFilter} 
+                  onChange={e => setFilterStatus(e.target.value)} 
+                  style={{ padding: '10px', border: `1px solid ${themeColors.border}`, borderRadius: '8px', background: themeColors.surface, color: themeColors.textPrimary, minWidth: '150px' }}
+                >
+                  <option value="All">All Statuses</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Assigned">Assigned</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Resolved">Resolved</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {filteredComplaints.map(c => (
+                <div key={c.id} style={{ display: 'flex', flexDirection: 'column', background: themeColors.surface, borderRadius: '12px', border: c.is_urgent ? '2px solid #ef4444' : `1px solid ${themeColors.border}`, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+                  
+                  {/* Complaint Item Top Strip */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', background: themeColors.surfaceSecondary, padding: '12px 20px', borderBottom: `1px solid ${themeColors.border}`, flexWrap: 'wrap', gap: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: themeColors.textPrimary }}>Ticket #{String(c.id).slice(0, 8)}</span>
+                      {c.is_urgent && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: 'bold' }}>🚨 URGENT</span>}
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={statusBadgeStyle(c.status)}>{c.status}</span>
+                      <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{c.category}</span>
+                    </div>
+                  </div>
+
+                  {/* Complaint Item Body */}
+                  <div style={{ padding: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '250px' }}>
+                      <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: themeColors.textPrimary }}>{c.title}</h4>
+                      <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: themeColors.textSecondary }}>{c.description}</p>
+                      
+                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', fontSize: '0.8rem', color: themeColors.textSecondary }}>
+                        <span onClick={() => openMap(c.latitude, c.longitude)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>📍 {c.location || 'Municipal Zone'}</span>
+                        {c.servicenow_ticket_number && <span style={{ color: '#2563eb', fontWeight: 'bold' }}>🎫 ServiceNow: {c.servicenow_ticket_number}</span>}
+                      </div>
+                    </div>
+
+                    {/* Complaint Actions Panel */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center', minWidth: '150px' }}>
+                      <button onClick={() => setViewingComplaint(c)} style={{ padding: '8px 12px', background: themeColors.surfaceSecondary, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
+                        📷 Preview Evidence
+                      </button>
+
+                      {c.status === 'Pending' && (
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button onClick={() => setAssigningComplaintId(c.id)} style={{ flex: 1, padding: '8px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            Dispatch
+                          </button>
+                          <button onClick={() => handleReject(c.id)} style={{ flex: 1, padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
+                            Reject
+                          </button>
+                        </div>
+                      )}
+
+                      {c.status !== 'Pending' && (
+                        <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary, background: themeColors.surfaceSecondary, padding: '8px', borderRadius: '6px', border: `1px solid ${themeColors.border}` }}>
+                          👤 Assigned: <strong style={{ color: themeColors.textPrimary }}>{c.assigned_to || 'None'}</strong>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {filteredComplaints.length === 0 && (
+                <div style={{ textAlign: 'center', padding: '50px', background: themeColors.surface, borderRadius: '12px', border: `1px dashed ${themeColors.border}` }}>
+                  <span style={{ fontSize: '2.5rem' }}>🍃</span>
+                  <p style={{ color: themeColors.textSecondary, margin: '10px 0 0 0' }}>No incidents matched your query.</p>
+                </div>
               )}
             </div>
-
-            {adminProfile?.role === 'commissioner' && (
-              <div style={{ ...styles.card, marginBottom: '20px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none' }}>
-                <h3 style={{ margin: '0 0 8px', color: '#fbcfe8' }}>🤖 Gemini Executive Operations Summary</h3>
-                <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: '1.6' }}>
-                  City infrastructure load is stable. <strong>Roads & Potholes</strong> represent 42% of citizen complaints this week. 
-                  SLA compliance is currently at <strong>98%</strong>. Resolved ticket verification shows high completion accuracy. 
-                  Action required: <strong>{complaints.filter(c=>c.is_urgent && c.status==='Pending').length} urgent hazards</strong> are awaiting department head dispatch.
-                </p>
-              </div>
-            )}
-
-            <div style={{display:'grid', gridTemplateColumns:'2fr 1fr', gap:'20px'}}>
-                <div style={styles.card}>
-                    <h3>Recent Activity</h3>
-                    <div style={styles.logContainer}>
-                        {logs.map((log,i) => <div key={i} style={styles.logItem}><strong>{log.user}:</strong> {log.action}</div>)}
-                    </div>
-                </div>
-                <div style={styles.card}>
-                    <h3>Broadcast</h3>
-                    <textarea value={broadcastMsg} onChange={e=>setBroadcastMsg(e.target.value)} placeholder="Alert all citizens..." style={styles.textarea}/>
-                    <button onClick={handleBroadcast} style={{...styles.actionBtn, width:'100%'}}>Send Alert</button>
-                </div>
-            </div>
           </div>
         )}
 
-        {activeTab === 'complaints' && (
-          <div className="fade-in">
-             <div style={styles.headerRow}>
-                <h2 style={styles.pageTitle}>Complaints Console</h2>
-                <div style={styles.filters}>
-                   <input placeholder="Search..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} style={styles.searchInput} />
-                   <select onChange={e => setFilterStatus(e.target.value)} style={styles.filterSelect}><option value="All">All Status</option><option>Pending</option><option>Resolved</option><option>Rejected</option></select>
-                </div>
-             </div>
-             <div style={styles.complaintList}>
-                {filteredComplaints.map(c => (
-                    <div key={c.id} style={{...styles.complaintCard, borderLeft: c.title.includes('⚠️') ? '5px solid #dc3545' : 'none', opacity: c.status === 'Rejected' ? 0.6 : 1}}>
-                       <div style={{width:'80px', height:'80px', borderRadius:'8px', overflow:'hidden', cursor:'pointer'}} onClick={() => setViewingComplaint(c)}>
-                           <img src={c.image_url || 'https://via.placeholder.com/80'} alt="thumb" style={{width:'100%', height:'100%', objectFit:'cover'}} />
-                       </div>
-                       <div style={{flex:1}}>
-                           <div style={{display:'flex', justifyContent:'space-between'}}>
-                               <span style={{fontWeight:'bold', color:'#0056b3'}}>#{String(c.id).slice(0,4)} <span style={styles.badge(c.category)}>{c.category}</span></span>
-                               <span style={styles.statusBadge(c.status)}>{c.status}</span>
-                           </div>
-                           <h4 style={{margin:'5px 0'}}>{c.title}</h4>
-                           <p style={{color:'#666', fontSize:'0.9rem', margin:'0 0 10px 0'}}>{c.description}</p>
-                           <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:'10px'}}>
-                               <div style={{display:'flex', gap:'10px'}}>
-                                   <button onClick={() => setViewingComplaint(c)} style={styles.outlineBtn}>📸 View Evidence</button>
-                                   <button onClick={() => openMap(c.latitude, c.longitude)} style={styles.outlineBtn}>📍 Map</button>
-                               </div>
-                               <div style={{display:'flex', gap:'10px', alignItems:'center'}}>
-                                   <span style={{fontSize:'0.8rem', color: c.assigned_to ? '#333' : 'red'}}>
-                                       {c.assigned_to ? `👮‍♂️ ${c.assigned_to}` : "⚠️ Unassigned"}
-                                   </span>
-                                   <button onClick={() => setAssigningComplaintId(c.id)} style={styles.assignBtn} disabled={c.status === 'Resolved' || c.status === 'Rejected'}>
-                                       {c.assigned_to ? 'Reassign' : 'Assign'}
-                                   </button>
-                                   {c.status === 'Pending' && <button onClick={() => handleReject(c.id)} style={styles.rejectBtn}>Reject</button>}
-                               </div>
-                           </div>
-                       </div>
-                    </div>
-                ))}
-             </div>
-          </div>
-        )}
-
+        {/* TAB 3: STAFF & USER ACCOUNTS */}
         {activeTab === 'users' && (
-          <div className="fade-in">
-            <div style={styles.headerRow}>
-                <h2 style={styles.pageTitle}>Staff Management</h2>
-                <button onClick={() => setShowAddUserModal(true)} style={styles.actionBtn}>
-                    {adminProfile.role === 'super_admin' ? '+ Add Dept Head' : '+ Add Officer'}
-                </button>
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+              <div>
+                <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👥 Municipal Staff Directory</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: themeColors.textSecondary }}>Manage personnel, assign tasks, and monitor workloads.</p>
+              </div>
+              <button onClick={() => setShowAddUserModal(true)} style={{ padding: '10px 20px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
+                ➕ Invite Staff Member
+              </button>
             </div>
-            <div style={styles.card}>
-                <table style={styles.table}>
-                    <thead><tr><th style={styles.th}>Name</th><th style={styles.th}>Role</th><th style={styles.th}>Dept</th><th style={styles.th}>Workload</th></tr></thead>
-                    <tbody>
-                        {users.filter(u=>u.role !== 'citizen').map(u => (
-                            <tr key={u.id}>
-                                <td style={styles.td}><strong>{u.full_name}</strong><br/><span style={{fontSize:'0.8rem', color:'#777'}}>{u.email}</span></td>
-                                <td style={styles.td}><span style={styles.roleBadge(u.role)}>{u.role === 'dept_admin' ? 'HEAD' : 'OFFICER'}</span></td>
-                                <td style={styles.td}>{u.department}</td>
-                                <td style={styles.td}>{u.role === 'employee' ? `${getWorkerLoad(u.email)} Tasks` : '-'}</td>
-                            </tr>
-                        ))}
-                    </tbody>
+
+            <div style={{ background: themeColors.surface, borderRadius: '12px', border: `1px solid ${themeColors.border}`, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
+                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Staff Member</th>
+                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Role Badge</th>
+                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Department</th>
+                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Active Workload</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {users.filter(u=>u.role !== 'citizen').map(u => (
+                      <tr key={u.id} style={{ borderBottom: `1px solid ${themeColors.border}` }}>
+                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>
+                          <strong>{u.full_name}</strong>
+                          <div style={{ fontSize: '0.75rem', color: themeColors.textSecondary }}>{u.email}</div>
+                        </td>
+                        <td style={{ padding: '15px 20px' }}>
+                          <span style={roleBadgeStyle(u.role)}>{u.role === 'dept_admin' ? 'HEAD' : 'OFFICER'}</span>
+                        </td>
+                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>{u.department}</td>
+                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>
+                          {u.role === 'employee' ? (
+                            <span style={{ fontWeight: 'bold', color: getWorkerLoad(u.email) > 3 ? '#ef4444' : themeColors.textPrimary }}>
+                              {getWorkerLoad(u.email)} Active Tasks
+                            </span>
+                          ) : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
                 </table>
+              </div>
             </div>
           </div>
         )}
 
+        {/* TAB 4: ADVANCED PREMIUM ANALYTICS (SVG CHARTS) */}
         {activeTab === 'analytics' && (
-            <div className="fade-in">
-                <h2 style={styles.pageTitle}>Analytics Dashboard</h2>
-                <div style={styles.card}>
-                    <h3>📂 Complaints Distribution</h3>
-                    <div style={{marginTop:'20px'}}>
-                        {categories.map(cat => {
-                            const count = complaints.filter(c => c.category === cat).length;
-                            const total = complaints.length || 1; 
-                            const percent = (count / total) * 100;
-                            return (
-                                <div key={cat} style={{marginBottom:'15px'}}>
-                                    <div style={{display:'flex', justifyContent:'space-between', fontSize:'0.9rem', marginBottom:'5px'}}>
-                                        <span>{cat}</span>
-                                        <strong>{count}</strong>
-                                    </div>
-                                    <div style={{width:'100%', background:'#e9ecef', borderRadius:'5px', height:'10px'}}>
-                                        <div style={{width:`${percent}%`, background:'#007bff', height:'100%', borderRadius:'5px', transition:'width 0.5s'}}></div>
-                                    </div>
-                                </div>
-                            )
-                        })}
-                    </div>
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <h3 style={{ margin: 0, color: themeColors.textPrimary }}>📈 Enterprise Performance Analytics</h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '20px' }}>
+              
+              {/* Chart 1: Complaint Volume Trend (SVG Area Chart) */}
+              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
+                <h4 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📂 Weekly Incident Volume Trend</h4>
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <svg width="100%" height="200" viewBox="0 0 500 200" preserveAspectRatio="none" style={{ background: themeColors.surfaceSecondary, borderRadius: '8px' }}>
+                    <defs>
+                      <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.4" />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    {/* Grid Lines */}
+                    <line x1="50" y1="50" x2="450" y2="50" stroke={themeColors.border} strokeDasharray="5,5" />
+                    <line x1="50" y1="100" x2="450" y2="100" stroke={themeColors.border} strokeDasharray="5,5" />
+                    <line x1="50" y1="150" x2="450" y2="150" stroke={themeColors.border} strokeDasharray="5,5" />
+                    {/* Area path */}
+                    <path d="M 50 170 Q 130 110 200 130 T 350 70 T 450 60 L 450 170 L 50 170 Z" fill="url(#areaGrad)" />
+                    {/* Line path */}
+                    <path d="M 50 170 Q 130 110 200 130 T 350 70 T 450 60" fill="none" stroke="#3b82f6" strokeWidth="3" />
+                    {/* Data Points */}
+                    <circle cx="50" cy="170" r="4" fill="#3b82f6" />
+                    <circle cx="130" cy="115" r="4" fill="#3b82f6" />
+                    <circle cx="200" cy="130" r="4" fill="#3b82f6" />
+                    <circle cx="350" cy="70" r="4" fill="#3b82f6" />
+                    <circle cx="450" cy="60" r="4" fill="#3b82f6" />
+                    {/* Labels */}
+                    <text x="50" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Mon</text>
+                    <text x="130" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Wed</text>
+                    <text x="200" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Thu</text>
+                    <text x="350" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Sat</text>
+                    <text x="450" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Sun</text>
+                  </svg>
                 </div>
-                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20px', marginTop:'20px'}}>
-                    <div style={styles.card}>
-                        <h3>🏆 Top Performer</h3>
-                        <p style={{fontSize:'1.5rem', color:'#28a745', fontWeight:'bold'}}>
-                            {users.filter(u => u.role === 'employee').length > 0 ? "EMP-101" : "N/A"}
-                        </p>
-                        <p style={{color:'#666'}}>Most resolved tickets this month.</p>
-                    </div>
-                    <div style={styles.card}>
-                        <h3>⏳ Avg Resolution Time</h3>
-                        <p style={{fontSize:'1.5rem', color:'#fd7e14', fontWeight:'bold'}}>24 Hours</p>
-                        <p style={{color:'#666'}}>Based on closed ticket data.</p>
-                    </div>
+              </div>
+
+              {/* Chart 2: Category distribution (SVG Donut Chart) */}
+              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
+                <h4 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📊 Category Breakdown</h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
+                  <svg width="150" height="150" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke={themeColors.border} strokeWidth="10" />
+                    {/* 45% Roads */}
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="125 251" strokeDashoffset="0" />
+                    {/* 30% Water */}
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="10" strokeDasharray="80 251" strokeDashoffset="-125" />
+                    {/* 25% Electricity */}
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="10" strokeDasharray="46 251" strokeDashoffset="-205" />
+                  </svg>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#3b82f6', borderRadius:'3px' }}></span> Roads & Potholes (45%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#10b981', borderRadius:'3px' }}></span> Water Leakage (30%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#f59e0b', borderRadius:'3px' }}></span> Electricity & Grid (25%)</div>
+                  </div>
                 </div>
+              </div>
+
+              {/* Chart 3: Backlog Zone Density Heat Map */}
+              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, gridColumn: isMobile ? 'span 1' : 'span 2' }}>
+                <h4 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>🗺️ Municipal Backlog Heat Map (By Operational Zones)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
+                  <div style={{ background: 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+                    <strong>Zone 1 (Secunderabad)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>42 Open</div>
+                  </div>
+                  <div style={{ background: 'rgba(239, 68, 68, 0.65)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+                    <strong>Zone 2 (Khairatabad)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>28 Open</div>
+                  </div>
+                  <div style={{ background: 'rgba(245, 158, 11, 0.8)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+                    <strong>Zone 3 (Serilingampally)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>19 Open</div>
+                  </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.8)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+                    <strong>Zone 4 (Charminar)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>6 Open</div>
+                  </div>
+                  <div style={{ background: 'rgba(16, 185, 129, 0.9)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
+                    <strong>Zone 5 (Kukatpally)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>2 Open</div>
+                  </div>
+                </div>
+              </div>
+
             </div>
+          </div>
         )}
 
+        {/* TAB 5: SYSTEM AUDIT LOGS LEDGER */}
         {activeTab === 'audit_logs' && (
           <div className="fade-in">
-             <h2 style={styles.pageTitle}>Security Audit Logs Ledger</h2>
+             <h2 style={{ margin: '0 0 20px', color: themeColors.textPrimary, fontSize: '1.5rem' }}>Security Audit Logs Ledger</h2>
              <AuditLogsConsole />
           </div>
         )}
@@ -573,82 +813,97 @@ const AdminDashboard = () => {
   );
 };
 
-// --- STYLES ---
-const styles = {
-  container: { display: 'flex', height: '100vh', width: '100vw', background: '#f0f2f5', overflow: 'hidden' },
-  loading: { display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', color: '#0056b3', fontSize: '1.2rem' },
-  sidebar: { width: '260px', background: '#1a1f36', color: 'white', display: 'flex', flexDirection: 'column', flexShrink: 0 },
-  sidebarHeader: { padding: '25px', borderBottom: '1px solid rgba(255,255,255,0.1)', textAlign: 'center' },
-  nav: { flex: 1, padding: '20px', display: 'flex', flexDirection: 'column', gap: '5px' },
-  sidebarFooter: { padding: '20px', background: 'rgba(0,0,0,0.2)', display:'flex', flexDirection:'column', gap:'10px' },
-  main: { flex: 1, overflowY: 'auto', padding: '30px', position: 'relative' },
-  
-  actionBtn: { padding: '10px 20px', background: '#007bff', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' },
-  profileBtn: { width: '100%', padding: '12px', background: '#495057', border: 'none', color: 'white', borderRadius: '5px', cursor: 'pointer', textAlign:'center', fontSize:'0.9rem', fontWeight:'500' },
-  logoutBtn: { width: '100%', padding: '12px', background: '#e63946', border: 'none', color: 'white', borderRadius: '5px', cursor: 'pointer', textAlign:'center', fontSize:'0.9rem', fontWeight:'500' },
-  assignBtn: { padding: '6px 12px', background: '#0056b3', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' },
-  outlineBtn: { padding: '6px 12px', background: 'white', color: '#333', border: '1px solid #ccc', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' },
-  rejectBtn: { padding: '6px 12px', background: '#dc3545', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' },
-
-  pageTitle: { margin: '0 0 20px', color: '#1a1f36', fontSize: '1.8rem' },
-  card: { background: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', marginBottom: '20px' },
-  statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '20px', marginBottom: '30px' },
-  
-  headerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' },
-  filters: { display: 'flex', gap: '10px' },
-  searchInput: { padding: '10px', border: '1px solid #ccc', borderRadius: '5px', width: '250px' },
-  filterSelect: { padding: '10px', border: '1px solid #ccc', borderRadius: '5px' },
-  textarea: {width:'100%', padding:'10px', marginBottom:'10px', borderRadius:'5px', border:'1px solid #ccc', boxSizing:'border-box'},
-  input: {width:'100%', padding:'10px', borderRadius:'5px', border:'1px solid #ccc', boxSizing:'border-box'},
-
-  complaintList: { display: 'flex', flexDirection: 'column', gap: '20px' },
-  complaintCard: { background: 'white', padding: '20px', borderRadius: '10px', display: 'flex', gap: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.05)', alignItems:'flex-start' },
-  
-  table: { width: '100%', borderCollapse: 'collapse' },
-  th: { padding: '12px', color: '#555', fontSize: '0.85rem', textAlign: 'left', background: '#f8f9fa', borderBottom: '2px solid #eee' },
-  td: { padding: '12px', fontSize: '0.9rem', color: '#333', borderBottom: '1px solid #eee' },
-  
-  logContainer: { height: '150px', overflowY: 'auto', background: '#f8f9fa', padding: '10px', borderRadius: '5px', border: '1px solid #eee' },
-  logItem: { fontSize: '0.85rem', marginBottom: '8px', borderBottom: '1px dashed #ddd', paddingBottom: '4px' },
-  
-  badge: () => ({ background: '#e2e6ea', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold', color: '#495057', marginLeft:'10px' }),
-  roleBadge: (role) => ({ padding: '4px 10px', borderRadius: '12px', background: role==='super_admin'?'#ffd700':'#17a2b8', color: role==='super_admin'?'#000':'#fff', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', marginTop:'5px', display:'inline-block' }),
-  statusBadge: (status) => ({ padding: '4px 10px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 'bold', background: status==='Resolved'?'#d1e7dd':status==='Rejected'?'#f8d7da':'#fff3cd', color: status==='Resolved'?'#0f5132':status==='Rejected'?'#842029':'#664d03' }),
-
-  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 },
-  modalContent: { width: '400px', background: 'white', borderRadius: '10px', boxShadow: '0 5px 20px rgba(0,0,0,0.2)', overflow:'hidden' },
-  modalHeader: { background: '#f8f9fa', padding: '15px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  closeBtn: { background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: '#666' },
-  workerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid #f1f1f1' },
-  avatar: { width: '40px', height: '40px', background: '#e2e6ea', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#555' },
-  assignActionBtn: { background: '#0d6efd', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' },
-
-  // --- NEW PROFILE STYLES ---
-  profileCard: { width:'400px', background:'white', borderRadius:'16px', overflow:'hidden', boxShadow:'0 10px 30px rgba(0,0,0,0.2)', position:'relative' },
-  profileHeader: { height:'100px', background:'linear-gradient(135deg, #007bff, #0056b3)' },
-  profileAvatarContainer: { position:'absolute', top:'50px', left:'50%', transform:'translateX(-50%)', padding:'4px', background:'white', borderRadius:'50%' },
-  profileAvatar: { width:'90px', height:'90px', background:'#f0f2f5', borderRadius:'50%', display:'flex', justifyContent:'center', alignItems:'center', fontSize:'2rem', fontWeight:'bold', color:'#007bff' },
-  profileBody: { padding:'60px 25px 30px', textAlign:'center' },
-  profileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'15px', marginTop:'20px', textAlign:'left' },
-  profileItem: { background:'#f8f9fa', padding:'10px', borderRadius:'8px' },
-  profileLabel: { fontSize:'0.75rem', color:'#6c757d', fontWeight:'600', textTransform:'uppercase' },
-  profileValue: { fontSize:'0.9rem', color:'#212529', fontWeight:'500', marginTop:'2px' },
-  closeProfileBtn: { width:'100%', padding:'12px', background:'#212529', color:'white', border:'none', borderRadius:'8px', marginTop:'25px', cursor:'pointer', fontWeight:'bold' }
+// --- SUB-COMPONENTS WITH THEME SUPPORT ---
+const NavBtn = ({ active, onClick, icon, label, collapsed }) => {
+  return (
+    <button onClick={onClick} style={{
+      display: 'flex', 
+      alignItems: 'center', 
+      gap: '15px', 
+      padding: '12px 15px',
+      background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent', 
+      color: active ? '#fff' : '#94a3b8',
+      border: 'none', 
+      borderRadius: '8px', 
+      cursor: 'pointer', 
+      fontSize: '0.95rem', 
+      width: '100%', 
+      textAlign: 'left',
+      justifyContent: collapsed ? 'center' : 'flex-start',
+      transition: 'all 0.2s ease',
+      fontWeight: active ? '600' : 'normal',
+    }}>
+      <span style={{ fontSize: '1.25rem' }}>{icon}</span> 
+      {!collapsed && <span>{label}</span>}
+    </button>
+  );
 };
 
-const NavBtn = ({ active, onClick, icon, label }) => (
-  <button onClick={onClick} style={{
-    display: 'flex', alignItems: 'center', gap: '15px', padding: '12px 15px',
-    background: active ? 'rgba(255,255,255,0.15)' : 'transparent', color: active ? '#fff' : '#ccc',
-    border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', width: '100%', textAlign: 'left'
-  }}><span>{icon}</span> {label}</button>
-);
+const StatCard = ({ title, value, color, icon }) => {
+  const { themeColors } = useTheme();
+  return (
+    <div style={{ 
+      background: themeColors.surface, 
+      padding: '20px', 
+      borderRadius: '12px', 
+      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)', 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      borderLeft: `5px solid ${color}`,
+      border: `1px solid ${themeColors.border}`,
+      transition: 'transform 0.2s',
+    }}>
+      <div>
+        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: themeColors.textPrimary }}>{value}</div>
+        <div style={{ color: themeColors.textSecondary, fontSize: '0.85rem', marginTop: '4px', fontWeight: '500' }}>{title}</div>
+      </div>
+      <div style={{ fontSize: '2rem', opacity: 0.8 }}>{icon}</div>
+    </div>
+  );
+};
 
-const StatCard = ({ title, value, color, icon }) => (
-  <div style={{ background: 'white', padding: '25px', borderRadius: '10px', boxShadow: '0 2px 10px rgba(0,0,0,0.05)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: `4px solid ${color}` }}>
-    <div><div style={{ fontSize: '2.5rem', fontWeight: 'bold', color: '#333' }}>{value}</div><div style={{ color: '#666', fontSize: '0.9rem' }}>{title}</div></div>
-    <div style={{ fontSize: '2.5rem', opacity: 0.8 }}>{icon}</div>
-  </div>
-);
+// --- STYLES OBJECT ---
+const localStyles = {
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' },
+  modalContent: { width: '450px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', overflow:'hidden' },
+  imageModalContent: { width: '600px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', overflow:'hidden' },
+  modalHeader: { padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  workerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' },
+  
+  profileCard: { width:'400px', borderRadius:'16px', overflow:'hidden', boxShadow:'0 15px 35px rgba(0,0,0,0.25)', position:'relative' },
+  profileAvatarContainer: { position:'absolute', top:'50px', left:'50%', transform:'translateX(-50%)', padding:'4px', borderRadius:'50%' },
+  profileAvatar: { width:'90px', height:'90px', borderRadius:'50%', display:'flex', justifyContent:'center', alignItems:'center', fontSize:'2rem', fontWeight:'bold' },
+  profileBody: { padding:'60px 25px 25px', textAlign:'center' },
+  profileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'20px', textAlign:'left' },
+  closeProfileBtn: { width:'100%', padding:'12px', border:'none', borderRadius:'8px', marginTop:'25px', cursor:'pointer', fontWeight:'bold' }
+};
+
+const statusBadgeStyle = (status) => {
+  const isResolved = status === 'Resolved';
+  const isRejected = status === 'Rejected';
+  return {
+    padding: '4px 10px', 
+    borderRadius: '12px', 
+    fontSize: '0.7rem', 
+    fontWeight: 'bold', 
+    background: isResolved ? '#d1e7dd' : isRejected ? '#f8d7da' : '#fff3cd', 
+    color: isResolved ? '#0f5132' : isRejected ? '#842029' : '#664d03'
+  };
+};
+
+const roleBadgeStyle = (role) => {
+  const isSuper = role === 'super_admin' || role === 'dept_admin';
+  return {
+    padding: '4px 10px', 
+    borderRadius: '12px', 
+    background: isSuper ? '#ffd700' : '#17a2b8', 
+    color: isSuper ? '#000' : '#fff', 
+    fontSize: '0.7rem', 
+    fontWeight: 'bold', 
+    textTransform: 'uppercase', 
+    display: 'inline-block'
+  };
+};
 
 export default AdminDashboard;
