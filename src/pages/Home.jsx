@@ -128,6 +128,9 @@ const styles = {
     position: 'relative',
     zIndex: 1,
     padding: '60px 20px',
+    display: 'flex',
+    justifyContent: 'flex-start',
+    width: '100%',
   },
   heroContent: {
     maxWidth: '650px',
@@ -142,6 +145,7 @@ const styles = {
     fontSize: '0.85rem',
     fontWeight: '600',
     marginBottom: '20px',
+    textAlign: 'left',
   },
   heroTitle: {
     fontSize: '3.5rem',
@@ -149,17 +153,20 @@ const styles = {
     lineHeight: '1.1',
     marginBottom: '20px',
     letterSpacing: '-1px',
+    textAlign: 'left',
   },
   heroSubtitle: {
     fontSize: '1.15rem',
     color: '#94a3b8',
     lineHeight: '1.6',
     marginBottom: '35px',
+    textAlign: 'left',
   },
   buttonGroup: {
     display: 'flex',
     gap: '15px',
     flexWrap: 'wrap',
+    justifyContent: 'flex-start',
   },
   primaryBtn: {
     background: '#2563eb',
