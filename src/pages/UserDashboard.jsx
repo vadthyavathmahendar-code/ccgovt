@@ -252,8 +252,8 @@ const UserDashboard = () => {
     try {
       const { error } = await supabase.from('complaint_feedback').insert([{
         complaint_id: selectedComplaint.id,
-        rating: feedbackRating,
-        comments: feedbackComments,
+        rating_stars: feedbackRating,
+        feedback_comments: feedbackComments,
         user_id: user.id
       }]);
       if (error) throw error;
