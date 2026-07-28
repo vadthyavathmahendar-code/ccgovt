@@ -75,16 +75,21 @@ export const AuthProvider = ({ children }) => {
         // Skip duplicate initial session trigger on mount
         if (event === 'INITIAL_SESSION') return;
 
-        setLoading(true);
-        if (session?.user) {
-          setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        } else {
-          setUser(null);
-          setProfile(null);
-          setRole(null);
+        try {
+          setLoading(true);
+          if (session?.user) {
+            setUser(session.user);
+            await fetchUserProfile(session.user.id);
+          } else {
+            setUser(null);
+            setProfile(null);
+            setRole(null);
+          }
+        } catch (err) {
+          console.error('Error in onAuthStateChange handler:', err);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
