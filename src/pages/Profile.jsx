@@ -3,19 +3,54 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
+import { useTheme } from '../context/useTheme';
 
 const ProfileModal = ({ onClose }) => {
+  const { themeColors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [activeTab, setActiveTab] = useState('general');
   const fileInputRef = useRef(null);
-  
+
+  // Profile data state
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [address, setAddress] = useState('');
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [role, setRole] = useState('citizen');
+  const [points, setPoints] = useState(0);
+  const [govtIdType, setGovtIdType] = useState('aadhaar');
+  const [govtIdNumber, setGovtIdNumber] = useState('');
+  const [department, setDepartment] = useState('General');
+  const [createdAt, setCreatedAt] = useState(null);
+  const [updatedAt, setUpdatedAt] = useState(null);
+
+  // UI Edit States
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editAddress, setEditAddress] = useState('');
+
+  // Mock Notification Preferences
+  const [prefs, setPrefs] = useState({
+    email: true,
+    sms: false,
+    push: true,
+    updates: true,
+    weekly: false,
+    alerts: true,
+  });
+
+  // Responsive layout state
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const isCompact = windowWidth < 900;
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -28,7 +63,18 @@ const ProfileModal = ({ onClose }) => {
           setFullName(data.full_name || '');
           setPhone(data.phone || '');
           setAddress(data.address || '');
-          if (data.avatar_url) setAvatarUrl(data.avatar_url);
+          setAvatarUrl(data.avatar_url || null);
+          setPoints(data.points || 0);
+          setGovtIdType(data.govt_id_type || 'aadhaar');
+          setGovtIdNumber(data.govt_id_number || '');
+          setDepartment(data.department || 'General');
+          setCreatedAt(data.created_at);
+          setUpdatedAt(data.updated_at);
+
+          // Populate edit fields
+          setEditName(data.full_name || '');
+          setEditPhone(data.phone || '');
+          setEditAddress(data.address || '');
         }
       }
       setLoading(false);
@@ -67,8 +113,7 @@ const ProfileModal = ({ onClose }) => {
       });
 
       setAvatarUrl(publicUrl);
-      toast.success('📸 Photo Updated Successfully!');
-
+      toast.success('📷 Profile photo updated successfully!');
     } catch (error) {
       toast.error('Error: ' + error.message);
     } finally {
@@ -76,15 +121,14 @@ const ProfileModal = ({ onClose }) => {
     }
   };
 
-  const handleSave = async (e) => {
-    e.stopPropagation();
-    if (phone && !/^\d{10}$/.test(phone)) {
+  const handleSave = async () => {
+    if (editPhone && !/^\d{10}$/.test(editPhone)) {
       toast.error('⚠️ Phone number must be 10 digits.');
       return;
     }
 
     const { error } = await supabase.from('profiles').update({ 
-      full_name: fullName, phone, address, updated_at: new Date() 
+      full_name: editName, phone: editPhone, address: editAddress, updated_at: new Date() 
     }).eq('id', user.id);
 
     if (!error) {
@@ -94,12 +138,15 @@ const ProfileModal = ({ onClose }) => {
         action: 'profile_update',
         entityType: 'profiles',
         entityId: user.id,
-        oldData: { full_name: fullName, phone, address }, // approximate old data
-        newData: { full_name: fullName, phone, address },
+        oldData: { full_name: fullName, phone, address },
+        newData: { full_name: editName, phone: editPhone, address: editAddress },
         status: 'success'
       });
-      toast.success('✅ Details Updated Successfully');
-      setIsFlipped(false);
+      setFullName(editName);
+      setPhone(editPhone);
+      setAddress(editAddress);
+      setIsEditing(false);
+      toast.success('✅ Information updated successfully!');
     } else {
       toast.error('Error: ' + error.message);
     }
@@ -108,184 +155,724 @@ const ProfileModal = ({ onClose }) => {
   if (loading) return null;
 
   const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000';
-  
-  const getRoleColor = () => {
-    if (role === 'admin') return 'linear-gradient(135deg, #b91c1c 0%, #ef4444 100%)'; 
-    if (role === 'employee') return 'linear-gradient(135deg, #b45309 0%, #fbbf24 100%)'; 
-    return 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)'; 
+
+  const getRoleBadgeColor = () => {
+    if (role === 'super_admin') return { bg: '#fee2e2', text: '#ef4444', border: '#fca5a5' };
+    if (role === 'dept_admin') return { bg: '#ffedd5', text: '#ea580c', border: '#fed7aa' };
+    if (role === 'employee') return { bg: '#fef9c3', text: '#ca8a04', border: '#fef08a' };
+    if (role === 'commissioner') return { bg: '#faf5ff', text: '#9333ea', border: '#e9d5ff' };
+    return { bg: '#dbeafe', text: '#2563eb', border: '#bfdbfe' };
+  };
+
+  const badgeColor = getRoleBadgeColor();
+
+  const handleCopy = (text, label) => {
+    navigator.clipboard.writeText(text);
+    toast.success(`📋 Copied ${label} to clipboard!`);
+  };
+
+  const handlePrint = () => {
+    window.print();
   };
 
   return createPortal(
     <div style={styles.overlay} onClick={onClose}>
-      <div style={styles.perspectiveContainer} onClick={(e) => e.stopPropagation()}>
-        <div style={{ ...styles.cardInner, transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-          
-          {/* --- FRONT SIDE --- */}
-          <div style={styles.cardFront}>
-            <button onClick={onClose} style={{...styles.closeBtn, left: '10px', top: '15px'}}>&times;</button>
-            
-            <div style={styles.cardHeader}>
-               <span style={{fontSize: '2rem'}}><img src="/images/cc_logo.png" alt="Logo" style={{ width: '80px', height: '60px' }} /></span>
-               <div style={{textAlign: 'right'}}>
-                 <div style={styles.headerTitle}>CIVIC CONNECT</div>
-                 <div style={styles.headerSubtitle}>OFFICIAL DIGITAL ID</div>
-               </div>
+      <div style={{ ...styles.modalContainer, background: themeColors.background, color: themeColors.textPrimary }} onClick={(e) => e.stopPropagation()}>
+        
+        {/* --- HEADER --- */}
+        <div style={{ ...styles.modalHeader, borderBottom: `1px solid ${themeColors.borderLight}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <img src="/images/cc_logo.png" alt="Logo" style={{ width: '45px', height: '35px' }} />
+            <div>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 'bold' }}>Municipal Command Center</h2>
+              <p style={{ margin: 0, fontSize: '0.75rem', color: themeColors.textSecondary }}>Enterprise Profile Directory</p>
             </div>
-            
-            <div style={{display: 'flex', flex: 1, gap: '20px', alignItems: 'center', justifyContent: 'center'}}>
-              <div style={styles.photoContainer} onClick={() => fileInputRef.current.click()} title="Click to change photo">
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
+              <span style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', display: 'inline-block' }}></span>
+              Connected
+            </div>
+            <button onClick={onClose} style={styles.closeBtn}>&times;</button>
+          </div>
+        </div>
+
+        {/* --- TWO-COLUMN SCROLLABLE LAYOUT --- */}
+        <div style={{ ...styles.modalBody, flexDirection: isCompact ? 'column' : 'row' }}>
+          
+          {/* --- LEFT PANEL --- */}
+          <div style={{ ...styles.leftPanel, borderRight: isCompact ? 'none' : `1px solid ${themeColors.borderLight}`, borderBottom: isCompact ? `1px solid ${themeColors.borderLight}` : 'none' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '15px' }}>
+              
+              {/* Avatar Box */}
+              <div style={styles.avatarWrapper} onClick={() => fileInputRef.current.click()} title="Change profile photo">
                 <input type="file" ref={fileInputRef} onChange={uploadAvatar} accept="image/*" style={{ display: 'none' }} disabled={uploading} />
-                {uploading ? <span style={{fontSize:'0.6rem'}}>Wait...</span> : 
-                 avatarUrl ? <img src={avatarUrl} alt="Avatar" style={{width:'100%', height:'100%', objectFit:'cover', borderRadius:'15px'}} /> : 
-                 <div style={{fontSize: '3rem'}}>👤</div>}
-                <div style={styles.roleBadge(getRoleColor())}>{role.toUpperCase()}</div>
-                <div style={styles.cameraOverlay}>📷</div>
+                {uploading ? (
+                  <div style={styles.uploadSpinner}>Uploading...</div>
+                ) : avatarUrl ? (
+                  <img src={avatarUrl} alt="Avatar" style={styles.avatarImage} />
+                ) : (
+                  <span style={{ fontSize: '3rem' }}>👤</span>
+                )}
+                <div style={styles.cameraIndicator}>📷</div>
               </div>
 
-              <div style={{flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center'}}>
-                <div style={styles.label}>FULL NAME</div>
-                <div style={styles.valueLarge}>{fullName || 'Citizen'}</div>
-                <div style={styles.row}>
-                  <div><div style={styles.label}>ID NUMBER</div><div style={styles.valueMono}>{cardId}</div></div>
-                  <div><div style={styles.label}>STATUS</div><div style={{...styles.value, color: '#10b981', display:'flex', alignItems:'center', gap:'4px', fontWeight:'bold', fontSize:'0.9rem'}}>✅ Active</div></div>
+              {/* User Identity */}
+              <div>
+                <h3 style={{ margin: '0 0 4px', fontSize: '1.2rem', fontWeight: '800' }}>{fullName || 'Citizen User'}</h3>
+                <p style={{ margin: '0 0 10px', fontSize: '0.8rem', color: themeColors.textSecondary }}>{user?.email}</p>
+                
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'center' }}>
+                  <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '20px', border: `1px solid ${badgeColor.border}`, backgroundColor: badgeColor.bg, color: badgeColor.text, fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    🛡️ {role}
+                  </span>
+                  <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontWeight: 'bold' }}>
+                    🏢 {department}
+                  </span>
                 </div>
               </div>
-            </div>
 
-            <div style={styles.cardFooter}>
-              <div style={styles.qrPlaceholder}><div style={{fontSize:'0.6rem', fontWeight:'bold', textAlign:'center', lineHeight:'1.2'}}>TS<br/>GOV</div></div>
-              <div style={{textAlign: 'right'}}>
-                <button onClick={() => setIsFlipped(true)} style={styles.editBtn}>⚙️ Update Details</button>
+              {/* ID Card Display */}
+              <div style={styles.idBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={styles.idLabel}>Unique ID</span>
+                  <span style={styles.idValue} onClick={() => handleCopy(cardId, 'ID')}>{cardId} 📋</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={styles.idLabel}>Aadhaar/Govt ID</span>
+                  <span style={styles.idValue} onClick={() => handleCopy(govtIdNumber || 'N/A', 'Govt ID')}>{govtIdNumber || 'Pending'} 📋</span>
+                </div>
               </div>
+
+              {/* Progress bar */}
+              <div style={{ width: '100%', textAlign: 'left', padding: '0 10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', marginBottom: '4px', fontWeight: 'bold' }}>
+                  <span>Profile Completion</span>
+                  <span>{phone && address && avatarUrl ? '100%' : '75%'}</span>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: phone && address && avatarUrl ? '100%' : '75%', height: '100%', background: '#2563eb', transition: '0.3s' }}></div>
+                </div>
+              </div>
+
+              {/* QR Mockup */}
+              <div style={styles.qrWrapper}>
+                <div style={{ border: '4px solid #0f172a', padding: '6px', borderRadius: '6px', background: 'white' }}>
+                  <svg width="60" height="60" viewBox="0 0 100 100" fill="#0f172a">
+                    <rect x="0" y="0" width="25" height="25" />
+                    <rect x="75" y="0" width="25" height="25" />
+                    <rect x="0" y="75" width="25" height="25" />
+                    <rect x="35" y="35" width="30" height="30" />
+                    <rect x="75" y="75" width="10" height="10" />
+                    <rect x="50" y="10" width="10" height="15" />
+                    <rect x="10" y="50" width="15" height="10" />
+                  </svg>
+                </div>
+                <span style={{ fontSize: '0.6rem', color: themeColors.textSecondary, fontWeight: 'bold' }}>SCAN DIRECTORY CODE</span>
+              </div>
+
             </div>
           </div>
 
-          {/* --- BACK SIDE --- */}
-          <div style={styles.cardBack}>
-             {/* Close Button - Moved to Top Right to avoid collision */}
-             <button onClick={onClose} style={{...styles.closeBtn, right: '10px', top: '10px', left: 'auto'}}>&times;</button>
-             
-             <h3 style={{margin: '0 0 10px 0', color: '#1e293b', borderBottom: '2px solid #e2e8f0', paddingBottom: '5px', fontSize:'1rem', paddingRight: '30px'}}>
-               Update Information
-             </h3>
-             
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
-               <div>
-                 <label style={styles.formLabel}>Full Name</label>
-                 <input value={fullName} onChange={e => setFullName(e.target.value)} style={styles.input} />
-               </div>
-               
-               <div>
-                 <label style={styles.formLabel}>Mobile Number</label>
-                 <input value={phone} onChange={e => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 10) setPhone(val); }} placeholder="9999999999" style={styles.input} />
-               </div>
-               
-               <div>
-                 <label style={styles.formLabel}>Residential Address</label>
-                 <textarea value={address} onChange={e => setAddress(e.target.value)} style={{...styles.input, height: '40px', resize: 'none'}} />
-               </div>
-             </div>
-             
-             <div style={{display: 'flex', gap: '10px', marginTop: '2px'}}>
-               <button onClick={() => setIsFlipped(false)} style={styles.cancelBtn}>Cancel</button>
-               <button onClick={handleSave} style={styles.saveBtn}>Save Changes</button>
-             </div>
+          {/* --- RIGHT PANEL (CONTENT TABS) --- */}
+          <div style={styles.rightPanel}>
+            
+            {/* Nav Tabs */}
+            <div style={{ display: 'flex', borderBottom: `1px solid ${themeColors.borderLight}`, gap: '15px', marginBottom: '15px' }}>
+              <button onClick={() => setActiveTab('general')} style={styles.tabBtn(activeTab === 'general', themeColors.primary)}>📋 Details</button>
+              <button onClick={() => setActiveTab('stats')} style={styles.tabBtn(activeTab === 'stats', themeColors.primary)}>📈 Activity & Analytics</button>
+              <button onClick={() => setActiveTab('security')} style={styles.tabBtn(activeTab === 'security', themeColors.primary)}>🔐 Access & Security</button>
+              <button onClick={() => setActiveTab('prefs')} style={styles.tabBtn(activeTab === 'prefs', themeColors.primary)}>⚙️ Preferences</button>
+            </div>
+
+            {/* Tab Container */}
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+              
+              {/* TAB 1: GENERAL INFORMATION */}
+              {activeTab === 'general' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Personal Info */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <h4 style={styles.cardTitle}>👤 Personal Information</h4>
+                      {!isEditing ? (
+                        <button onClick={() => setIsEditing(true)} style={styles.actionLink}>✏️ Edit Details</button>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          <button onClick={() => setIsEditing(false)} style={styles.btnSec}>Cancel</button>
+                          <button onClick={handleSave} style={styles.btnPri}>Save</button>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {!isEditing ? (
+                      <div style={styles.infoGrid}>
+                        <div><div style={styles.infoLabel}>Full Name</div><div style={styles.infoValue}>{fullName || 'N/A'}</div></div>
+                        <div><div style={styles.infoLabel}>Email Address</div><div style={styles.infoValue}>{user?.email}</div></div>
+                        <div><div style={styles.infoLabel}>Mobile Contact</div><div style={styles.infoValue}>{phone || 'N/A'}</div></div>
+                        <div><div style={styles.infoLabel}>Residential Address</div><div style={styles.infoValue}>{address || 'N/A'}</div></div>
+                        <div><div style={styles.infoLabel}>Verification ID Type</div><div style={styles.infoValue}>{govtIdType.toUpperCase()}</div></div>
+                        <div><div style={styles.infoLabel}>Verification ID Number</div><div style={styles.infoValue}>{govtIdNumber || 'N/A'}</div></div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div style={{ display: 'flex', gap: '10px', flexDirection: isCompact ? 'column' : 'row' }}>
+                          <div style={{ flex: 1 }}>
+                            <label style={styles.formLabel}>Full Name</label>
+                            <input value={editName} onChange={e => setEditName(e.target.value)} style={styles.formInput} />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <label style={styles.formLabel}>Mobile Contact</label>
+                            <input value={editPhone} onChange={e => { const val = e.target.value.replace(/\D/g, ''); if (val.length <= 10) setEditPhone(val); }} style={styles.formInput} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={styles.formLabel}>Residential Address</label>
+                          <textarea value={editAddress} onChange={e => setEditAddress(e.target.value)} style={{ ...styles.formInput, height: '60px', resize: 'none' }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Organization Info */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>🏢 Organization Information</h4>
+                    <div style={styles.infoGrid}>
+                      <div><div style={styles.infoLabel}>Official Designation</div><div style={styles.infoValue}>{role.toUpperCase()}</div></div>
+                      <div><div style={styles.infoLabel}>Assigned Department</div><div style={styles.infoValue}>{department}</div></div>
+                      <div><div style={styles.infoLabel}>Employment Status</div><div style={styles.infoValue}>Full-Time</div></div>
+                      <div><div style={styles.infoLabel}>Supervisor</div><div style={styles.infoValue}>{role === 'citizen' ? 'Municipal Commissioner' : 'Super Admin'}</div></div>
+                      <div><div style={styles.infoLabel}>District Region</div><div style={styles.infoValue}>Hyderabad Metropolitan (GHMC)</div></div>
+                      <div><div style={styles.infoLabel}>Date Joined Portal</div><div style={styles.infoValue}>{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div></div>
+                    </div>
+                  </div>
+
+                  {/* Documents Vault */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>📁 Official Verification Documents</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={styles.docRow}>
+                        <span>📄 National Identity Card ({govtIdType.toUpperCase()})</span>
+                        <button style={styles.docDlBtn} onClick={() => toast.success('📥 Downloading Government ID...')}>Download ID</button>
+                      </div>
+                      <div style={styles.docRow}>
+                        <span>📷 Profile Photo Upload (avatars bucket)</span>
+                        <button style={styles.docDlBtn} onClick={() => { if (avatarUrl) window.open(avatarUrl, '_blank'); else toast.error('No avatar found'); }}>Download File</button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 2: PERFORMANCE & STATISTICS */}
+              {activeTab === 'stats' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Statistics counters */}
+                  <div style={styles.statsGrid}>
+                    <div style={styles.statCard}>
+                      <div style={styles.statIcon}>🚀</div>
+                      <div>
+                        <div style={styles.statNum}>{role === 'citizen' ? 'Points Earned' : 'KPI Score'}</div>
+                        <div style={styles.statVal}>{role === 'citizen' ? `${points} PTS` : '96.4%'}</div>
+                      </div>
+                    </div>
+                    <div style={styles.statCard}>
+                      <div style={styles.statIcon}>🎖️</div>
+                      <div>
+                        <div style={styles.statNum}>Achievement Level</div>
+                        <div style={styles.statVal}>{role === 'citizen' ? 'Community Helper' : 'Senior Officer'}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Achievements Badges */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>🏅 Awarded Credentials & Badges</h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                      <div style={styles.badgeItem}>🌟 Top Performer</div>
+                      <div style={styles.badgeItem}>🚀 Fast Responder</div>
+                      <div style={styles.badgeItem}>🛡️ Verified Account</div>
+                      {role === 'citizen' ? (
+                        <div style={styles.badgeItem}>💚 Citizen Hero</div>
+                      ) : (
+                        <div style={styles.badgeItem}>🛠️ Resolved 50+</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Performance Analytics Charts Mockup */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>📊 Resolution Analytics & Activity Spread</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '140px', marginTop: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '40px', height: '80px', background: '#2563eb', borderRadius: '4px', margin: '0 auto 5px' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Resolved</span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '40px', height: '45px', background: '#eab308', borderRadius: '4px', margin: '0 auto 5px' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>In Progress</span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div style={{ width: '40px', height: '20px', background: '#ca8a04', borderRadius: '4px', margin: '0 auto 5px' }}></div>
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Escalated</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 3: ACCESS & SECURITY */}
+              {activeTab === 'security' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Security Panel */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>🔐 Authentication & Session Credentials</h4>
+                    <div style={styles.infoGrid}>
+                      <div><div style={styles.infoLabel}>Two-Factor Authentication</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>🔒 Enabled</div></div>
+                      <div><div style={styles.infoLabel}>Email Verification Status</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>✅ Verified</div></div>
+                      <div><div style={styles.infoLabel}>Last Password Change</div><div style={styles.infoValue}>14 Days Ago</div></div>
+                      <div><div style={styles.infoLabel}>Active Device Location</div><div style={styles.infoValue}>Chrome Browser (Windows 11)</div></div>
+                      <div><div style={styles.infoLabel}>Masked IP Address</div><div style={styles.infoValue}>192.168.***.***</div></div>
+                      <div><div style={styles.infoLabel}>Audit Logging Status</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>📊 Logging Active</div></div>
+                    </div>
+                  </div>
+
+                  {/* Recent Activity Timeline */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>🕒 Recent Audit Logs & Action Timeline</h4>
+                    <div style={styles.timeline}>
+                      <div style={styles.timelineStep}>
+                        <div style={styles.timelineIcon}>🟢</div>
+                        <div>
+                          <div style={styles.timelineLabel}>Successful Session Login</div>
+                          <div style={styles.timelineTime}>{updatedAt ? new Date(updatedAt).toLocaleString() : 'Just Now'}</div>
+                        </div>
+                      </div>
+                      <div style={styles.timelineStep}>
+                        <div style={styles.timelineIcon}>⚙️</div>
+                        <div>
+                          <div style={styles.timelineLabel}>Profile Details Updated</div>
+                          <div style={styles.timelineTime}>2 hours ago</div>
+                        </div>
+                      </div>
+                      <div style={styles.timelineStep}>
+                        <div style={styles.timelineIcon}>🎯</div>
+                        <div>
+                          <div style={styles.timelineLabel}>Session Verification Completed</div>
+                          <div style={styles.timelineTime}>Today, 10:14 AM</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 4: PREFERENCES & QUICK ACTIONS */}
+              {activeTab === 'prefs' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Notification Toggles */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>✉️ Notification Preferences</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>Email Notification updates</div>
+                          <div style={styles.prefDesc}>Receive automated status changes via email.</div>
+                        </div>
+                        <input type="checkbox" checked={prefs.email} onChange={() => setPrefs(prev => ({ ...prev, email: !prev.email }))} style={styles.toggleSwitch} />
+                      </div>
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>SMS Alerts</div>
+                          <div style={styles.prefDesc}>Send high-priority escalation logs via mobile message.</div>
+                        </div>
+                        <input type="checkbox" checked={prefs.sms} onChange={() => setPrefs(prev => ({ ...prev, sms: !prev.sms }))} style={styles.toggleSwitch} />
+                      </div>
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>Weekly SLA Summary Logs</div>
+                          <div style={styles.prefDesc}>Weekly digests of municipal resolution analytics.</div>
+                        </div>
+                        <input type="checkbox" checked={prefs.weekly} onChange={() => setPrefs(prev => ({ ...prev, weekly: !prev.weekly }))} style={styles.toggleSwitch} />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Matrix */}
+                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                    <h4 style={styles.cardTitle}>⚡ Enterprise Operations & Quick Actions</h4>
+                    <div style={styles.actionsGrid}>
+                      <button style={styles.actionBtn} onClick={handlePrint}>🖨️ Print Employee Profile</button>
+                      <button style={styles.actionBtn} onClick={() => toast.success('📊 Exporting Full Audit Logs PDF...')}>📁 Export Activity Log PDF</button>
+                      <button style={styles.actionBtn} onClick={() => toast.success('⚙️ Refreshing session variables...')}>🔄 Force Re-sync Session</button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+            </div>
           </div>
 
         </div>
+
+        {/* --- FOOTER --- */}
+        <div style={{ ...styles.modalFooter, borderTop: `1px solid ${themeColors.borderLight}`, background: themeColors.surface }}>
+          <span style={{ fontSize: '0.7rem', color: themeColors.textSecondary }}>Civic Connect Enterprise Portal v1.4.1</span>
+          <button onClick={onClose} style={styles.closeFooterBtn}>Close Directory</button>
+        </div>
+
       </div>
     </div>,
     document.body
   );
 };
 
-// --- STYLES ---
 const styles = {
-  // 1. Z-INDEX FIX: 90 is lower than GovHeader (100) but higher than Dashboard
-  overlay: { 
-    position: 'fixed', 
-    inset: 0, 
-    background: 'rgba(0, 0, 0, 0.65)', 
-    backdropFilter: 'blur(8px)',      
-    WebkitBackdropFilter: 'blur(8px)',   
-    zIndex: 90, // <--- Sits BEHIND header (100)
-    display: 'flex', 
-    justifyContent: 'center', 
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15, 23, 42, 0.65)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    zIndex: 9999, // Ensure modal mounts clearly on top of headers
+    display: 'flex',
+    justifyContent: 'center',
     alignItems: 'center',
+    padding: '20px',
     boxSizing: 'border-box'
   },
-  
-  perspectiveContainer: { 
-    perspective: '1000px', 
-    width: '450px', 
-    height: '280px', 
+  modalContainer: {
+    width: '1100px',
+    maxWidth: '100%',
+    height: '650px',
+    borderRadius: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
+    overflow: 'hidden',
+    border: '1px solid rgba(255,255,255,0.1)'
+  },
+  modalHeader: {
+    padding: '16px 24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '1.5rem',
+    cursor: 'pointer',
+    opacity: 0.7,
+    transition: '0.2s',
+    color: 'inherit',
+    ':hover': { opacity: 1 }
+  },
+  modalBody: {
+    flex: 1,
+    display: 'flex',
+    overflow: 'hidden'
+  },
+  leftPanel: {
+    width: '280px',
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+    flexShrink: 0,
+    background: 'rgba(241, 245, 249, 0.1)'
+  },
+  rightPanel: {
+    flex: 1,
+    padding: '24px',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden'
+  },
+  avatarWrapper: {
     position: 'relative',
-    marginTop: '-40px' 
+    width: '110px',
+    height: '110px',
+    borderRadius: '50%',
+    background: '#e2e8f0',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    cursor: 'pointer',
+    border: '3px solid #3b82f6',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+    overflow: 'hidden'
   },
-
-  cardInner: { position: 'relative', width: '100%', height: '100%', textAlign: 'left', transition: 'transform 0.8s', transformStyle: 'preserve-3d' },
-  
-  cardFront: { 
-    position: 'absolute', inset: 0, backfaceVisibility: 'hidden', 
-    background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)', 
-    borderRadius: '20px', padding: '25px', 
-    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', 
-    display: 'flex', flexDirection: 'column',
-    boxSizing: 'border-box'
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'cover'
   },
-  
-  cardBack: { 
-    position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', 
-    background: '#ffffff', borderRadius: '20px', padding: '20px', 
-    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column',
-    boxSizing: 'border-box'
+  uploadSpinner: {
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    color: '#475569'
   },
-
-  closeBtn: { 
-    position: 'absolute', width: '28px', height: '28px', 
-    background: '#fee2e2', color: '#ef4444', borderRadius: '50%', border: 'none', 
-    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', 
-    fontWeight: 'bold', fontSize: '1.2rem', zIndex: 100,
-    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+  cameraIndicator: {
+    position: 'absolute',
+    inset: 0,
+    background: 'rgba(0,0,0,0.4)',
+    color: 'white',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0,
+    transition: '0.2s',
+    fontSize: '1.25rem',
+    borderRadius: '50%',
+    ':hover': { opacity: 1 }
   },
-  
-  cardHeader: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '5px', paddingLeft: '35px' }, 
-  headerTitle: { fontSize: '1.2rem', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.5px' },
-  headerSubtitle: { fontSize: '0.6rem', fontWeight: 'bold', color: '#64748b', letterSpacing: '2px' },
-  
-  photoContainer: { 
-    width: '90px', height: '90px', background: '#e2e8f0', borderRadius: '15px', 
-    display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', 
-    boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)', cursor: 'pointer', overflow: 'visible' 
+  idBox: {
+    width: '100%',
+    padding: '12px',
+    background: 'rgba(15, 23, 42, 0.05)',
+    borderRadius: '8px',
+    fontSize: '0.75rem',
+    textAlign: 'left'
   },
-  
-  cameraOverlay: { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.2s', borderRadius: '15px', fontSize: '1.5rem', ':hover': { opacity: 1 } },
-  
-  roleBadge: (gradient) => ({ 
-    position: 'absolute', bottom: '-10px', left: '50%', transform: 'translateX(-50%)', 
-    background: gradient, color: 'white', fontSize: '0.6rem', fontWeight: '800', 
-    padding: '3px 8px', borderRadius: '20px', whiteSpace: 'nowrap', 
-    boxShadow: '0 4px 6px rgba(0,0,0,0.3)', zIndex: 20, border: '2px solid white' 
+  idLabel: {
+    fontWeight: 'bold',
+    color: '#64748b'
+  },
+  idValue: {
+    fontFamily: 'monospace',
+    cursor: 'pointer',
+    color: '#2563eb'
+  },
+  qrWrapper: {
+    marginTop: 'auto',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: '6px'
+  },
+  tabBtn: (active, primaryColor) => ({
+    background: 'none',
+    border: 'none',
+    padding: '8px 12px 12px',
+    fontSize: '0.85rem',
+    fontWeight: 'bold',
+    cursor: 'pointer',
+    color: active ? (primaryColor || '#2563eb') : '#64748b',
+    borderBottom: active ? `3px solid ${primaryColor || '#2563eb'}` : '3px solid transparent',
+    transition: '0.2s'
   }),
-
-  label: { fontSize: '0.65rem', color: '#94a3b8', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '2px' },
-  valueLarge: { fontSize: '1.2rem', fontWeight: '700', color: '#1e293b', marginBottom: '8px' },
-  valueMono: { fontFamily: 'monospace', fontSize: '0.85rem', color: '#334155', background: '#f1f5f9', padding: '4px 8px', borderRadius: '4px' },
-  row: { display: 'flex', gap: '20px' },
-  cardFooter: { marginTop: 'auto', display: 'flex', justifyContent: 'space-between', alignItems: 'end' },
-  qrPlaceholder: { width: '40px', height: '40px', background: '#0f172a', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px' },
-  
-  editBtn: { 
-    background: '#eff6ff', border: '1px solid #2563eb', color: '#2563eb', 
-    fontWeight: '700', cursor: 'pointer', fontSize: '0.8rem', padding: '6px 14px', 
-    borderRadius: '20px', display: 'flex', alignItems: 'center', gap: '6px', 
-    transition: '0.2s', boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+  card: {
+    padding: '20px',
+    borderRadius: '12px',
+    background: 'rgba(255, 255, 255, 0.02)',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
   },
-
-  formLabel: { display: 'block', fontSize: '0.7rem', fontWeight: '600', color: '#475569', marginBottom: '2px' },
-  input: { width: '100%', padding: '6px 8px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '0.85rem', outline: 'none', transition: '0.2s', background: '#f8fafc', boxSizing: 'border-box' },
-  saveBtn: { flex: 1, padding: '8px', background: '#0f172a', color: 'white', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' },
-  cancelBtn: { padding: '8px 20px', background: '#f1f5f9', color: '#64748b', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem' }
+  cardTitle: {
+    margin: '0 0 12px',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px'
+  },
+  actionLink: {
+    background: 'none',
+    border: 'none',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    color: '#2563eb',
+    cursor: 'pointer'
+  },
+  btnPri: {
+    padding: '6px 14px',
+    background: '#2563eb',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  },
+  btnSec: {
+    padding: '6px 14px',
+    background: '#e2e8f0',
+    color: '#475569',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  },
+  infoGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: '15px'
+  },
+  infoLabel: {
+    fontSize: '0.7rem',
+    fontWeight: 'bold',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    marginBottom: '2px'
+  },
+  infoValue: {
+    fontSize: '0.85rem',
+    fontWeight: '500'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    marginBottom: '4px'
+  },
+  formInput: {
+    width: '100%',
+    padding: '8px',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    fontSize: '0.85rem',
+    boxSizing: 'border-box'
+  },
+  docRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '8px 12px',
+    background: 'rgba(0,0,0,0.02)',
+    borderRadius: '6px',
+    fontSize: '0.8rem'
+  },
+  docDlBtn: {
+    background: 'none',
+    border: 'none',
+    color: '#2563eb',
+    fontWeight: 'bold',
+    fontSize: '0.75rem',
+    cursor: 'pointer'
+  },
+  statsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '15px'
+  },
+  statCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',
+    padding: '16px',
+    background: 'rgba(37, 99, 235, 0.05)',
+    borderRadius: '12px',
+    border: '1px solid rgba(37, 99, 235, 0.1)'
+  },
+  statIcon: {
+    fontSize: '1.75rem'
+  },
+  statNum: {
+    fontSize: '0.7rem',
+    fontWeight: 'bold',
+    color: '#64748b',
+    textTransform: 'uppercase'
+  },
+  statVal: {
+    fontSize: '1.2rem',
+    fontWeight: '900',
+    color: '#2563eb'
+  },
+  badgeItem: {
+    fontSize: '0.75rem',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    background: '#f1f5f9',
+    color: '#475569',
+    fontWeight: 'bold',
+    border: '1px solid #cbd5e1'
+  },
+  timeline: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '15px',
+    position: 'relative',
+    paddingLeft: '10px'
+  },
+  timelineStep: {
+    display: 'flex',
+    gap: '12px',
+    alignItems: 'flex-start'
+  },
+  timelineIcon: {
+    fontSize: '1rem',
+    flexShrink: 0
+  },
+  timelineLabel: {
+    fontSize: '0.8rem',
+    fontWeight: 'bold'
+  },
+  timelineTime: {
+    fontSize: '0.65rem',
+    color: '#64748b'
+  },
+  prefRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 0',
+    borderBottom: '1px solid rgba(0,0,0,0.04)'
+  },
+  prefTitle: {
+    fontSize: '0.85rem',
+    fontWeight: 'bold'
+  },
+  prefDesc: {
+    fontSize: '0.7rem',
+    color: '#64748b'
+  },
+  toggleSwitch: {
+    width: '35px',
+    height: '18px',
+    cursor: 'pointer'
+  },
+  actionsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: '10px',
+    marginTop: '10px'
+  },
+  actionBtn: {
+    padding: '10px',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    borderRadius: '6px',
+    border: '1px solid #cbd5e1',
+    background: 'none',
+    cursor: 'pointer',
+    textAlign: 'left',
+    transition: '0.2s',
+    ':hover': { background: '#f8fafc' }
+  },
+  modalFooter: {
+    padding: '14px 24px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  closeFooterBtn: {
+    padding: '6px 16px',
+    background: '#475569',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }
 };
 
 export default ProfileModal;
