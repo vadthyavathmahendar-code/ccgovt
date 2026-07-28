@@ -1,12 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
 import { useTheme } from '../context/useTheme';
+import { useAuth } from '../context/useAuth';
 
-const ProfileModal = ({ onClose }) => {
+const ProfilePage = () => {
+  const navigate = useNavigate();
   const { themeColors } = useTheme();
+  const { getRoleDefaultPath } = useAuth();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
@@ -80,7 +83,7 @@ const ProfileModal = ({ onClose }) => {
           }
         }
       } catch (err) {
-        console.error('Error fetching profile inside modal:', err);
+        console.error('Error fetching profile inside page:', err);
       } finally {
         setLoading(false);
       }
@@ -158,7 +161,18 @@ const ProfileModal = ({ onClose }) => {
     }
   };
 
-  if (loading) return null;
+  const handleBackToDashboard = () => {
+    const defaultPath = getRoleDefaultPath(role);
+    navigate(defaultPath);
+  };
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: themeColors.textPrimary }}>
+        <h3>⏳ Loading Profile Center...</h3>
+      </div>
+    );
+  }
 
   const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000';
 
@@ -181,9 +195,9 @@ const ProfileModal = ({ onClose }) => {
     window.print();
   };
 
-  return createPortal(
-    <div style={styles.overlay} onClick={onClose}>
-      <div style={{ ...styles.modalContainer, background: themeColors.background, color: themeColors.textPrimary }} onClick={(e) => e.stopPropagation()}>
+  return (
+    <div style={{ ...styles.pageContainer, background: themeColors.background, color: themeColors.textPrimary }}>
+      <div style={{ ...styles.modalContainer, background: themeColors.surface, border: `1px solid ${themeColors.borderLight}` }}>
         
         {/* --- HEADER --- */}
         <div style={{ ...styles.modalHeader, borderBottom: `1px solid ${themeColors.borderLight}` }}>
@@ -199,7 +213,7 @@ const ProfileModal = ({ onClose }) => {
               <span style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', display: 'inline-block' }}></span>
               Connected
             </div>
-            <button onClick={onClose} style={styles.closeBtn}>&times;</button>
+            <button onClick={handleBackToDashboard} style={styles.backBtn}>➔ Back to Dashboard</button>
           </div>
         </div>
 
@@ -532,27 +546,21 @@ const ProfileModal = ({ onClose }) => {
         {/* --- FOOTER --- */}
         <div style={{ ...styles.modalFooter, borderTop: `1px solid ${themeColors.borderLight}`, background: themeColors.surface }}>
           <span style={{ fontSize: '0.7rem', color: themeColors.textSecondary }}>Civic Connect Enterprise Portal v1.4.1</span>
-          <button onClick={onClose} style={styles.closeFooterBtn}>Close Directory</button>
+          <button onClick={handleBackToDashboard} style={styles.closeFooterBtn}>➔ Back to Dashboard</button>
         </div>
 
       </div>
-    </div>,
-    document.body
+    </div>
   );
 };
 
 const styles = {
-  overlay: {
-    position: 'fixed',
-    inset: 0,
-    background: 'rgba(15, 23, 42, 0.65)',
-    backdropFilter: 'blur(10px)',
-    WebkitBackdropFilter: 'blur(10px)',
-    zIndex: 9999, // Ensure modal mounts clearly on top of headers
+  pageContainer: {
+    padding: '30px 20px',
+    minHeight: '80vh',
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: '20px',
+    alignItems: 'flex-start',
     boxSizing: 'border-box'
   },
   modalContainer: {
@@ -562,9 +570,8 @@ const styles = {
     borderRadius: '16px',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
-    overflow: 'hidden',
-    border: '1px solid rgba(255,255,255,0.1)'
+    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
+    overflow: 'hidden'
   },
   modalHeader: {
     padding: '16px 24px',
@@ -572,15 +579,17 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  closeBtn: {
-    background: 'none',
-    border: 'none',
-    fontSize: '1.5rem',
+  backBtn: {
+    background: '#eff6ff',
+    border: '1px solid #2563eb',
+    color: '#2563eb',
+    padding: '6px 12px',
+    borderRadius: '6px',
+    fontSize: '0.8rem',
+    fontWeight: 'bold',
     cursor: 'pointer',
-    opacity: 0.7,
     transition: '0.2s',
-    color: 'inherit',
-    ':hover': { opacity: 1 }
+    ':hover': { background: '#dbeafe' }
   },
   modalBody: {
     flex: 1,
@@ -638,8 +647,7 @@ const styles = {
     opacity: 0,
     transition: '0.2s',
     fontSize: '1.25rem',
-    borderRadius: '50%',
-    ':hover': { opacity: 1 }
+    borderRadius: '50%'
   },
   idBox: {
     width: '100%',
@@ -860,8 +868,7 @@ const styles = {
     background: 'none',
     cursor: 'pointer',
     textAlign: 'left',
-    transition: '0.2s',
-    ':hover': { background: '#f8fafc' }
+    transition: '0.2s'
   },
   modalFooter: {
     padding: '14px 24px',
@@ -881,4 +888,4 @@ const styles = {
   }
 };
 
-export default ProfileModal;
+export default ProfilePage;

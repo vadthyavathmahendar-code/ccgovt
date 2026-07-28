@@ -12,7 +12,6 @@ const AdminDashboard = () => {
   const { theme, toggleTheme, themeColors } = useTheme();
   
   // --- STATE MANAGEMENT ---
-  const [adminProfile, setAdminProfile] = useState(null);
   const [complaints, setComplaints] = useState([]);
   const [users, setUsers] = useState([]); 
   const [logs, setLogs] = useState([]);
@@ -36,7 +35,6 @@ const AdminDashboard = () => {
   const [assigningComplaintId, setAssigningComplaintId] = useState(null); 
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [viewingComplaint, setViewingComplaint] = useState(null); // For Image Viewer
-  const [showProfileModal, setShowProfileModal] = useState(false); // For Admin Profile
 
   // New User Form
   const [newUser, setNewUser] = useState({
@@ -56,7 +54,6 @@ const AdminDashboard = () => {
   useEffect(() => {
     if (!user || !profile) return;
 
-    setAdminProfile(profile);
     fetchAllData(profile);
     setLoading(false);
 
@@ -115,8 +112,8 @@ const AdminDashboard = () => {
     e.preventDefault();
     const toastId = toast.loading("Creating Account...");
     try {
-      const finalRole = adminProfile.role === 'dept_admin' ? 'employee' : newUser.role;
-      const finalDept = adminProfile.role === 'dept_admin' ? adminProfile.department : newUser.department;
+      const finalRole = profile?.role === 'dept_admin' ? 'employee' : newUser.role;
+      const finalDept = profile?.role === 'dept_admin' ? profile.department : newUser.department;
 
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: newUser.email, password: newUser.password,
@@ -132,8 +129,8 @@ const AdminDashboard = () => {
         if (profileError) throw profileError;
 
         await logAuditEvent({
-          userId: adminProfile?.id,
-          userRole: adminProfile?.role,
+          userId: profile?.id,
+          userRole: profile?.role,
           action: 'user_created',
           entityType: 'profiles',
           entityId: authData.user.id,
@@ -143,7 +140,7 @@ const AdminDashboard = () => {
 
         toast.success("User Created Successfully!", { id: toastId });
         setShowAddUserModal(false);
-        fetchAllData(adminProfile);
+        fetchAllData(profile);
         setNewUser({ email: '', password: '', fullName: '', phone: '', role: 'employee', department: 'Roads', idType: 'badge', idNumber: '' });
       }
     } catch (error) {
@@ -158,8 +155,8 @@ const AdminDashboard = () => {
     if (error) { toast.error(error.message); } 
     else { 
         await logAuditEvent({
-          userId: adminProfile?.id,
-          userRole: adminProfile?.role,
+          userId: profile?.id,
+          userRole: profile?.role,
           action: 'complaint_assigned',
           entityType: 'complaints',
           entityId: assigningComplaintId,
@@ -170,7 +167,7 @@ const AdminDashboard = () => {
         toast.success(`Assigned to ${email}`);
         addLog(`Assigned Report #${String(assigningComplaintId).slice(0,4)} to ${email}`); 
         setAssigningComplaintId(null); 
-        fetchAllData(adminProfile);
+        fetchAllData(profile);
     }
   };
 
@@ -181,8 +178,8 @@ const AdminDashboard = () => {
       if (error) toast.error(error.message);
       else {
           await logAuditEvent({
-            userId: adminProfile?.id,
-            userRole: adminProfile?.role,
+            userId: profile?.id,
+            userRole: profile?.role,
             action: 'complaint_status_changed',
             entityType: 'complaints',
             entityId: id,
@@ -191,7 +188,7 @@ const AdminDashboard = () => {
             status: 'success'
           });
           toast.success("Complaint Rejected");
-          fetchAllData(adminProfile);
+          fetchAllData(profile);
       }
   };
 
@@ -199,8 +196,8 @@ const AdminDashboard = () => {
     if(!broadcastMsg) return;
     await supabase.from('broadcasts').insert([{ message: broadcastMsg }]);
     await logAuditEvent({
-      userId: adminProfile?.id,
-      userRole: adminProfile?.role,
+      userId: profile?.id,
+      userRole: profile?.role,
       action: 'broadcast_created',
       entityType: 'broadcasts',
       newData: { message: broadcastMsg },
@@ -240,45 +237,6 @@ const AdminDashboard = () => {
   return (
     <div className="fade-in" style={{ display: 'flex', height: '100vh', width: '100vw', background: themeColors.background, color: themeColors.textPrimary, overflow: 'hidden', fontFamily: '"Inter", sans-serif' }}>
       <Toaster />
-      
-      {/* --- 1. ENHANCED ADMIN PROFILE MODAL (ID Card Style) --- */}
-      {showProfileModal && (
-          <div style={localStyles.modalOverlay}>
-              <div className="gov-card fade-in" style={{ ...localStyles.profileCard, background: themeColors.surface, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}` }}>
-                  <div style={{ height:'100px', background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)' }}></div>
-                  <div style={localStyles.profileAvatarContainer}>
-                      <div style={{ ...localStyles.profileAvatar, background: themeColors.surfaceSecondary, color: themeColors.primary, border: `3px solid ${themeColors.border}` }}>
-                          {adminProfile.full_name ? adminProfile.full_name[0].toUpperCase() : 'A'}
-                      </div>
-                  </div>
-
-                  <div style={localStyles.profileBody}>
-                      <h2 style={{margin:'0', fontSize:'1.5rem'}}>{adminProfile.full_name}</h2>
-                      <p style={{color: themeColors.textSecondary, margin:'5px 0 15px 0', fontSize:'0.9rem'}}>{adminProfile.email}</p>
-                      
-                      <span style={{ padding: '4px 10px', borderRadius: '12px', background: themeColors.primary, color: '#fff', fontSize: '0.7rem', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block' }}>
-                        {adminProfile.role.replace('_', ' ')}
-                      </span>
-
-                      <div style={localStyles.profileGrid}>
-                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px' }}>
-                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Department</div>
-                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>{adminProfile.department}</div>
-                          </div>
-                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px' }}>
-                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Govt ID</div>
-                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>{adminProfile.govt_id_number || 'N/A'}</div>
-                          </div>
-                          <div style={{ background: themeColors.surfaceSecondary, padding: '10px', borderRadius: '8px', gridColumn: 'span 2' }}>
-                              <div style={{ fontSize:'0.75rem', color: themeColors.textSecondary, fontWeight:'600', textTransform:'uppercase' }}>Contact Status</div>
-                              <div style={{ fontSize:'0.9rem', fontWeight:'500', marginTop:'2px' }}>🟢 Active Operational Agent</div>
-                          </div>
-                      </div>
-                      <button onClick={() => setShowProfileModal(false)} style={{ ...localStyles.closeProfileBtn, background: themeColors.primary, color: '#fff' }}>Close Profile Card</button>
-                  </div>
-              </div>
-          </div>
-      )}
 
       {/* --- 2. EVIDENCE IMAGE VIEW MODAL --- */}
       {viewingComplaint && (
@@ -373,7 +331,7 @@ const AdminDashboard = () => {
                             </div>
                           </div>
 
-                          {adminProfile.role === 'super_admin' && (
+                          {profile?.role === 'super_admin' && (
                               <div style={{display:'flex', gap:'10px'}}>
                                   <select value={newUser.role} onChange={e=>setNewUser({...newUser, role:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
                                       <option value="employee">Field Officer</option>
@@ -414,7 +372,7 @@ const AdminDashboard = () => {
               <div>
                 <h2 style={{ margin: 0, fontSize:'1.1rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>CIVIC ADMIN</h2>
                 <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
-                  {adminProfile?.role?.replace('_', ' ')}
+                  {profile?.role?.replace('_', ' ')}
                 </span>
               </div>
             )}
@@ -436,18 +394,18 @@ const AdminDashboard = () => {
         <nav style={{ flex: 1, padding: '15px 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <NavBtn active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); if (isMobile) setMobileMenuOpen(false); }} icon="📊" label="Dashboard" collapsed={sidebarCollapsed && !isMobile} />
           <NavBtn active={activeTab === 'complaints'} onClick={() => { setActiveTab('complaints'); if (isMobile) setMobileMenuOpen(false); }} icon="🚨" label="Complaints" collapsed={sidebarCollapsed && !isMobile} />
-          {adminProfile?.role !== 'commissioner' && (
+          {profile?.role !== 'commissioner' && (
             <NavBtn active={activeTab === 'users'} onClick={() => { setActiveTab('users'); if (isMobile) setMobileMenuOpen(false); }} icon="👥" label="Staff & Users" collapsed={sidebarCollapsed && !isMobile} />
           )}
           <NavBtn active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); if (isMobile) setMobileMenuOpen(false); }} icon="📈" label="Analytics" collapsed={sidebarCollapsed && !isMobile} />
-          {adminProfile?.role !== 'commissioner' && (
+          {profile?.role !== 'commissioner' && (
             <NavBtn active={activeTab === 'audit_logs'} onClick={() => { setActiveTab('audit_logs'); if (isMobile) setMobileMenuOpen(false); }} icon="📋" label="Audit Logs" collapsed={sidebarCollapsed && !isMobile} />
           )}
         </nav>
 
         {/* Sidebar Footer */}
         <div style={{ padding: '15px 10px', borderTop: '1px solid #1e293b', background: '#090d16', display:'flex', flexDirection:'column', gap:'8px' }}>
-            <button onClick={() => setShowProfileModal(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#1e293b', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
+            <button onClick={() => navigate('/profile')} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#1e293b', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
               <span>👤</span> {(!sidebarCollapsed || isMobile) && 'My Profile'}
             </button>
             <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#b91c1c', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
@@ -498,7 +456,7 @@ const AdminDashboard = () => {
             </button>
 
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', fontWeight: 'bold', color: themeColors.primary, background: themeColors.surfaceSecondary, padding: '4px 10px', borderRadius: '20px' }}>
-              👤 {adminProfile?.full_name?.split(' ')[0] || 'Admin'}
+              👤 {profile?.full_name?.split(' ')[0] || 'Admin'}
             </span>
           </div>
         </div>

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 import { useAuth } from '../context/useAuth';
-import ProfileModal from './Profile';
+import { useNavigate } from 'react-router-dom';
 import { logAuditEvent } from '../utils/auditLogger';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/useTheme';
@@ -42,6 +42,7 @@ class MapErrorBoundary extends React.Component {
 }
 
 const UserDashboard = () => {
+  const navigate = useNavigate();
   const { themeColors } = useTheme();
 
   // --- STATE ---
@@ -66,7 +67,6 @@ const UserDashboard = () => {
   const [stats, setStats] = useState({ total: 0, pending: 0, inProgress: 0, resolved: 0 });
   
   // Modals
-  const [showProfile, setShowProfile] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState(null); 
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
   
@@ -355,7 +355,7 @@ const UserDashboard = () => {
             <Button variant="outline" size="sm" onClick={() => setShowNotifications(!showNotifications)}>
               🔔 Notifications {unreadCount > 0 && <span style={{ background: themeColors.danger, color: '#fff', padding: '2px 6px', borderRadius: '10px', fontSize: '0.7rem' }}>{unreadCount}</span>}
             </Button>
-            <Button variant="primary" size="sm" onClick={() => setShowProfile(true)}>
+            <Button variant="primary" size="sm" onClick={() => navigate('/profile')}>
               👤 View Profile
             </Button>
           </div>
@@ -602,7 +602,6 @@ const UserDashboard = () => {
       </div>
 
       {/* MODALS */}
-      {showProfile && <ProfileModal isOpen={showProfile} onClose={() => setShowProfile(false)} />}
 
       {selectedComplaint && createPortal(
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' }}>
