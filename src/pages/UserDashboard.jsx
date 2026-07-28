@@ -348,7 +348,7 @@ const UserDashboard = () => {
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
             <Button variant="danger" size="sm" onClick={() => setShowEmergencyModal(true)} style={{ fontWeight: 'bold' }}>
               🚨 Emergency SOS
             </Button>
