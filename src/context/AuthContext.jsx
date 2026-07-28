@@ -5,14 +5,27 @@ import { logAuditEvent } from '../utils/auditLogger';
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [profile, setProfile] = useState(null);
-  const [role, setRole] = useState(null);
+  const [profile, setProfile] = useState(() => {
+    try {
+      const cached = localStorage.getItem('cc_user_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [role, setRole] = useState(() => {
+    return localStorage.getItem('cc_user_role') || null;
+  });
   const [loading, setLoading] = useState(true);
 
   const currentUserRef = React.useRef(null);
   const updateLoggedUser = (u) => {
     setUser(u);
     currentUserRef.current = u?.id || null;
+    if (!u) {
+      localStorage.removeItem('cc_user_profile');
+      localStorage.removeItem('cc_user_role');
+    }
   };
 
   const fetchUserProfile = async (userId) => {
@@ -32,6 +45,8 @@ export const AuthProvider = ({ children }) => {
 
       setProfile(data);
       setRole(data.role || 'citizen');
+      localStorage.setItem('cc_user_profile', JSON.stringify(data));
+      localStorage.setItem('cc_user_role', data.role || 'citizen');
       return data.role || 'citizen';
     } catch (err) {
       console.error('Error fetching profile:', err);
@@ -52,7 +67,13 @@ export const AuthProvider = ({ children }) => {
             if (!active) return 'inactive';
             if (session?.user) {
               updateLoggedUser(session.user);
-              await fetchUserProfile(session.user.id);
+              const cachedRole = localStorage.getItem('cc_user_role');
+              if (cachedRole) {
+                setLoading(false);
+                fetchUserProfile(session.user.id).catch(err => console.error('Background profile refresh error:', err));
+              } else {
+                await fetchUserProfile(session.user.id);
+              }
             } else {
               updateLoggedUser(null);
               setProfile(null);

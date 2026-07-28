@@ -90,6 +90,10 @@ const UserDashboard = () => {
     
     const all = data || [];
     setComplaints(all);
+    setSelectedComplaint((current) => {
+      if (!current) return null;
+      return all.find(c => c.id === current.id) || current;
+    });
 
     setStats({
       total: all.length,
