@@ -54,30 +54,36 @@ const ProfileModal = ({ onClose }) => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setUser(session.user);
-        const { data } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-        if (data) {
-          setRole(data.role || 'citizen');
-          setFullName(data.full_name || '');
-          setPhone(data.phone || '');
-          setAddress(data.address || '');
-          setAvatarUrl(data.avatar_url || null);
-          setPoints(data.points || 0);
-          setGovtIdType(data.govt_id_type || 'aadhaar');
-          setGovtIdNumber(data.govt_id_number || '');
-          setDepartment(data.department || 'General');
-          setCreatedAt(data.created_at);
-          setUpdatedAt(data.updated_at);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setUser(session.user);
+          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
+          if (error) throw error;
+          if (data) {
+            setRole(data.role || 'citizen');
+            setFullName(data.full_name || '');
+            setPhone(data.phone || '');
+            setAddress(data.address || '');
+            setAvatarUrl(data.avatar_url || null);
+            setPoints(data.points || 0);
+            setGovtIdType(data.govt_id_type || 'aadhaar');
+            setGovtIdNumber(data.govt_id_number || '');
+            setDepartment(data.department || 'General');
+            setCreatedAt(data.created_at);
+            setUpdatedAt(data.updated_at);
 
-          // Populate edit fields
-          setEditName(data.full_name || '');
-          setEditPhone(data.phone || '');
-          setEditAddress(data.address || '');
+            // Populate edit fields
+            setEditName(data.full_name || '');
+            setEditPhone(data.phone || '');
+            setEditAddress(data.address || '');
+          }
         }
+      } catch (err) {
+        console.error('Error fetching profile inside modal:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     fetchProfile();
   }, []);

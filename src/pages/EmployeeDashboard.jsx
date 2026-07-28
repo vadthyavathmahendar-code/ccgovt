@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
-import ProfileModal from '../pages/Profile'; // Import new modal
+import ProfileModal from './Profile'; // Import new modal
 import toast from 'react-hot-toast'; // Import Toast
 import { logAuditEvent } from '../utils/auditLogger';
 import { useAuth } from '../context/useAuth';

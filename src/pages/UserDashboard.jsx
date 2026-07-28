@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
 
 import { useAuth } from '../context/useAuth';
-import ProfileModal from '../pages/Profile';
+import ProfileModal from './Profile';
 import { logAuditEvent } from '../utils/auditLogger';
 import { createPortal } from 'react-dom';
 import { useTheme } from '../context/useTheme';
