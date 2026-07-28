@@ -1,15 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
 import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
 import { useTheme } from '../context/useTheme';
-import { useAuth } from '../context/useAuth';
 
-const ProfilePage = () => {
-  const navigate = useNavigate();
-  const { themeColors } = useTheme();
-  const { getRoleDefaultPath } = useAuth();
+const ProfileModal = ({ onClose }) => {
+  const { theme, themeColors } = useTheme();
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [activeTab, setActiveTab] = useState('general');
@@ -83,7 +80,7 @@ const ProfilePage = () => {
           }
         }
       } catch (err) {
-        console.error('Error fetching profile inside page:', err);
+        console.error('Error fetching profile inside modal:', err);
       } finally {
         setLoading(false);
       }
@@ -161,27 +158,16 @@ const ProfilePage = () => {
     }
   };
 
-  const handleBackToDashboard = () => {
-    const defaultPath = getRoleDefaultPath(role);
-    navigate(defaultPath);
-  };
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', color: themeColors.textPrimary }}>
-        <h3>⏳ Loading Profile Center...</h3>
-      </div>
-    );
-  }
+  if (loading) return null;
 
   const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000';
 
   const getRoleBadgeColor = () => {
-    if (role === 'super_admin') return { bg: '#fee2e2', text: '#ef4444', border: '#fca5a5' };
-    if (role === 'dept_admin') return { bg: '#ffedd5', text: '#ea580c', border: '#fed7aa' };
-    if (role === 'employee') return { bg: '#fef9c3', text: '#ca8a04', border: '#fef08a' };
-    if (role === 'commissioner') return { bg: '#faf5ff', text: '#9333ea', border: '#e9d5ff' };
-    return { bg: '#dbeafe', text: '#2563eb', border: '#bfdbfe' };
+    if (role === 'super_admin') return { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.25)' };
+    if (role === 'dept_admin') return { bg: 'rgba(234, 88, 12, 0.15)', text: '#fed7aa', border: 'rgba(234, 88, 12, 0.25)' };
+    if (role === 'employee') return { bg: 'rgba(202, 138, 4, 0.15)', text: '#fef08a', border: 'rgba(202, 138, 4, 0.25)' };
+    if (role === 'commissioner') return { bg: 'rgba(147, 51, 234, 0.15)', text: '#e9d5ff', border: 'rgba(147, 51, 234, 0.25)' };
+    return { bg: 'rgba(37, 99, 235, 0.15)', text: '#93c5fd', border: 'rgba(37, 99, 235, 0.25)' };
   };
 
   const badgeColor = getRoleBadgeColor();
@@ -195,12 +181,21 @@ const ProfilePage = () => {
     window.print();
   };
 
-  return (
-    <div style={{ ...styles.pageContainer, background: themeColors.background, color: themeColors.textPrimary }}>
-      <div style={{ ...styles.modalContainer, background: themeColors.surface, border: `1px solid ${themeColors.borderLight}` }}>
+  // Glassmorphic styles dynamically adapt to light/dark themes
+  const glassStyle = {
+    background: theme === 'dark' ? 'rgba(30, 41, 59, 0.55)' : 'rgba(255, 255, 255, 0.55)',
+    border: theme === 'dark' ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid rgba(255, 255, 255, 0.25)',
+    boxShadow: '0 8px 32px 0 rgba(15, 23, 42, 0.15)',
+    backdropFilter: 'blur(16px)',
+    WebkitBackdropFilter: 'blur(16px)',
+  };
+
+  return createPortal(
+    <div style={styles.overlay} onClick={onClose}>
+      <div style={{ ...styles.modalContainer, ...glassStyle, color: themeColors.textPrimary }} onClick={(e) => e.stopPropagation()}>
         
         {/* --- HEADER --- */}
-        <div style={{ ...styles.modalHeader, borderBottom: `1px solid ${themeColors.borderLight}` }}>
+        <div style={{ ...styles.modalHeader, borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <img src="/images/cc_logo.png" alt="Logo" style={{ width: '45px', height: '35px' }} />
             <div>
@@ -209,11 +204,11 @@ const ProfilePage = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', background: '#dcfce7', color: '#166534', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', background: 'rgba(34, 197, 94, 0.15)', color: '#22c55e', padding: '4px 10px', borderRadius: '20px', fontWeight: 'bold', border: '1px solid rgba(34,197,94,0.25)' }}>
               <span style={{ width: '8px', height: '8px', background: '#22c55e', borderRadius: '50%', display: 'inline-block' }}></span>
               Connected
             </div>
-            <button onClick={handleBackToDashboard} style={styles.backBtn}>➔ Back to Dashboard</button>
+            <button onClick={onClose} style={{ ...styles.closeBtn, color: themeColors.textPrimary }}>&times;</button>
           </div>
         </div>
 
@@ -221,7 +216,7 @@ const ProfilePage = () => {
         <div style={{ ...styles.modalBody, flexDirection: isCompact ? 'column' : 'row' }}>
           
           {/* --- LEFT PANEL --- */}
-          <div style={{ ...styles.leftPanel, borderRight: isCompact ? 'none' : `1px solid ${themeColors.borderLight}`, borderBottom: isCompact ? `1px solid ${themeColors.borderLight}` : 'none' }}>
+          <div style={{ ...styles.leftPanel, borderRight: isCompact ? 'none' : (theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)'), borderBottom: isCompact ? (theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)') : 'none', background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)' }}>
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '15px' }}>
               
               {/* Avatar Box */}
@@ -246,20 +241,20 @@ const ProfilePage = () => {
                   <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '20px', border: `1px solid ${badgeColor.border}`, backgroundColor: badgeColor.bg, color: badgeColor.text, fontWeight: 'bold', textTransform: 'uppercase' }}>
                     🛡️ {role}
                   </span>
-                  <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '20px', border: '1px solid #e2e8f0', backgroundColor: '#f8fafc', color: '#475569', fontWeight: 'bold' }}>
+                  <span style={{ fontSize: '0.7rem', padding: '3px 8px', borderRadius: '20px', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.1)', backgroundColor: 'rgba(0,0,0,0.02)', color: themeColors.textSecondary, fontWeight: 'bold' }}>
                     🏢 {department}
                   </span>
                 </div>
               </div>
 
               {/* ID Card Display */}
-              <div style={styles.idBox}>
+              <div style={{ ...styles.idBox, background: theme === 'dark' ? 'rgba(0,0,0,0.15)' : 'rgba(255,255,255,0.2)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                   <span style={styles.idLabel}>Unique ID</span>
                   <span style={styles.idValue} onClick={() => handleCopy(cardId, 'ID')}>{cardId} 📋</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={styles.idLabel}>Aadhaar/Govt ID</span>
+                  <span style={styles.idLabel}>Govt ID</span>
                   <span style={styles.idValue} onClick={() => handleCopy(govtIdNumber || 'N/A', 'Govt ID')}>{govtIdNumber || 'Pending'} 📋</span>
                 </div>
               </div>
@@ -270,7 +265,7 @@ const ProfilePage = () => {
                   <span>Profile Completion</span>
                   <span>{phone && address && avatarUrl ? '100%' : '75%'}</span>
                 </div>
-                <div style={{ width: '100%', height: '6px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div style={{ width: phone && address && avatarUrl ? '100%' : '75%', height: '100%', background: '#2563eb', transition: '0.3s' }}></div>
                 </div>
               </div>
@@ -298,7 +293,7 @@ const ProfilePage = () => {
           <div style={styles.rightPanel}>
             
             {/* Nav Tabs */}
-            <div style={{ display: 'flex', borderBottom: `1px solid ${themeColors.borderLight}`, gap: '15px', marginBottom: '15px' }}>
+            <div style={{ display: 'flex', borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)', gap: '15px', marginBottom: '15px' }}>
               <button onClick={() => setActiveTab('general')} style={styles.tabBtn(activeTab === 'general', themeColors.primary)}>📋 Details</button>
               <button onClick={() => setActiveTab('stats')} style={styles.tabBtn(activeTab === 'stats', themeColors.primary)}>📈 Activity & Analytics</button>
               <button onClick={() => setActiveTab('security')} style={styles.tabBtn(activeTab === 'security', themeColors.primary)}>🔐 Access & Security</button>
@@ -313,7 +308,7 @@ const ProfilePage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
                   {/* Personal Info */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                       <h4 style={styles.cardTitle}>👤 Personal Information</h4>
                       {!isEditing ? (
@@ -356,7 +351,7 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Organization Info */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>🏢 Organization Information</h4>
                     <div style={styles.infoGrid}>
                       <div><div style={styles.infoLabel}>Official Designation</div><div style={styles.infoValue}>{role.toUpperCase()}</div></div>
@@ -369,7 +364,7 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Documents Vault */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>📁 Official Verification Documents</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div style={styles.docRow}>
@@ -409,7 +404,7 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Achievements Badges */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>🏅 Awarded Credentials & Badges</h4>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
                       <div style={styles.badgeItem}>🌟 Top Performer</div>
@@ -424,9 +419,9 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Performance Analytics Charts Mockup */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>📊 Resolution Analytics & Activity Spread</h4>
-                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '140px', marginTop: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '140px', marginTop: '10px', background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '8px', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1' }}>
                       <div style={{ textAlign: 'center' }}>
                         <div style={{ width: '40px', height: '80px', background: '#2563eb', borderRadius: '4px', margin: '0 auto 5px' }}></div>
                         <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Resolved</span>
@@ -450,20 +445,20 @@ const ProfilePage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
                   {/* Security Panel */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>🔐 Authentication & Session Credentials</h4>
                     <div style={styles.infoGrid}>
-                      <div><div style={styles.infoLabel}>Two-Factor Authentication</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>🔒 Enabled</div></div>
-                      <div><div style={styles.infoLabel}>Email Verification Status</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>✅ Verified</div></div>
+                      <div><div style={styles.infoLabel}>Two-Factor Authentication</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>🔒 Enabled</div></div>
+                      <div><div style={styles.infoLabel}>Email Verification Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>✅ Verified</div></div>
                       <div><div style={styles.infoLabel}>Last Password Change</div><div style={styles.infoValue}>14 Days Ago</div></div>
                       <div><div style={styles.infoLabel}>Active Device Location</div><div style={styles.infoValue}>Chrome Browser (Windows 11)</div></div>
                       <div><div style={styles.infoLabel}>Masked IP Address</div><div style={styles.infoValue}>192.168.***.***</div></div>
-                      <div><div style={styles.infoLabel}>Audit Logging Status</div><div style={{ ...styles.infoValue, color: '#166534', fontWeight: 'bold' }}>📊 Logging Active</div></div>
+                      <div><div style={styles.infoLabel}>Audit Logging Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>📊 Logging Active</div></div>
                     </div>
                   </div>
 
                   {/* Recent Activity Timeline */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>🕒 Recent Audit Logs & Action Timeline</h4>
                     <div style={styles.timeline}>
                       <div style={styles.timelineStep}>
@@ -498,7 +493,7 @@ const ProfilePage = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
                   {/* Notification Toggles */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>✉️ Notification Preferences</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
                       <div style={styles.prefRow}>
@@ -526,12 +521,12 @@ const ProfilePage = () => {
                   </div>
 
                   {/* Quick Action Matrix */}
-                  <div style={{ ...styles.card, border: `1px solid ${themeColors.borderLight}` }}>
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>⚡ Enterprise Operations & Quick Actions</h4>
                     <div style={styles.actionsGrid}>
-                      <button style={styles.actionBtn} onClick={handlePrint}>🖨️ Print Employee Profile</button>
-                      <button style={styles.actionBtn} onClick={() => toast.success('📊 Exporting Full Audit Logs PDF...')}>📁 Export Activity Log PDF</button>
-                      <button style={styles.actionBtn} onClick={() => toast.success('⚙️ Refreshing session variables...')}>🔄 Force Re-sync Session</button>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={handlePrint}>🖨️ Print Employee Profile</button>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('📊 Exporting Full Audit Logs PDF...')}>📁 Export Activity Log PDF</button>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('⚙️ Refreshing session variables...')}>🔄 Force Re-sync Session</button>
                     </div>
                   </div>
 
@@ -544,33 +539,38 @@ const ProfilePage = () => {
         </div>
 
         {/* --- FOOTER --- */}
-        <div style={{ ...styles.modalFooter, borderTop: `1px solid ${themeColors.borderLight}`, background: themeColors.surface }}>
+        <div style={{ ...styles.modalFooter, borderTop: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)', background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : 'rgba(241,245,249,0.5)' }}>
           <span style={{ fontSize: '0.7rem', color: themeColors.textSecondary }}>Civic Connect Enterprise Portal v1.4.1</span>
-          <button onClick={handleBackToDashboard} style={styles.closeFooterBtn}>➔ Back to Dashboard</button>
+          <button onClick={onClose} style={styles.closeFooterBtn}>Close Directory</button>
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
 const styles = {
-  pageContainer: {
-    padding: '30px 20px',
-    minHeight: '80vh',
+  overlay: {
+    position: 'fixed',
+    inset: 0,
+    background: 'rgba(15, 23, 42, 0.45)',
+    backdropFilter: 'blur(20px)',
+    WebkitBackdropFilter: 'blur(20px)',
+    zIndex: 9999, // Ensure modal mounts clearly on top of headers
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    padding: '20px',
     boxSizing: 'border-box'
   },
   modalContainer: {
     width: '1100px',
     maxWidth: '100%',
     height: '650px',
-    borderRadius: '16px',
+    borderRadius: '24px',
     display: 'flex',
     flexDirection: 'column',
-    boxShadow: '0 10px 30px rgba(0,0,0,0.1)',
     overflow: 'hidden'
   },
   modalHeader: {
@@ -579,17 +579,15 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center'
   },
-  backBtn: {
-    background: '#eff6ff',
-    border: '1px solid #2563eb',
-    color: '#2563eb',
-    padding: '6px 12px',
-    borderRadius: '6px',
-    fontSize: '0.8rem',
-    fontWeight: 'bold',
+  closeBtn: {
+    background: 'none',
+    border: 'none',
+    fontSize: '2rem',
     cursor: 'pointer',
+    opacity: 0.6,
     transition: '0.2s',
-    ':hover': { background: '#dbeafe' }
+    lineHeight: '1',
+    ':hover': { opacity: 1 }
   },
   modalBody: {
     flex: 1,
@@ -602,8 +600,7 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     overflowY: 'auto',
-    flexShrink: 0,
-    background: 'rgba(241, 245, 249, 0.1)'
+    flexShrink: 0
   },
   rightPanel: {
     flex: 1,
@@ -617,7 +614,7 @@ const styles = {
     width: '110px',
     height: '110px',
     borderRadius: '50%',
-    background: '#e2e8f0',
+    background: 'rgba(0,0,0,0.05)',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
@@ -652,10 +649,10 @@ const styles = {
   idBox: {
     width: '100%',
     padding: '12px',
-    background: 'rgba(15, 23, 42, 0.05)',
-    borderRadius: '8px',
+    borderRadius: '12px',
     fontSize: '0.75rem',
-    textAlign: 'left'
+    textAlign: 'left',
+    border: '1px solid rgba(255,255,255,0.1)'
   },
   idLabel: {
     fontWeight: 'bold',
@@ -664,7 +661,7 @@ const styles = {
   idValue: {
     fontFamily: 'monospace',
     cursor: 'pointer',
-    color: '#2563eb'
+    color: '#3b82f6'
   },
   qrWrapper: {
     marginTop: 'auto',
@@ -686,9 +683,8 @@ const styles = {
   }),
   card: {
     padding: '20px',
-    borderRadius: '12px',
-    background: 'rgba(255, 255, 255, 0.02)',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.02)'
+    borderRadius: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.01)'
   },
   cardTitle: {
     margin: '0 0 12px',
@@ -702,7 +698,7 @@ const styles = {
     border: 'none',
     fontSize: '0.8rem',
     fontWeight: 'bold',
-    color: '#2563eb',
+    color: '#3b82f6',
     cursor: 'pointer'
   },
   btnPri: {
@@ -751,7 +747,7 @@ const styles = {
     width: '100%',
     padding: '8px',
     borderRadius: '6px',
-    border: '1px solid #cbd5e1',
+    border: '1px solid rgba(0,0,0,0.1)',
     fontSize: '0.85rem',
     boxSizing: 'border-box'
   },
@@ -761,13 +757,13 @@ const styles = {
     alignItems: 'center',
     padding: '8px 12px',
     background: 'rgba(0,0,0,0.02)',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '0.8rem'
   },
   docDlBtn: {
     background: 'none',
     border: 'none',
-    color: '#2563eb',
+    color: '#3b82f6',
     fontWeight: 'bold',
     fontSize: '0.75rem',
     cursor: 'pointer'
@@ -782,9 +778,9 @@ const styles = {
     alignItems: 'center',
     gap: '12px',
     padding: '16px',
-    background: 'rgba(37, 99, 235, 0.05)',
-    borderRadius: '12px',
-    border: '1px solid rgba(37, 99, 235, 0.1)'
+    background: 'rgba(59, 130, 246, 0.1)',
+    borderRadius: '16px',
+    border: '1px solid rgba(59, 130, 246, 0.15)'
   },
   statIcon: {
     fontSize: '1.75rem'
@@ -798,16 +794,15 @@ const styles = {
   statVal: {
     fontSize: '1.2rem',
     fontWeight: '900',
-    color: '#2563eb'
+    color: '#3b82f6'
   },
   badgeItem: {
     fontSize: '0.75rem',
     padding: '4px 10px',
     borderRadius: '20px',
-    background: '#f1f5f9',
-    color: '#475569',
+    background: 'rgba(0,0,0,0.05)',
     fontWeight: 'bold',
-    border: '1px solid #cbd5e1'
+    border: '1px solid rgba(0,0,0,0.08)'
   },
   timeline: {
     display: 'flex',
@@ -863,9 +858,7 @@ const styles = {
     padding: '10px',
     fontSize: '0.75rem',
     fontWeight: 'bold',
-    borderRadius: '6px',
-    border: '1px solid #cbd5e1',
-    background: 'none',
+    borderRadius: '8px',
     cursor: 'pointer',
     textAlign: 'left',
     transition: '0.2s'
@@ -878,14 +871,14 @@ const styles = {
   },
   closeFooterBtn: {
     padding: '6px 16px',
-    background: '#475569',
+    background: '#3b82f6',
     color: 'white',
     border: 'none',
-    borderRadius: '6px',
+    borderRadius: '8px',
     fontSize: '0.8rem',
     fontWeight: 'bold',
     cursor: 'pointer'
   }
 };
 
-export default ProfilePage;
+export default ProfileModal;

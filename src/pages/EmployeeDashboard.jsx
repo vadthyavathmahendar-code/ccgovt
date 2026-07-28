@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient';
 import { useNavigate } from 'react-router-dom';
+import ProfileModal from './Profile';
 
 import toast from 'react-hot-toast'; // Import Toast
 import { logAuditEvent } from '../utils/auditLogger';
@@ -20,6 +21,7 @@ const EmployeeDashboard = () => {
   // UI States
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState('active'); 
   const [reroutingId, setReroutingId] = useState(null);
   const [rerouteCategory, setRerouteCategory] = useState('Roads');
@@ -203,7 +205,8 @@ const EmployeeDashboard = () => {
         .tab-active { border-bottom: 3px solid #2563eb; color: #2563eb; font-weight: bold; background: #eff6ff; }
       `}</style>
 
-
+      {/* NEW PROFILE MODAL */}
+      {showProfile && <ProfileModal onClose={() => setShowProfile(false)} />}
 
       {/* HEADER */}
       <div style={styles.header}>
@@ -215,7 +218,7 @@ const EmployeeDashboard = () => {
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <button onClick={() => navigate('/profile')} className="btn btn-outline" style={{ color: '#0f172a', borderColor: '#cbd5e1' }}>Profile</button>
+          <button onClick={() => setShowProfile(true)} className="btn btn-outline" style={{ color: '#0f172a', borderColor: '#cbd5e1' }}>Profile</button>
           <button onClick={() => { logout(); navigate('/'); }} className="btn btn-primary" style={{ background: '#ef4444', borderColor:'#ef4444' }}>Logout</button>
         </div>
       </div>

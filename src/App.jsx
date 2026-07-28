@@ -26,7 +26,6 @@ import Services from './pages/Services';
 import UserDashboard from './pages/UserDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import EmployeeDashboard from './pages/EmployeeDashboard';
-import ProfilePage from './pages/Profile';
 
 function App() {
   return (
@@ -95,15 +94,7 @@ function App() {
                   }
                 />
 
-                {/* Protected Profile Center */}
-                <Route
-                  path="/profile"
-                  element={
-                    <ProtectedRoute allowedRoles={['citizen', 'employee', 'dept_admin', 'super_admin', 'commissioner']}>
-                      <ProfilePage />
-                    </ProtectedRoute>
-                  }
-                />
+
 
                 {/* Catch-all Fallback */}
                 <Route path="*" element={<Navigate to="/" replace />} />

@@ -6,12 +6,14 @@ import { logAuditEvent } from '../utils/auditLogger';
 import AuditLogsConsole from '../components/AuditLogsConsole';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
+import ProfileModal from './Profile';
 
 const AdminDashboard = () => {
   const { user, profile, logout } = useAuth();
   const { theme, toggleTheme, themeColors } = useTheme();
   
   // --- STATE MANAGEMENT ---
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const [complaints, setComplaints] = useState([]);
   const [users, setUsers] = useState([]); 
   const [logs, setLogs] = useState([]);
@@ -237,6 +239,7 @@ const AdminDashboard = () => {
   return (
     <div className="fade-in" style={{ display: 'flex', height: '100vh', width: '100vw', background: themeColors.background, color: themeColors.textPrimary, overflow: 'hidden', fontFamily: '"Inter", sans-serif' }}>
       <Toaster />
+      {showProfileModal && <ProfileModal onClose={() => setShowProfileModal(false)} />}
 
       {/* --- 2. EVIDENCE IMAGE VIEW MODAL --- */}
       {viewingComplaint && (
@@ -405,7 +408,7 @@ const AdminDashboard = () => {
 
         {/* Sidebar Footer */}
         <div style={{ padding: '15px 10px', borderTop: '1px solid #1e293b', background: '#090d16', display:'flex', flexDirection:'column', gap:'8px' }}>
-            <button onClick={() => navigate('/profile')} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#1e293b', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
+            <button onClick={() => setShowProfileModal(true)} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#1e293b', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
               <span>👤</span> {(!sidebarCollapsed || isMobile) && 'My Profile'}
             </button>
             <button onClick={() => { logout(); navigate('/'); }} style={{ display: 'flex', alignItems: 'center', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start', gap: '10px', width: '100%', padding: '10px', background: '#b91c1c', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontSize:'0.85rem', fontWeight:'500' }}>
