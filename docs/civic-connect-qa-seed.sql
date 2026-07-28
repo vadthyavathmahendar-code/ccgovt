@@ -1,4 +1,162 @@
 -- SQL Seed Script for Civics Connect Enterprise
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- Seed Auth Users
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000000', '00000000-0000-0000-0000-000000000000', 'super_admin@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000001', '00000000-0000-0000-0000-000000000000', 'comm_roads_light@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000002', '00000000-0000-0000-0000-000000000000', 'comm_water_sani@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000003', '00000000-0000-0000-0000-000000000000', 'admin_roads@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000004', '00000000-0000-0000-0000-000000000000', 'admin_sanitation@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000005', '00000000-0000-0000-0000-000000000000', 'admin_water_supply@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000006', '00000000-0000-0000-0000-000000000000', 'admin_street_lighting@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000007', '00000000-0000-0000-0000-000000000000', 'emp_road_1@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000008', '00000000-0000-0000-0000-000000000000', 'emp_road_2@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000009', '00000000-0000-0000-0000-000000000000', 'emp_road_3@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000010', '00000000-0000-0000-0000-000000000000', 'emp_sani_1@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000011', '00000000-0000-0000-0000-000000000000', 'emp_sani_2@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000012', '00000000-0000-0000-0000-000000000000', 'emp_sani_3@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000013', '00000000-0000-0000-0000-000000000000', 'emp_wate_1@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000014', '00000000-0000-0000-0000-000000000000', 'emp_wate_2@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000015', '00000000-0000-0000-0000-000000000000', 'emp_wate_3@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000016', '00000000-0000-0000-0000-000000000000', 'emp_stre_1@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000017', '00000000-0000-0000-0000-000000000000', 'emp_stre_2@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000018', '00000000-0000-0000-0000-000000000000', 'emp_stre_3@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000019', '00000000-0000-0000-0000-000000000000', 'citizen_1@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000020', '00000000-0000-0000-0000-000000000000', 'citizen_2@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000021', '00000000-0000-0000-0000-000000000000', 'citizen_3@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000022', '00000000-0000-0000-0000-000000000000', 'citizen_4@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000023', '00000000-0000-0000-0000-000000000000', 'citizen_5@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000024', '00000000-0000-0000-0000-000000000000', 'citizen_6@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000025', '00000000-0000-0000-0000-000000000000', 'citizen_7@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000026', '00000000-0000-0000-0000-000000000000', 'citizen_8@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000027', '00000000-0000-0000-0000-000000000000', 'citizen_9@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000028', '00000000-0000-0000-0000-000000000000', 'citizen_10@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000029', '00000000-0000-0000-0000-000000000000', 'citizen_11@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000030', '00000000-0000-0000-0000-000000000000', 'citizen_12@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000031', '00000000-0000-0000-0000-000000000000', 'citizen_13@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000032', '00000000-0000-0000-0000-000000000000', 'citizen_14@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000033', '00000000-0000-0000-0000-000000000000', 'citizen_15@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000034', '00000000-0000-0000-0000-000000000000', 'citizen_16@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000035', '00000000-0000-0000-0000-000000000000', 'citizen_17@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000036', '00000000-0000-0000-0000-000000000000', 'citizen_18@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000037', '00000000-0000-0000-0000-000000000000', 'citizen_19@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)
+VALUES ('00000000-0000-0000-0000-000000000038', '00000000-0000-0000-0000-000000000000', 'citizen_20@ccgovt.test', crypt('SecureTestPassword123!', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')
+ON CONFLICT (id) DO NOTHING;
 
 -- Seed Profiles
 INSERT INTO public.profiles (id, full_name, email, role, department, phone, govt_id_type, govt_id_number)
@@ -159,390 +317,390 @@ ON CONFLICT (id) DO NOTHING;
 
 -- Seed Complaints
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (1, '00000000-0000-0000-0000-000000000020', 'Public Urinal Clogging issue in Zone 3, Sector B', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Assigned', 'Medium', '17.404619, 78.387286', 'Zone 3, Sector B, Hyderabad', 17.404619, 78.387286, 'emp_sani_2@ccgovt.test', false, '2026-06-09T10:54:13.558Z')
+VALUES (1, '00000000-0000-0000-0000-000000000020', 'Public Urinal Clogging issue in Zone 3, Sector D', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Assigned', 'Medium', '17.478619, 78.444141', 'Zone 3, Sector D, Hyderabad', 17.478619, 78.444141, 'emp_sani_2@ccgovt.test', false, '2026-06-09T10:56:37.753Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (2, '00000000-0000-0000-0000-000000000021', 'Contaminated Supply issue in Zone 2, Sector A', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'In Progress', 'High', '17.452538, 78.435839', 'Zone 2, Sector A, Hyderabad', 17.452538, 78.435839, 'emp_wate_3@ccgovt.test', true, '2026-06-10T10:54:13.559Z')
+VALUES (2, '00000000-0000-0000-0000-000000000021', 'Contaminated Supply issue in Zone 2, Sector D', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'In Progress', 'High', '17.443478, 78.526391', 'Zone 2, Sector D, Hyderabad', 17.443478, 78.526391, 'emp_wate_3@ccgovt.test', true, '2026-06-10T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (3, '00000000-0000-0000-0000-000000000022', 'Street Light Off issue in Zone 4, Sector C', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Resolved', 'Low', '17.452805, 78.522634', 'Zone 4, Sector C, Hyderabad', 17.452805, 78.522634, 'emp_stre_1@ccgovt.test', false, '2026-06-11T10:54:13.559Z')
+VALUES (3, '00000000-0000-0000-0000-000000000022', 'Street Light Off issue in Zone 2, Sector B', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Resolved', 'Low', '17.432507, 78.411838', 'Zone 2, Sector B, Hyderabad', 17.432507, 78.411838, 'emp_stre_1@ccgovt.test', false, '2026-06-11T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (4, '00000000-0000-0000-0000-000000000023', 'Manhole Cover Damage issue in Zone 1, Sector C', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Closed', 'Medium', '17.477137, 78.376662', 'Zone 1, Sector C, Hyderabad', 17.477137, 78.376662, 'emp_road_2@ccgovt.test', false, '2026-06-12T10:54:13.559Z')
+VALUES (4, '00000000-0000-0000-0000-000000000023', 'Manhole Cover Damage issue in Zone 2, Sector D', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Closed', 'Medium', '17.460157, 78.453799', 'Zone 2, Sector D, Hyderabad', 17.460157, 78.453799, 'emp_road_2@ccgovt.test', false, '2026-06-12T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (5, '00000000-0000-0000-0000-000000000024', 'Dead Animal Disposal issue in Zone 1, Sector A', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Reopened', 'High', '17.447570, 78.421840', 'Zone 1, Sector A, Hyderabad', 17.44757, 78.42184, 'emp_sani_3@ccgovt.test', true, '2026-06-13T10:54:13.559Z')
+VALUES (5, '00000000-0000-0000-0000-000000000024', 'Dead Animal Disposal issue in Zone 3, Sector B', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Reopened', 'High', '17.362915, 78.450175', 'Zone 3, Sector B, Hyderabad', 17.362915, 78.450175, 'emp_sani_3@ccgovt.test', true, '2026-06-13T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (6, '00000000-0000-0000-0000-000000000025', 'Pipe Leakage issue in Zone 4, Sector D', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Escalated', 'Low', '17.436819, 78.419713', 'Zone 4, Sector D, Hyderabad', 17.436819, 78.419713, 'emp_wate_1@ccgovt.test', false, '2026-06-14T10:54:13.559Z')
+VALUES (6, '00000000-0000-0000-0000-000000000025', 'Pipe Leakage issue in Zone 5, Sector B', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Escalated', 'Low', '17.357831, 78.464024', 'Zone 5, Sector B, Hyderabad', 17.357831, 78.464024, 'emp_wate_1@ccgovt.test', false, '2026-06-14T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (7, '00000000-0000-0000-0000-000000000026', 'Cable Wire Hanging issue in Zone 5, Sector A', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Pending', 'Medium', '17.370326, 78.479286', 'Zone 5, Sector A, Hyderabad', 17.370326, 78.479286, NULL, false, '2026-06-15T10:54:13.559Z')
+VALUES (7, '00000000-0000-0000-0000-000000000026', 'Cable Wire Hanging issue in Zone 5, Sector D', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Pending', 'Medium', '17.388540, 78.440486', 'Zone 5, Sector D, Hyderabad', 17.38854, 78.440486, NULL, false, '2026-06-15T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (8, '00000000-0000-0000-0000-000000000027', 'Footpath Obstruction issue in Zone 2, Sector D', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Assigned', 'High', '17.379767, 78.377040', 'Zone 2, Sector D, Hyderabad', 17.379767, 78.37704, 'emp_road_3@ccgovt.test', true, '2026-06-16T10:54:13.559Z')
+VALUES (8, '00000000-0000-0000-0000-000000000027', 'Footpath Obstruction issue in Zone 3, Sector D', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Assigned', 'High', '17.385777, 78.419415', 'Zone 3, Sector D, Hyderabad', 17.385777, 78.419415, 'emp_road_3@ccgovt.test', true, '2026-06-16T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (9, '00000000-0000-0000-0000-000000000028', 'Garbage Piling issue in Zone 3, Sector C', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'In Progress', 'Low', '17.464442, 78.447179', 'Zone 3, Sector C, Hyderabad', 17.464442, 78.447179, 'emp_sani_1@ccgovt.test', false, '2026-06-17T10:54:13.560Z')
+VALUES (9, '00000000-0000-0000-0000-000000000028', 'Garbage Piling issue in Zone 2, Sector D', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'In Progress', 'Low', '17.364326, 78.528725', 'Zone 2, Sector D, Hyderabad', 17.364326, 78.528725, 'emp_sani_1@ccgovt.test', false, '2026-06-17T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (10, '00000000-0000-0000-0000-000000000029', 'No Water Pressure issue in Zone 3, Sector C', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Resolved', 'Medium', '17.422528, 78.366154', 'Zone 3, Sector C, Hyderabad', 17.422528, 78.366154, 'emp_wate_2@ccgovt.test', false, '2026-06-18T10:54:13.560Z')
+VALUES (10, '00000000-0000-0000-0000-000000000029', 'No Water Pressure issue in Zone 4, Sector D', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Resolved', 'Medium', '17.372950, 78.353274', 'Zone 4, Sector D, Hyderabad', 17.37295, 78.353274, 'emp_wate_2@ccgovt.test', false, '2026-06-18T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (11, '00000000-0000-0000-0000-000000000030', 'Frequent Fluctuations issue in Zone 3, Sector B', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Closed', 'High', '17.369334, 78.389622', 'Zone 3, Sector B, Hyderabad', 17.369334, 78.389622, 'emp_stre_3@ccgovt.test', true, '2026-06-19T10:54:13.560Z')
+VALUES (11, '00000000-0000-0000-0000-000000000030', 'Frequent Fluctuations issue in Zone 5, Sector A', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Closed', 'High', '17.464202, 78.365463', 'Zone 5, Sector A, Hyderabad', 17.464202, 78.365463, 'emp_stre_3@ccgovt.test', true, '2026-06-19T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (12, '00000000-0000-0000-0000-000000000031', 'Pothole Repair issue in Zone 2, Sector B', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Reopened', 'Low', '17.410286, 78.483813', 'Zone 2, Sector B, Hyderabad', 17.410286, 78.483813, 'emp_road_1@ccgovt.test', false, '2026-06-20T10:54:13.560Z')
+VALUES (12, '00000000-0000-0000-0000-000000000031', 'Pothole Repair issue in Zone 3, Sector D', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Reopened', 'Low', '17.409266, 78.416117', 'Zone 3, Sector D, Hyderabad', 17.409266, 78.416117, 'emp_road_1@ccgovt.test', false, '2026-06-20T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (13, '00000000-0000-0000-0000-000000000032', 'Public Urinal Clogging issue in Zone 3, Sector C', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Escalated', 'Medium', '17.377508, 78.395955', 'Zone 3, Sector C, Hyderabad', 17.377508, 78.395955, 'emp_sani_2@ccgovt.test', false, '2026-06-21T10:54:13.560Z')
+VALUES (13, '00000000-0000-0000-0000-000000000032', 'Public Urinal Clogging issue in Zone 2, Sector C', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Escalated', 'Medium', '17.485710, 78.523262', 'Zone 2, Sector C, Hyderabad', 17.48571, 78.523262, 'emp_sani_2@ccgovt.test', false, '2026-06-21T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (14, '00000000-0000-0000-0000-000000000033', 'Contaminated Supply issue in Zone 1, Sector B', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Pending', 'High', '17.483433, 78.529778', 'Zone 1, Sector B, Hyderabad', 17.483433, 78.529778, NULL, true, '2026-06-22T10:54:13.560Z')
+VALUES (14, '00000000-0000-0000-0000-000000000033', 'Contaminated Supply issue in Zone 1, Sector A', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Pending', 'High', '17.409578, 78.356413', 'Zone 1, Sector A, Hyderabad', 17.409578, 78.356413, NULL, true, '2026-06-22T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (15, '00000000-0000-0000-0000-000000000034', 'Street Light Off issue in Zone 1, Sector A', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Assigned', 'Low', '17.363822, 78.425144', 'Zone 1, Sector A, Hyderabad', 17.363822, 78.425144, 'emp_stre_1@ccgovt.test', false, '2026-06-23T10:54:13.560Z')
+VALUES (15, '00000000-0000-0000-0000-000000000034', 'Street Light Off issue in Zone 3, Sector D', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Assigned', 'Low', '17.398297, 78.425570', 'Zone 3, Sector D, Hyderabad', 17.398297, 78.42557, 'emp_stre_1@ccgovt.test', false, '2026-06-23T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (16, '00000000-0000-0000-0000-000000000035', 'Manhole Cover Damage issue in Zone 4, Sector B', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'In Progress', 'Medium', '17.408162, 78.430673', 'Zone 4, Sector B, Hyderabad', 17.408162, 78.430673, 'emp_road_2@ccgovt.test', false, '2026-06-24T10:54:13.560Z')
+VALUES (16, '00000000-0000-0000-0000-000000000035', 'Manhole Cover Damage issue in Zone 1, Sector A', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'In Progress', 'Medium', '17.479898, 78.424708', 'Zone 1, Sector A, Hyderabad', 17.479898, 78.424708, 'emp_road_2@ccgovt.test', false, '2026-06-24T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (17, '00000000-0000-0000-0000-000000000036', 'Dead Animal Disposal issue in Zone 3, Sector C', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Resolved', 'High', '17.402454, 78.529448', 'Zone 3, Sector C, Hyderabad', 17.402454, 78.529448, 'emp_sani_3@ccgovt.test', true, '2026-06-25T10:54:13.560Z')
+VALUES (17, '00000000-0000-0000-0000-000000000036', 'Dead Animal Disposal issue in Zone 2, Sector A', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Resolved', 'High', '17.445536, 78.455470', 'Zone 2, Sector A, Hyderabad', 17.445536, 78.45547, 'emp_sani_3@ccgovt.test', true, '2026-06-25T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (18, '00000000-0000-0000-0000-000000000037', 'Pipe Leakage issue in Zone 5, Sector B', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Closed', 'Low', '17.374779, 78.388862', 'Zone 5, Sector B, Hyderabad', 17.374779, 78.388862, 'emp_wate_1@ccgovt.test', false, '2026-06-26T10:54:13.560Z')
+VALUES (18, '00000000-0000-0000-0000-000000000037', 'Pipe Leakage issue in Zone 2, Sector D', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Closed', 'Low', '17.448239, 78.392621', 'Zone 2, Sector D, Hyderabad', 17.448239, 78.392621, 'emp_wate_1@ccgovt.test', false, '2026-06-26T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (19, '00000000-0000-0000-0000-000000000038', 'Cable Wire Hanging issue in Zone 3, Sector D', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Reopened', 'Medium', '17.361957, 78.488663', 'Zone 3, Sector D, Hyderabad', 17.361957, 78.488663, 'emp_stre_2@ccgovt.test', false, '2026-06-27T10:54:13.560Z')
+VALUES (19, '00000000-0000-0000-0000-000000000038', 'Cable Wire Hanging issue in Zone 1, Sector B', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Reopened', 'Medium', '17.350683, 78.529524', 'Zone 1, Sector B, Hyderabad', 17.350683, 78.529524, 'emp_stre_2@ccgovt.test', false, '2026-06-27T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (20, '00000000-0000-0000-0000-000000000019', 'Footpath Obstruction issue in Zone 2, Sector C', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Escalated', 'High', '17.485698, 78.439507', 'Zone 2, Sector C, Hyderabad', 17.485698, 78.439507, 'emp_road_3@ccgovt.test', true, '2026-06-28T10:54:13.560Z')
+VALUES (20, '00000000-0000-0000-0000-000000000019', 'Footpath Obstruction issue in Zone 2, Sector D', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Escalated', 'High', '17.445236, 78.420242', 'Zone 2, Sector D, Hyderabad', 17.445236, 78.420242, 'emp_road_3@ccgovt.test', true, '2026-06-28T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (21, '00000000-0000-0000-0000-000000000020', 'Garbage Piling issue in Zone 1, Sector D', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Pending', 'Low', '17.443084, 78.470191', 'Zone 1, Sector D, Hyderabad', 17.443084, 78.470191, NULL, false, '2026-06-29T10:54:13.560Z')
+VALUES (21, '00000000-0000-0000-0000-000000000020', 'Garbage Piling issue in Zone 2, Sector C', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Pending', 'Low', '17.385911, 78.450254', 'Zone 2, Sector C, Hyderabad', 17.385911, 78.450254, NULL, false, '2026-06-29T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (22, '00000000-0000-0000-0000-000000000021', 'No Water Pressure issue in Zone 5, Sector D', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Assigned', 'Medium', '17.450226, 78.366507', 'Zone 5, Sector D, Hyderabad', 17.450226, 78.366507, 'emp_wate_2@ccgovt.test', false, '2026-06-30T10:54:13.560Z')
+VALUES (22, '00000000-0000-0000-0000-000000000021', 'No Water Pressure issue in Zone 2, Sector D', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Assigned', 'Medium', '17.449783, 78.442654', 'Zone 2, Sector D, Hyderabad', 17.449783, 78.442654, 'emp_wate_2@ccgovt.test', false, '2026-06-30T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (23, '00000000-0000-0000-0000-000000000022', 'Frequent Fluctuations issue in Zone 1, Sector C', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'In Progress', 'High', '17.356627, 78.508950', 'Zone 1, Sector C, Hyderabad', 17.356627, 78.50895, 'emp_stre_3@ccgovt.test', true, '2026-07-01T10:54:13.560Z')
+VALUES (23, '00000000-0000-0000-0000-000000000022', 'Frequent Fluctuations issue in Zone 4, Sector A', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'In Progress', 'High', '17.440606, 78.413276', 'Zone 4, Sector A, Hyderabad', 17.440606, 78.413276, 'emp_stre_3@ccgovt.test', true, '2026-07-01T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (24, '00000000-0000-0000-0000-000000000023', 'Pothole Repair issue in Zone 5, Sector C', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Resolved', 'Low', '17.381330, 78.504773', 'Zone 5, Sector C, Hyderabad', 17.38133, 78.504773, 'emp_road_1@ccgovt.test', false, '2026-07-02T10:54:13.560Z')
+VALUES (24, '00000000-0000-0000-0000-000000000023', 'Pothole Repair issue in Zone 1, Sector D', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Resolved', 'Low', '17.353115, 78.466664', 'Zone 1, Sector D, Hyderabad', 17.353115, 78.466664, 'emp_road_1@ccgovt.test', false, '2026-07-02T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (25, '00000000-0000-0000-0000-000000000024', 'Public Urinal Clogging issue in Zone 5, Sector B', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Closed', 'Medium', '17.497803, 78.506003', 'Zone 5, Sector B, Hyderabad', 17.497803, 78.506003, 'emp_sani_2@ccgovt.test', false, '2026-07-03T10:54:13.560Z')
+VALUES (25, '00000000-0000-0000-0000-000000000024', 'Public Urinal Clogging issue in Zone 1, Sector C', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Closed', 'Medium', '17.352383, 78.471153', 'Zone 1, Sector C, Hyderabad', 17.352383, 78.471153, 'emp_sani_2@ccgovt.test', false, '2026-07-03T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (26, '00000000-0000-0000-0000-000000000025', 'Contaminated Supply issue in Zone 2, Sector A', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Reopened', 'High', '17.414023, 78.384660', 'Zone 2, Sector A, Hyderabad', 17.414023, 78.38466, 'emp_wate_3@ccgovt.test', true, '2026-07-04T10:54:13.560Z')
+VALUES (26, '00000000-0000-0000-0000-000000000025', 'Contaminated Supply issue in Zone 5, Sector B', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Reopened', 'High', '17.418661, 78.500551', 'Zone 5, Sector B, Hyderabad', 17.418661, 78.500551, 'emp_wate_3@ccgovt.test', true, '2026-07-04T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (27, '00000000-0000-0000-0000-000000000026', 'Street Light Off issue in Zone 1, Sector D', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Escalated', 'Low', '17.397486, 78.474204', 'Zone 1, Sector D, Hyderabad', 17.397486, 78.474204, 'emp_stre_1@ccgovt.test', false, '2026-07-05T10:54:13.560Z')
+VALUES (27, '00000000-0000-0000-0000-000000000026', 'Street Light Off issue in Zone 2, Sector C', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Escalated', 'Low', '17.452176, 78.363890', 'Zone 2, Sector C, Hyderabad', 17.452176, 78.36389, 'emp_stre_1@ccgovt.test', false, '2026-07-05T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (28, '00000000-0000-0000-0000-000000000027', 'Manhole Cover Damage issue in Zone 4, Sector D', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Pending', 'Medium', '17.429761, 78.502898', 'Zone 4, Sector D, Hyderabad', 17.429761, 78.502898, NULL, false, '2026-07-06T10:54:13.560Z')
+VALUES (28, '00000000-0000-0000-0000-000000000027', 'Manhole Cover Damage issue in Zone 1, Sector B', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Pending', 'Medium', '17.493011, 78.473552', 'Zone 1, Sector B, Hyderabad', 17.493011, 78.473552, NULL, false, '2026-07-06T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (29, '00000000-0000-0000-0000-000000000028', 'Dead Animal Disposal issue in Zone 1, Sector B', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Assigned', 'High', '17.486390, 78.509871', 'Zone 1, Sector B, Hyderabad', 17.48639, 78.509871, 'emp_sani_3@ccgovt.test', true, '2026-07-07T10:54:13.560Z')
+VALUES (29, '00000000-0000-0000-0000-000000000028', 'Dead Animal Disposal issue in Zone 5, Sector C', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Assigned', 'High', '17.430357, 78.370748', 'Zone 5, Sector C, Hyderabad', 17.430357, 78.370748, 'emp_sani_3@ccgovt.test', true, '2026-07-07T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (30, '00000000-0000-0000-0000-000000000029', 'Pipe Leakage issue in Zone 3, Sector C', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'In Progress', 'Low', '17.484052, 78.476047', 'Zone 3, Sector C, Hyderabad', 17.484052, 78.476047, 'emp_wate_1@ccgovt.test', false, '2026-07-08T10:54:13.560Z')
+VALUES (30, '00000000-0000-0000-0000-000000000029', 'Pipe Leakage issue in Zone 3, Sector A', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'In Progress', 'Low', '17.395245, 78.481918', 'Zone 3, Sector A, Hyderabad', 17.395245, 78.481918, 'emp_wate_1@ccgovt.test', false, '2026-07-08T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (31, '00000000-0000-0000-0000-000000000030', 'Cable Wire Hanging issue in Zone 3, Sector C', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Resolved', 'Medium', '17.413181, 78.499336', 'Zone 3, Sector C, Hyderabad', 17.413181, 78.499336, 'emp_stre_2@ccgovt.test', false, '2026-07-09T10:54:13.560Z')
+VALUES (31, '00000000-0000-0000-0000-000000000030', 'Cable Wire Hanging issue in Zone 4, Sector B', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Resolved', 'Medium', '17.368348, 78.495106', 'Zone 4, Sector B, Hyderabad', 17.368348, 78.495106, 'emp_stre_2@ccgovt.test', false, '2026-07-09T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (32, '00000000-0000-0000-0000-000000000031', 'Footpath Obstruction issue in Zone 1, Sector A', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Closed', 'High', '17.359024, 78.350795', 'Zone 1, Sector A, Hyderabad', 17.359024, 78.350795, 'emp_road_3@ccgovt.test', true, '2026-07-10T10:54:13.560Z')
+VALUES (32, '00000000-0000-0000-0000-000000000031', 'Footpath Obstruction issue in Zone 1, Sector D', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'Closed', 'High', '17.481099, 78.366911', 'Zone 1, Sector D, Hyderabad', 17.481099, 78.366911, 'emp_road_3@ccgovt.test', true, '2026-07-10T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (33, '00000000-0000-0000-0000-000000000032', 'Garbage Piling issue in Zone 2, Sector B', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Reopened', 'Low', '17.452232, 78.523530', 'Zone 2, Sector B, Hyderabad', 17.452232, 78.52353, 'emp_sani_1@ccgovt.test', false, '2026-07-11T10:54:13.560Z')
+VALUES (33, '00000000-0000-0000-0000-000000000032', 'Garbage Piling issue in Zone 2, Sector C', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Reopened', 'Low', '17.456777, 78.479440', 'Zone 2, Sector C, Hyderabad', 17.456777, 78.47944, 'emp_sani_1@ccgovt.test', false, '2026-07-11T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (34, '00000000-0000-0000-0000-000000000033', 'No Water Pressure issue in Zone 3, Sector B', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Escalated', 'Medium', '17.462577, 78.413350', 'Zone 3, Sector B, Hyderabad', 17.462577, 78.41335, 'emp_wate_2@ccgovt.test', false, '2026-07-12T10:54:13.560Z')
+VALUES (34, '00000000-0000-0000-0000-000000000033', 'No Water Pressure issue in Zone 1, Sector A', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Escalated', 'Medium', '17.354816, 78.438363', 'Zone 1, Sector A, Hyderabad', 17.354816, 78.438363, 'emp_wate_2@ccgovt.test', false, '2026-07-12T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (35, '00000000-0000-0000-0000-000000000034', 'Frequent Fluctuations issue in Zone 1, Sector B', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Pending', 'High', '17.464785, 78.487040', 'Zone 1, Sector B, Hyderabad', 17.464785, 78.48704, NULL, true, '2026-07-13T10:54:13.560Z')
+VALUES (35, '00000000-0000-0000-0000-000000000034', 'Frequent Fluctuations issue in Zone 4, Sector C', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Pending', 'High', '17.412347, 78.523104', 'Zone 4, Sector C, Hyderabad', 17.412347, 78.523104, NULL, true, '2026-07-13T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (36, '00000000-0000-0000-0000-000000000035', 'Pothole Repair issue in Zone 1, Sector B', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Assigned', 'Low', '17.388134, 78.435365', 'Zone 1, Sector B, Hyderabad', 17.388134, 78.435365, 'emp_road_1@ccgovt.test', false, '2026-07-14T10:54:13.560Z')
+VALUES (36, '00000000-0000-0000-0000-000000000035', 'Pothole Repair issue in Zone 1, Sector C', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Assigned', 'Low', '17.362867, 78.514630', 'Zone 1, Sector C, Hyderabad', 17.362867, 78.51463, 'emp_road_1@ccgovt.test', false, '2026-07-14T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (37, '00000000-0000-0000-0000-000000000036', 'Public Urinal Clogging issue in Zone 2, Sector C', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'In Progress', 'Medium', '17.366589, 78.499196', 'Zone 2, Sector C, Hyderabad', 17.366589, 78.499196, 'emp_sani_2@ccgovt.test', false, '2026-07-15T10:54:13.560Z')
+VALUES (37, '00000000-0000-0000-0000-000000000036', 'Public Urinal Clogging issue in Zone 2, Sector B', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'In Progress', 'Medium', '17.446789, 78.477756', 'Zone 2, Sector B, Hyderabad', 17.446789, 78.477756, 'emp_sani_2@ccgovt.test', false, '2026-07-15T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (38, '00000000-0000-0000-0000-000000000037', 'Contaminated Supply issue in Zone 2, Sector B', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Resolved', 'High', '17.438545, 78.526364', 'Zone 2, Sector B, Hyderabad', 17.438545, 78.526364, 'emp_wate_3@ccgovt.test', true, '2026-07-16T10:54:13.560Z')
+VALUES (38, '00000000-0000-0000-0000-000000000037', 'Contaminated Supply issue in Zone 1, Sector B', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Resolved', 'High', '17.477154, 78.447184', 'Zone 1, Sector B, Hyderabad', 17.477154, 78.447184, 'emp_wate_3@ccgovt.test', true, '2026-07-16T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (39, '00000000-0000-0000-0000-000000000038', 'Street Light Off issue in Zone 5, Sector C', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Closed', 'Low', '17.473175, 78.498533', 'Zone 5, Sector C, Hyderabad', 17.473175, 78.498533, 'emp_stre_1@ccgovt.test', false, '2026-07-17T10:54:13.560Z')
+VALUES (39, '00000000-0000-0000-0000-000000000038', 'Street Light Off issue in Zone 4, Sector C', 'Visual validation required for Street Light Off category. Affecting multiple residents in this area.', 'Street Lighting', 'Street Light Off', 'Closed', 'Low', '17.422753, 78.424937', 'Zone 4, Sector C, Hyderabad', 17.422753, 78.424937, 'emp_stre_1@ccgovt.test', false, '2026-07-17T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (40, '00000000-0000-0000-0000-000000000019', 'Manhole Cover Damage issue in Zone 1, Sector B', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Reopened', 'Medium', '17.425707, 78.449510', 'Zone 1, Sector B, Hyderabad', 17.425707, 78.44951, 'emp_road_2@ccgovt.test', false, '2026-07-18T10:54:13.560Z')
+VALUES (40, '00000000-0000-0000-0000-000000000019', 'Manhole Cover Damage issue in Zone 4, Sector D', 'Visual validation required for Manhole Cover Damage category. Affecting multiple residents in this area.', 'Roads', 'Manhole Cover Damage', 'Reopened', 'Medium', '17.469182, 78.416952', 'Zone 4, Sector D, Hyderabad', 17.469182, 78.416952, 'emp_road_2@ccgovt.test', false, '2026-07-18T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (41, '00000000-0000-0000-0000-000000000020', 'Dead Animal Disposal issue in Zone 3, Sector B', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Escalated', 'High', '17.454306, 78.412055', 'Zone 3, Sector B, Hyderabad', 17.454306, 78.412055, 'emp_sani_3@ccgovt.test', true, '2026-07-19T10:54:13.560Z')
+VALUES (41, '00000000-0000-0000-0000-000000000020', 'Dead Animal Disposal issue in Zone 3, Sector D', 'Visual validation required for Dead Animal Disposal category. Affecting multiple residents in this area.', 'Sanitation', 'Dead Animal Disposal', 'Escalated', 'High', '17.479313, 78.350096', 'Zone 3, Sector D, Hyderabad', 17.479313, 78.350096, 'emp_sani_3@ccgovt.test', true, '2026-07-19T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (42, '00000000-0000-0000-0000-000000000021', 'Pipe Leakage issue in Zone 5, Sector B', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Pending', 'Low', '17.432056, 78.483698', 'Zone 5, Sector B, Hyderabad', 17.432056, 78.483698, NULL, false, '2026-07-20T10:54:13.560Z')
+VALUES (42, '00000000-0000-0000-0000-000000000021', 'Pipe Leakage issue in Zone 4, Sector B', 'Visual validation required for Pipe Leakage category. Affecting multiple residents in this area.', 'Water Supply', 'Pipe Leakage', 'Pending', 'Low', '17.374516, 78.424024', 'Zone 4, Sector B, Hyderabad', 17.374516, 78.424024, NULL, false, '2026-07-20T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (43, '00000000-0000-0000-0000-000000000022', 'Cable Wire Hanging issue in Zone 4, Sector C', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Assigned', 'Medium', '17.442667, 78.525170', 'Zone 4, Sector C, Hyderabad', 17.442667, 78.52517, 'emp_stre_2@ccgovt.test', false, '2026-07-21T10:54:13.560Z')
+VALUES (43, '00000000-0000-0000-0000-000000000022', 'Cable Wire Hanging issue in Zone 4, Sector B', 'Visual validation required for Cable Wire Hanging category. Affecting multiple residents in this area.', 'Street Lighting', 'Cable Wire Hanging', 'Assigned', 'Medium', '17.452993, 78.512372', 'Zone 4, Sector B, Hyderabad', 17.452993, 78.512372, 'emp_stre_2@ccgovt.test', false, '2026-07-21T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (44, '00000000-0000-0000-0000-000000000023', 'Footpath Obstruction issue in Zone 5, Sector A', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'In Progress', 'High', '17.358634, 78.423175', 'Zone 5, Sector A, Hyderabad', 17.358634, 78.423175, 'emp_road_3@ccgovt.test', true, '2026-07-22T10:54:13.560Z')
+VALUES (44, '00000000-0000-0000-0000-000000000023', 'Footpath Obstruction issue in Zone 1, Sector D', 'Visual validation required for Footpath Obstruction category. Affecting multiple residents in this area.', 'Roads', 'Footpath Obstruction', 'In Progress', 'High', '17.490363, 78.382914', 'Zone 1, Sector D, Hyderabad', 17.490363, 78.382914, 'emp_road_3@ccgovt.test', true, '2026-07-22T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (45, '00000000-0000-0000-0000-000000000024', 'Garbage Piling issue in Zone 5, Sector B', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Resolved', 'Low', '17.396198, 78.377233', 'Zone 5, Sector B, Hyderabad', 17.396198, 78.377233, 'emp_sani_1@ccgovt.test', false, '2026-07-23T10:54:13.560Z')
+VALUES (45, '00000000-0000-0000-0000-000000000024', 'Garbage Piling issue in Zone 3, Sector A', 'Visual validation required for Garbage Piling category. Affecting multiple residents in this area.', 'Sanitation', 'Garbage Piling', 'Resolved', 'Low', '17.397588, 78.500710', 'Zone 3, Sector A, Hyderabad', 17.397588, 78.50071, 'emp_sani_1@ccgovt.test', false, '2026-07-23T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (46, '00000000-0000-0000-0000-000000000025', 'No Water Pressure issue in Zone 1, Sector D', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Closed', 'Medium', '17.406957, 78.379800', 'Zone 1, Sector D, Hyderabad', 17.406957, 78.3798, 'emp_wate_2@ccgovt.test', false, '2026-07-24T10:54:13.560Z')
+VALUES (46, '00000000-0000-0000-0000-000000000025', 'No Water Pressure issue in Zone 1, Sector B', 'Visual validation required for No Water Pressure category. Affecting multiple residents in this area.', 'Water Supply', 'No Water Pressure', 'Closed', 'Medium', '17.393834, 78.465177', 'Zone 1, Sector B, Hyderabad', 17.393834, 78.465177, 'emp_wate_2@ccgovt.test', false, '2026-07-24T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (47, '00000000-0000-0000-0000-000000000026', 'Frequent Fluctuations issue in Zone 4, Sector C', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Reopened', 'High', '17.454401, 78.504345', 'Zone 4, Sector C, Hyderabad', 17.454401, 78.504345, 'emp_stre_3@ccgovt.test', true, '2026-07-25T10:54:13.560Z')
+VALUES (47, '00000000-0000-0000-0000-000000000026', 'Frequent Fluctuations issue in Zone 4, Sector C', 'Visual validation required for Frequent Fluctuations category. Affecting multiple residents in this area.', 'Street Lighting', 'Frequent Fluctuations', 'Reopened', 'High', '17.445877, 78.424218', 'Zone 4, Sector C, Hyderabad', 17.445877, 78.424218, 'emp_stre_3@ccgovt.test', true, '2026-07-25T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (48, '00000000-0000-0000-0000-000000000027', 'Pothole Repair issue in Zone 4, Sector C', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Escalated', 'Low', '17.464420, 78.381225', 'Zone 4, Sector C, Hyderabad', 17.46442, 78.381225, 'emp_road_1@ccgovt.test', false, '2026-07-26T10:54:13.560Z')
+VALUES (48, '00000000-0000-0000-0000-000000000027', 'Pothole Repair issue in Zone 1, Sector C', 'Visual validation required for Pothole Repair category. Affecting multiple residents in this area.', 'Roads', 'Pothole Repair', 'Escalated', 'Low', '17.482089, 78.381924', 'Zone 1, Sector C, Hyderabad', 17.482089, 78.381924, 'emp_road_1@ccgovt.test', false, '2026-07-26T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (49, '00000000-0000-0000-0000-000000000028', 'Public Urinal Clogging issue in Zone 2, Sector A', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Pending', 'Medium', '17.466529, 78.382109', 'Zone 2, Sector A, Hyderabad', 17.466529, 78.382109, NULL, false, '2026-07-27T10:54:13.560Z')
+VALUES (49, '00000000-0000-0000-0000-000000000028', 'Public Urinal Clogging issue in Zone 1, Sector C', 'Visual validation required for Public Urinal Clogging category. Affecting multiple residents in this area.', 'Sanitation', 'Public Urinal Clogging', 'Pending', 'Medium', '17.479294, 78.467682', 'Zone 1, Sector C, Hyderabad', 17.479294, 78.467682, NULL, false, '2026-07-27T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (50, '00000000-0000-0000-0000-000000000029', 'Contaminated Supply issue in Zone 4, Sector D', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Assigned', 'High', '17.416748, 78.513621', 'Zone 4, Sector D, Hyderabad', 17.416748, 78.513621, 'emp_wate_3@ccgovt.test', true, '2026-07-28T10:54:13.560Z')
+VALUES (50, '00000000-0000-0000-0000-000000000029', 'Contaminated Supply issue in Zone 3, Sector C', 'Visual validation required for Contaminated Supply category. Affecting multiple residents in this area.', 'Water Supply', 'Contaminated Supply', 'Assigned', 'High', '17.353419, 78.476318', 'Zone 3, Sector C, Hyderabad', 17.353419, 78.476318, 'emp_wate_3@ccgovt.test', true, '2026-07-28T10:56:37.754Z')
 ON CONFLICT (id) DO NOTHING;
 
 -- Seed Audit Logs
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '1', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-09T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '1', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-09T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '1', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-06-09T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '1', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-06-09T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '2', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-10T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '2', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-10T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '2', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-06-10T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '2', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-06-10T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '3', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-11T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '3', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-11T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '3', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-06-11T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '3', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-06-11T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '4', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-12T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '4', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-12T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '4', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-06-12T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '4', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-06-12T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '5', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-13T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '5', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-13T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '5', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-06-13T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '5', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-06-13T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '6', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-14T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '6', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-14T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '6', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-06-14T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '6', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-06-14T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '7', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-15T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '7', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-15T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '8', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-16T10:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '8', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-16T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '8', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-06-16T11:54:13.559Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '8', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-06-16T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '9', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-17T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '9', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-17T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '9', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-06-17T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '9', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-06-17T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '10', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-18T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '10', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-18T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '10', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-06-18T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '10', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-06-18T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000030', 'citizen', 'complaint_created', 'complaints', '11', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-19T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000030', 'citizen', 'complaint_created', 'complaints', '11', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-19T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '11', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-06-19T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '11', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-06-19T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000031', 'citizen', 'complaint_created', 'complaints', '12', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-20T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000031', 'citizen', 'complaint_created', 'complaints', '12', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-20T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '12', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-06-20T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '12', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-06-20T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000032', 'citizen', 'complaint_created', 'complaints', '13', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-21T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000032', 'citizen', 'complaint_created', 'complaints', '13', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-21T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '13', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-06-21T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '13', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-06-21T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000033', 'citizen', 'complaint_created', 'complaints', '14', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-22T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000033', 'citizen', 'complaint_created', 'complaints', '14', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-22T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000034', 'citizen', 'complaint_created', 'complaints', '15', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-23T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000034', 'citizen', 'complaint_created', 'complaints', '15', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-23T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '15', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-06-23T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '15', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-06-23T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000035', 'citizen', 'complaint_created', 'complaints', '16', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-24T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000035', 'citizen', 'complaint_created', 'complaints', '16', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-24T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '16', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-06-24T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '16', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-06-24T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000036', 'citizen', 'complaint_created', 'complaints', '17', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-25T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000036', 'citizen', 'complaint_created', 'complaints', '17', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-25T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '17', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-06-25T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '17', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-06-25T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000037', 'citizen', 'complaint_created', 'complaints', '18', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-26T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000037', 'citizen', 'complaint_created', 'complaints', '18', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-26T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '18', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-06-26T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '18', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-06-26T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000038', 'citizen', 'complaint_created', 'complaints', '19', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-27T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000038', 'citizen', 'complaint_created', 'complaints', '19', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-06-27T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '19', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-06-27T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '19', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-06-27T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000019', 'citizen', 'complaint_created', 'complaints', '20', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-28T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000019', 'citizen', 'complaint_created', 'complaints', '20', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-06-28T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '20', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-06-28T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '20', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-06-28T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '21', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-29T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '21', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-06-29T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '22', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-30T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '22', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-06-30T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '22', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-06-30T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '22', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-06-30T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '23', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-01T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '23', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-01T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '23', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-07-01T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '23', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-07-01T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '24', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-02T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '24', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-02T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '24', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-02T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '24', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-02T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '25', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-03T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '25', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-03T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '25', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-07-03T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '25', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-07-03T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '26', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-04T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '26', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-04T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '26', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-04T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '26', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-04T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '27', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-05T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '27', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-05T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '27', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-07-05T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '27', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-07-05T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '28', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-06T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '28', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-06T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '29', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-07T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '29', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-07T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '29', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-07-07T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '29', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-07-07T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '30', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-08T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '30', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-08T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '30', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-07-08T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '30', '{"status":"Assigned","assigned_to":"emp_wate_1@ccgovt.test"}'::jsonb, 'success', '2026-07-08T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000030', 'citizen', 'complaint_created', 'complaints', '31', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-09T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000030', 'citizen', 'complaint_created', 'complaints', '31', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-09T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '31', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-07-09T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '31', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-07-09T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000031', 'citizen', 'complaint_created', 'complaints', '32', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-10T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000031', 'citizen', 'complaint_created', 'complaints', '32', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-10T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '32', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-07-10T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '32', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-07-10T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000032', 'citizen', 'complaint_created', 'complaints', '33', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-11T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000032', 'citizen', 'complaint_created', 'complaints', '33', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-11T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '33', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-07-11T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '33', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-07-11T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000033', 'citizen', 'complaint_created', 'complaints', '34', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-12T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000033', 'citizen', 'complaint_created', 'complaints', '34', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-12T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '34', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-07-12T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '34', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-07-12T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000034', 'citizen', 'complaint_created', 'complaints', '35', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-13T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000034', 'citizen', 'complaint_created', 'complaints', '35', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-13T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000035', 'citizen', 'complaint_created', 'complaints', '36', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-14T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000035', 'citizen', 'complaint_created', 'complaints', '36', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-14T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '36', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-14T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '36', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-14T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000036', 'citizen', 'complaint_created', 'complaints', '37', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-15T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000036', 'citizen', 'complaint_created', 'complaints', '37', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-15T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '37', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-07-15T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '37', '{"status":"Assigned","assigned_to":"emp_sani_2@ccgovt.test"}'::jsonb, 'success', '2026-07-15T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000037', 'citizen', 'complaint_created', 'complaints', '38', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-16T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000037', 'citizen', 'complaint_created', 'complaints', '38', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-16T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '38', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-16T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '38', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-16T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000038', 'citizen', 'complaint_created', 'complaints', '39', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-17T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000038', 'citizen', 'complaint_created', 'complaints', '39', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-17T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '39', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-07-17T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '39', '{"status":"Assigned","assigned_to":"emp_stre_1@ccgovt.test"}'::jsonb, 'success', '2026-07-17T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000019', 'citizen', 'complaint_created', 'complaints', '40', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-18T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000019', 'citizen', 'complaint_created', 'complaints', '40', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-18T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '40', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-07-18T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '40', '{"status":"Assigned","assigned_to":"emp_road_2@ccgovt.test"}'::jsonb, 'success', '2026-07-18T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '41', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-19T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000020', 'citizen', 'complaint_created', 'complaints', '41', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-19T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '41', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-07-19T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '41', '{"status":"Assigned","assigned_to":"emp_sani_3@ccgovt.test"}'::jsonb, 'success', '2026-07-19T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '42', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-20T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000021', 'citizen', 'complaint_created', 'complaints', '42', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-20T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '43', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-21T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000022', 'citizen', 'complaint_created', 'complaints', '43', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-21T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '43', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-07-21T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '43', '{"status":"Assigned","assigned_to":"emp_stre_2@ccgovt.test"}'::jsonb, 'success', '2026-07-21T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '44', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-22T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000023', 'citizen', 'complaint_created', 'complaints', '44', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-22T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '44', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-07-22T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '44', '{"status":"Assigned","assigned_to":"emp_road_3@ccgovt.test"}'::jsonb, 'success', '2026-07-22T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '45', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-23T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000024', 'citizen', 'complaint_created', 'complaints', '45', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-23T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '45', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-07-23T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000004', 'dept_admin', 'complaint_assigned', 'complaints', '45', '{"status":"Assigned","assigned_to":"emp_sani_1@ccgovt.test"}'::jsonb, 'success', '2026-07-23T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '46', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-24T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000025', 'citizen', 'complaint_created', 'complaints', '46', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-24T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '46', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-07-24T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '46', '{"status":"Assigned","assigned_to":"emp_wate_2@ccgovt.test"}'::jsonb, 'success', '2026-07-24T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '47', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-25T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000026', 'citizen', 'complaint_created', 'complaints', '47', '{"status":"Pending","category":"Street Lighting"}'::jsonb, 'success', '2026-07-25T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '47', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-07-25T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000006', 'dept_admin', 'complaint_assigned', 'complaints', '47', '{"status":"Assigned","assigned_to":"emp_stre_3@ccgovt.test"}'::jsonb, 'success', '2026-07-25T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '48', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-26T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000027', 'citizen', 'complaint_created', 'complaints', '48', '{"status":"Pending","category":"Roads"}'::jsonb, 'success', '2026-07-26T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '48', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-26T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000003', 'dept_admin', 'complaint_assigned', 'complaints', '48', '{"status":"Assigned","assigned_to":"emp_road_1@ccgovt.test"}'::jsonb, 'success', '2026-07-26T11:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '49', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-27T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000028', 'citizen', 'complaint_created', 'complaints', '49', '{"status":"Pending","category":"Sanitation"}'::jsonb, 'success', '2026-07-27T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '50', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-28T10:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000029', 'citizen', 'complaint_created', 'complaints', '50', '{"status":"Pending","category":"Water Supply"}'::jsonb, 'success', '2026-07-28T10:56:37.754Z');
 INSERT INTO public.audit_logs (user_id, user_role, action, entity_type, entity_id, new_data, status, created_at)
-VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '50', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-28T11:54:13.560Z');
+VALUES ('00000000-0000-0000-0000-000000000005', 'dept_admin', 'complaint_assigned', 'complaints', '50', '{"status":"Assigned","assigned_to":"emp_wate_3@ccgovt.test"}'::jsonb, 'success', '2026-07-28T11:56:37.754Z');
 

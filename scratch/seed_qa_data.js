@@ -335,8 +335,18 @@ async function runSeeder() {
 
     // 4. Generate backing SQL file
     console.log('Generating local backup docs/civic-connect-qa-seed.sql file...');
-    let sqlContent = `-- SQL Seed Script for Civics Connect Enterprise\n\n`;
+    let sqlContent = `-- SQL Seed Script for Civics Connect Enterprise\n`;
+    sqlContent += `CREATE EXTENSION IF NOT EXISTS pgcrypto;\n\n`;
     
+    // Seed Auth Users directly so the SQL file works standalone in the SQL Editor
+    sqlContent += `-- Seed Auth Users\n`;
+    usersToCreate.forEach(u => {
+      const uid = authUids[u.email];
+      sqlContent += `INSERT INTO auth.users (id, instance_id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token)\n`;
+      sqlContent += `VALUES ('${uid}', '00000000-0000-0000-0000-000000000000', '${u.email}', crypt('${commonPassword}', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}'::jsonb, '{}'::jsonb, now(), now(), 'authenticated', 'authenticated', '')\n`;
+      sqlContent += `ON CONFLICT (id) DO NOTHING;\n\n`;
+    });
+
     // profiles seed
     sqlContent += `-- Seed Profiles\n`;
     usersToCreate.forEach(u => {
