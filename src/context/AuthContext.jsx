@@ -9,6 +9,12 @@ export const AuthProvider = ({ children }) => {
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const currentUserRef = React.useRef(null);
+  const updateLoggedUser = (u) => {
+    setUser(u);
+    currentUserRef.current = u?.id || null;
+  };
+
   const fetchUserProfile = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -45,10 +51,10 @@ export const AuthProvider = ({ children }) => {
             const { data: { session } } = await supabase.auth.getSession();
             if (!active) return 'inactive';
             if (session?.user) {
-              setUser(session.user);
+              updateLoggedUser(session.user);
               await fetchUserProfile(session.user.id);
             } else {
-              setUser(null);
+              updateLoggedUser(null);
               setProfile(null);
               setRole(null);
             }
@@ -75,13 +81,19 @@ export const AuthProvider = ({ children }) => {
         // Skip duplicate initial session trigger on mount
         if (event === 'INITIAL_SESSION') return;
 
+        // Skip state changes and background database queries if user has not changed
+        const newUserId = session?.user?.id || null;
+        if (newUserId === currentUserRef.current) {
+          return;
+        }
+
         try {
           setLoading(true);
           if (session?.user) {
-            setUser(session.user);
+            updateLoggedUser(session.user);
             await fetchUserProfile(session.user.id);
           } else {
-            setUser(null);
+            updateLoggedUser(null);
             setProfile(null);
             setRole(null);
           }
@@ -104,7 +116,7 @@ export const AuthProvider = ({ children }) => {
     const currentUserRole = role;
 
     // 1. Instantly clear local session states to trigger immediate UI redirect
-    setUser(null);
+    updateLoggedUser(null);
     setProfile(null);
     setRole(null);
 
