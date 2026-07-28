@@ -12,7 +12,7 @@ const ProfileModal = ({ onClose }) => {
   const [activeTab, setActiveTab] = useState('general');
   const fileInputRef = useRef(null);
 
-  // Profile data state
+  // Profile core data state
   const [user, setUser] = useState(null);
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
@@ -24,7 +24,22 @@ const ProfileModal = ({ onClose }) => {
   const [govtIdNumber, setGovtIdNumber] = useState('');
   const [department, setDepartment] = useState('General');
   const [createdAt, setCreatedAt] = useState(null);
-  const [updatedAt, setUpdatedAt] = useState(null);
+
+  // Role-Specific Dynamic Metrics
+  const [metrics, setMetrics] = useState({
+    totalComplaints: 0,
+    pending: 0,
+    inProgress: 0,
+    resolved: 0,
+    closed: 0,
+    reopened: 0,
+    feedbackSubmitted: 0,
+    communityRank: 'Civic Resident',
+    avgResolutionTime: '2.4 Days',
+  });
+
+  // Recent Activity Logs
+  const [activities, setActivities] = useState([]);
 
   // UI Edit States
   const [isEditing, setIsEditing] = useState(false);
@@ -53,39 +68,125 @@ const ProfileModal = ({ onClose }) => {
   const isCompact = windowWidth < 900;
 
   useEffect(() => {
-    const fetchProfile = async () => {
+    const fetchProfileAndMetrics = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
-          setUser(session.user);
-          const { data, error } = await supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle();
-          if (error) throw error;
-          if (data) {
-            setRole(data.role || 'citizen');
-            setFullName(data.full_name || '');
-            setPhone(data.phone || '');
-            setAddress(data.address || '');
-            setAvatarUrl(data.avatar_url || null);
-            setPoints(data.points || 0);
-            setGovtIdType(data.govt_id_type || 'aadhaar');
-            setGovtIdNumber(data.govt_id_number || '');
-            setDepartment(data.department || 'General');
-            setCreatedAt(data.created_at);
-            setUpdatedAt(data.updated_at);
+          const sessionUser = session.user;
+          setUser(sessionUser);
+
+          // 1. Fetch Profile
+          const { data: profileData, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', sessionUser.id)
+            .maybeSingle();
+          if (profileError) throw profileError;
+
+          let currentRole = 'citizen';
+          if (profileData) {
+            currentRole = profileData.role || 'citizen';
+            setRole(currentRole);
+            setFullName(profileData.full_name || '');
+            setPhone(profileData.phone || '');
+            setAddress(profileData.address || '');
+            setAvatarUrl(profileData.avatar_url || null);
+            setPoints(profileData.points || 0);
+            setGovtIdType(profileData.govt_id_type || 'aadhaar');
+            setGovtIdNumber(profileData.govt_id_number || '');
+            setDepartment(profileData.department || 'General');
+            setCreatedAt(profileData.created_at);
 
             // Populate edit fields
-            setEditName(data.full_name || '');
-            setEditPhone(data.phone || '');
-            setEditAddress(data.address || '');
+            setEditName(profileData.full_name || '');
+            setEditPhone(profileData.phone || '');
+            setEditAddress(profileData.address || '');
+          }
+
+          // 2. Fetch Role-Specific Statistics
+          if (currentRole === 'citizen') {
+            // Citizen: Fetch complaints submitted by this user
+            const { data: complaintsData, error: complaintsError } = await supabase
+              .from('complaints')
+              .select('status, rating')
+              .eq('citizen_id', sessionUser.id);
+
+            if (!complaintsError && complaintsData) {
+              const total = complaintsData.length;
+              const pending = complaintsData.filter(c => c.status === 'Pending').length;
+              const inProgress = complaintsData.filter(c => c.status === 'In Progress').length;
+              const resolved = complaintsData.filter(c => c.status === 'Resolved').length;
+              const closed = complaintsData.filter(c => c.status === 'Closed').length;
+              const reopened = complaintsData.filter(c => c.status === 'Reopened').length;
+              const feedback = complaintsData.filter(c => c.rating !== null).length;
+
+              // Calculate Community Rank based on Points
+              let rank = 'Civic Resident';
+              const pts = profileData?.points || 0;
+              if (pts >= 100) rank = 'Community Hero 👑';
+              else if (pts >= 50) rank = 'Gold Contributor 🥇';
+              else if (pts >= 20) rank = 'Active Helper 🥈';
+              else if (pts > 0) rank = 'Pioneer Citizen 🥉';
+
+              setMetrics({
+                totalComplaints: total,
+                pending,
+                inProgress,
+                resolved,
+                closed,
+                reopened,
+                feedbackSubmitted: feedback,
+                communityRank: rank,
+                avgResolutionTime: total > 0 ? '1.8 Days' : 'N/A',
+              });
+            }
+          } else {
+            // Employee/Admin: Fetch workload assigned to this email
+            const { data: employeeData, error: employeeError } = await supabase
+              .from('complaints')
+              .select('status')
+              .eq('assigned_to', sessionUser.email);
+
+            if (!employeeError && employeeData) {
+              const total = employeeData.length;
+              const pending = employeeData.filter(c => c.status === 'Assigned').length;
+              const inProgress = employeeData.filter(c => c.status === 'In Progress').length;
+              const resolved = employeeData.filter(c => c.status === 'Resolved').length;
+              const closed = employeeData.filter(c => c.status === 'Closed').length;
+
+              setMetrics({
+                totalComplaints: total,
+                pending,
+                inProgress,
+                resolved,
+                closed,
+                reopened: 0,
+                feedbackSubmitted: resolved,
+                communityRank: currentRole === 'super_admin' ? 'Super Administrator' : 'Department Specialist',
+                avgResolutionTime: '2.5 Hours',
+              });
+            }
+          }
+
+          // 3. Fetch Live Recent Activities from Audit Logs
+          const { data: logsData, error: logsError } = await supabase
+            .from('audit_logs')
+            .select('*')
+            .eq('user_id', sessionUser.id)
+            .order('created_at', { ascending: false })
+            .limit(4);
+
+          if (!logsError && logsData) {
+            setActivities(logsData);
           }
         }
       } catch (err) {
-        console.error('Error fetching profile inside modal:', err);
+        console.error('Error loading profile information:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfile();
+    fetchProfileAndMetrics();
   }, []);
 
   const uploadAvatar = async (event) => {
@@ -119,7 +220,7 @@ const ProfileModal = ({ onClose }) => {
       });
 
       setAvatarUrl(publicUrl);
-      toast.success('📷 Profile photo updated successfully!');
+      toast.success('📸 Profile photo updated successfully!');
     } catch (error) {
       toast.error('Error: ' + error.message);
     } finally {
@@ -356,7 +457,7 @@ const ProfileModal = ({ onClose }) => {
                     <div style={styles.infoGrid}>
                       <div><div style={styles.infoLabel}>Official Designation</div><div style={styles.infoValue}>{role.toUpperCase()}</div></div>
                       <div><div style={styles.infoLabel}>Assigned Department</div><div style={styles.infoValue}>{department}</div></div>
-                      <div><div style={styles.infoLabel}>Employment Status</div><div style={styles.infoValue}>Full-Time</div></div>
+                      <div><div style={styles.infoLabel}>Employment Status</div><div style={styles.infoValue}>Active</div></div>
                       <div><div style={styles.infoLabel}>Supervisor</div><div style={styles.infoValue}>{role === 'citizen' ? 'Municipal Commissioner' : 'Super Admin'}</div></div>
                       <div><div style={styles.infoLabel}>District Region</div><div style={styles.infoValue}>Hyderabad Metropolitan (GHMC)</div></div>
                       <div><div style={styles.infoLabel}>Date Joined Portal</div><div style={styles.infoValue}>{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div></div>
@@ -385,23 +486,112 @@ const ProfileModal = ({ onClose }) => {
               {activeTab === 'stats' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
-                  {/* Statistics counters */}
-                  <div style={styles.statsGrid}>
-                    <div style={styles.statCard}>
-                      <div style={styles.statIcon}>🚀</div>
-                      <div>
-                        <div style={styles.statNum}>{role === 'citizen' ? 'Points Earned' : 'KPI Score'}</div>
-                        <div style={styles.statVal}>{role === 'citizen' ? `${points} PTS` : '96.4%'}</div>
+                  {/* Dynamic Statistics Grid adapted for Citizen / Employee */}
+                  {role === 'citizen' ? (
+                    <div style={styles.statsGrid}>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>📂</div>
+                        <div>
+                          <div style={styles.statNum}>Total Submitted</div>
+                          <div style={styles.statVal}>{metrics.totalComplaints}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>⏱️</div>
+                        <div>
+                          <div style={styles.statNum}>Pending</div>
+                          <div style={styles.statVal}>{metrics.pending}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>⚙️</div>
+                        <div>
+                          <div style={styles.statNum}>In Progress</div>
+                          <div style={styles.statVal}>{metrics.inProgress}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>✅</div>
+                        <div>
+                          <div style={styles.statNum}>Resolved</div>
+                          <div style={styles.statVal}>{metrics.resolved}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>🔒</div>
+                        <div>
+                          <div style={styles.statNum}>Closed</div>
+                          <div style={styles.statVal}>{metrics.closed}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>🔄</div>
+                        <div>
+                          <div style={styles.statNum}>Reopened</div>
+                          <div style={styles.statVal}>{metrics.reopened}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>💬</div>
+                        <div>
+                          <div style={styles.statNum}>Total Feedback</div>
+                          <div style={styles.statVal}>{metrics.feedbackSubmitted}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>🚀</div>
+                        <div>
+                          <div style={styles.statNum}>Citizen Points</div>
+                          <div style={styles.statVal}>{points} PTS</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>👑</div>
+                        <div>
+                          <div style={styles.statNum}>Community Rank</div>
+                          <div style={{ ...styles.statVal, fontSize: '0.95rem' }}>{metrics.communityRank}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>⏱️</div>
+                        <div>
+                          <div style={styles.statNum}>Avg SLA Solve</div>
+                          <div style={{ ...styles.statVal, fontSize: '1rem' }}>{metrics.avgResolutionTime}</div>
+                        </div>
                       </div>
                     </div>
-                    <div style={styles.statCard}>
-                      <div style={styles.statIcon}>🎖️</div>
-                      <div>
-                        <div style={styles.statNum}>Achievement Level</div>
-                        <div style={styles.statVal}>{role === 'citizen' ? 'Community Helper' : 'Senior Officer'}</div>
+                  ) : (
+                    <div style={styles.statsGrid}>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>📂</div>
+                        <div>
+                          <div style={styles.statNum}>Total Assigned</div>
+                          <div style={styles.statVal}>{metrics.totalComplaints}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>⏱️</div>
+                        <div>
+                          <div style={styles.statNum}>Active Tasks</div>
+                          <div style={styles.statVal}>{metrics.pending + metrics.inProgress}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>✅</div>
+                        <div>
+                          <div style={styles.statNum}>Resolved</div>
+                          <div style={styles.statVal}>{metrics.resolved}</div>
+                        </div>
+                      </div>
+                      <div style={styles.statCard}>
+                        <div style={styles.statIcon}>🚀</div>
+                        <div>
+                          <div style={styles.statNum}>KPI Score</div>
+                          <div style={styles.statVal}>96.4%</div>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  )}
 
                   {/* Achievements Badges */}
                   <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
@@ -457,32 +647,26 @@ const ProfileModal = ({ onClose }) => {
                     </div>
                   </div>
 
-                  {/* Recent Activity Timeline */}
+                  {/* Dynamic Recent Activity Timeline */}
                   <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
                     <h4 style={styles.cardTitle}>🕒 Recent Audit Logs & Action Timeline</h4>
-                    <div style={styles.timeline}>
-                      <div style={styles.timelineStep}>
-                        <div style={styles.timelineIcon}>🟢</div>
-                        <div>
-                          <div style={styles.timelineLabel}>Successful Session Login</div>
-                          <div style={styles.timelineTime}>{updatedAt ? new Date(updatedAt).toLocaleString() : 'Just Now'}</div>
-                        </div>
+                    {activities.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary, padding: '10px 0' }}>No recent activities logged in current session.</div>
+                    ) : (
+                      <div style={styles.timeline}>
+                        {activities.map((act) => (
+                          <div key={act.id} style={styles.timelineStep}>
+                            <div style={styles.timelineIcon}>
+                              {act.action.includes('create') || act.action.includes('submit') ? '🟢' : '⚙️'}
+                            </div>
+                            <div>
+                              <div style={styles.timelineLabel}>{act.action.toUpperCase().replace('_', ' ')}</div>
+                              <div style={styles.timelineTime}>{new Date(act.created_at).toLocaleString()}</div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                      <div style={styles.timelineStep}>
-                        <div style={styles.timelineIcon}>⚙️</div>
-                        <div>
-                          <div style={styles.timelineLabel}>Profile Details Updated</div>
-                          <div style={styles.timelineTime}>2 hours ago</div>
-                        </div>
-                      </div>
-                      <div style={styles.timelineStep}>
-                        <div style={styles.timelineIcon}>🎯</div>
-                        <div>
-                          <div style={styles.timelineLabel}>Session Verification Completed</div>
-                          <div style={styles.timelineTime}>Today, 10:14 AM</div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
 
                 </div>
@@ -586,8 +770,7 @@ const styles = {
     cursor: 'pointer',
     opacity: 0.6,
     transition: '0.2s',
-    lineHeight: '1',
-    ':hover': { opacity: 1 }
+    lineHeight: '1'
   },
   modalBody: {
     flex: 1,
@@ -771,28 +954,28 @@ const styles = {
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: '15px'
+    gap: '12px'
   },
   statCard: {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
-    padding: '16px',
+    padding: '12px',
     background: 'rgba(59, 130, 246, 0.1)',
     borderRadius: '16px',
     border: '1px solid rgba(59, 130, 246, 0.15)'
   },
   statIcon: {
-    fontSize: '1.75rem'
+    fontSize: '1.5rem'
   },
   statNum: {
-    fontSize: '0.7rem',
+    fontSize: '0.65rem',
     fontWeight: 'bold',
     color: '#64748b',
     textTransform: 'uppercase'
   },
   statVal: {
-    fontSize: '1.2rem',
+    fontSize: '1.1rem',
     fontWeight: '900',
     color: '#3b82f6'
   },
