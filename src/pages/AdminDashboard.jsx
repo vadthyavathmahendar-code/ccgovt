@@ -8,7 +8,7 @@ import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
 
 const AdminDashboard = () => {
-  const { logout } = useAuth();
+  const { user, profile, logout } = useAuth();
   const { theme, toggleTheme, themeColors } = useTheme();
   
   // --- STATE MANAGEMENT ---
@@ -54,37 +54,20 @@ const AdminDashboard = () => {
 
   // --- 1. INITIALIZATION ---
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return navigate('/');
+    if (!user || !profile) return;
 
-      // FETCH CURRENT ADMIN PROFILE
-      const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-      
-      if (!profile || (profile.role !== 'super_admin' && profile.role !== 'dept_admin' && profile.role !== 'commissioner')) {
-          toast.error("Unauthorized Access");
-          return navigate('/');
-      }
-
-      setAdminProfile(profile);
-      await fetchAllData(profile);
-      setLoading(false);
-    };
-    init();
+    setAdminProfile(profile);
+    fetchAllData(profile);
+    setLoading(false);
 
     // Realtime Listener
     const sub = supabase.channel('admin_dashboard')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-         supabase.auth.getSession().then(({data}) => {
-             if(data?.session?.user) {
-                supabase.from('profiles').select('*').eq('id', data.session.user.id).single()
-                .then(({data: profile}) => fetchAllData(profile));
-             }
-         });
+        fetchAllData(profile);
       })
       .subscribe();
     return () => supabase.removeChannel(sub);
-  }, [navigate]);
+  }, [user, profile]);
 
   // --- 2. DATA FETCHING ---
   const fetchAllData = async (profile) => {

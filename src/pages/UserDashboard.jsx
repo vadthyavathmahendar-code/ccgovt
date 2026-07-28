@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../supabaseClient';
-import { useNavigate } from 'react-router-dom';
+
+import { useAuth } from '../context/useAuth';
 import ProfileModal from '../pages/Profile';
 import { logAuditEvent } from '../utils/auditLogger';
 import { createPortal } from 'react-dom';
@@ -44,7 +45,7 @@ const UserDashboard = () => {
   const { themeColors } = useTheme();
 
   // --- STATE ---
-  const [user, setUser] = useState(null);
+  const { user } = useAuth();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   
@@ -78,7 +79,7 @@ const UserDashboard = () => {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  const navigate = useNavigate();
+
 
   // --- DATA FETCHING & HELPERS ---
   const fetchHistory = async (id) => {
@@ -120,35 +121,15 @@ const UserDashboard = () => {
 
   // --- INITIALIZATION ---
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return navigate('/');
-      
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
+    if (!user) return;
 
-      const userRole = profile?.role || 'citizen';
-      if (['super_admin', 'dept_admin', 'commissioner'].includes(userRole)) {
-        navigate('/admin-dashboard', { replace: true });
-        return;
-      } else if (userRole === 'employee') {
-        navigate('/employee-dashboard', { replace: true });
-        return;
-      }
-
-      setUser(session.user);
-      fetchHistory(session.user.id);
-      fetchBroadcasts(); 
-    };
-    checkUser();
+    fetchHistory(user.id);
+    fetchBroadcasts();
 
     const sub = supabase.channel('user_dashboard')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
         handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
-        supabase.auth.getSession().then(({ data }) => { if(data.session) fetchHistory(data.session.user.id); });
+        fetchHistory(user.id);
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
         handleNewNotification(`📢 ADMIN ALERT: ${payload.new.message}`);
@@ -156,7 +137,7 @@ const UserDashboard = () => {
       .subscribe();
 
     return () => supabase.removeChannel(sub);
-  }, [navigate]);
+  }, [user]);
 
   // --- ACTIONS ---
   const handleLocationSelected = (loc) => {

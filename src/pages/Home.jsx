@@ -1,52 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '../supabaseClient';
+import { useAuth } from '../context/useAuth';
 import LoadingScreen from '../components/LoadingScreen';
 
 const Home = () => {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
+  const { user, role, loading } = useAuth();
 
   // --- TRAFFIC CONTROLLER LOGIC ---
   useEffect(() => {
-    let isMounted = true;
-
-    const checkSession = async () => {
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session && isMounted) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single();
-
-          const role = profile?.role || 'citizen';
-
-          if (role === 'super_admin' || role === 'dept_admin' || role === 'commissioner') {
-            navigate('/admin-dashboard', { replace: true });
-          } else if (role === 'employee') {
-            navigate('/employee-dashboard', { replace: true });
-          } else {
-            navigate('/user-dashboard', { replace: true });
-          }
-        }
-      } catch (err) {
-        console.error('Session check error:', err);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+    if (!loading && user) {
+      if (role === 'super_admin' || role === 'dept_admin' || role === 'commissioner') {
+        navigate('/admin-dashboard', { replace: true });
+      } else if (role === 'employee') {
+        navigate('/employee-dashboard', { replace: true });
+      } else {
+        navigate('/user-dashboard', { replace: true });
       }
-    };
-
-    checkSession();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [navigate]);
+    }
+  }, [user, role, loading, navigate]);
 
   if (loading) return <LoadingScreen message="Verifying Credentials..." />;
 

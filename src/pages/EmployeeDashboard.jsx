@@ -7,7 +7,7 @@ import { logAuditEvent } from '../utils/auditLogger';
 import { useAuth } from '../context/useAuth';
 
 const EmployeeDashboard = () => {
-  const { logout } = useAuth();
+  const { user, logout } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [workerDetails, setWorkerDetails] = useState({ name: '', email: '' });
   
@@ -29,30 +29,20 @@ const EmployeeDashboard = () => {
 
   // --- 1. INITIAL FETCH ---
   useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate('/'); return; }
+    if (!user) return;
 
-      // Check Role
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', session.user.id).single();
-      if (profile?.role !== 'employee') { navigate('/'); return; }
-
-      const email = session.user.email;
-      setWorkerDetails({ name: email.split('@')[0], email: email });
-      fetchTasks(email);
-      setLoading(false);
-    };
-    init();
+    const email = user.email;
+    setWorkerDetails({ name: email.split('@')[0], email: email });
+    fetchTasks(email);
+    setLoading(false);
 
     const sub = supabase.channel('employee_tasks')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'complaints' }, () => {
-        supabase.auth.getSession().then(({ data: { session } }) => {
-           if(session) fetchTasks(session.user.email);
-        });
+        fetchTasks(user.email);
       })
       .subscribe();
     return () => supabase.removeChannel(sub);
-  }, [navigate]);
+  }, [user]);
 
   const fetchTasks = async (email) => {
     if (!email) return;
