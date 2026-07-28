@@ -4,8 +4,6 @@ import { supabase } from '../supabaseClient';
 import toast from 'react-hot-toast';
 import { logAuditEvent } from '../utils/auditLogger';
 import { useTheme } from '../context/useTheme';
-// eslint-disable-next-line no-unused-vars
-import { motion, AnimatePresence } from 'framer-motion';
 
 // --- ANIMATION HELPER: COUNT UP EFFECT ---
 const AnimatedCounter = ({ value, duration = 1 }) => {
@@ -182,7 +180,7 @@ const ProfileModal = ({ onClose }) => {
                 reopened,
                 feedbackSubmitted: feedback,
                 communityRank: rank,
-                avgResolutionTime: total > 0 ? '2' : '0', // numeric for counter
+                avgResolutionTime: total > 0 ? '2' : '0',
               });
             }
           } else {
@@ -232,10 +230,6 @@ const ProfileModal = ({ onClose }) => {
     };
     fetchProfileAndMetrics();
   }, []);
-
-  const handlePrint = () => {
-    window.print();
-  };
 
   const uploadAvatar = async (event) => {
     try {
@@ -327,6 +321,10 @@ const ProfileModal = ({ onClose }) => {
     toast.success('🔄 Reset edit form to current values.');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   if (loading) return null;
 
   const cardId = user ? `TS-${user.id.slice(0, 4).toUpperCase()}-${user.id.slice(user.id.length - 4).toUpperCase()}` : 'TS-0000';
@@ -334,6 +332,7 @@ const ProfileModal = ({ onClose }) => {
   // Calculate profile completion ratio
   const completionRatio = (fullName ? 0.25 : 0) + (phone ? 0.25 : 0) + (address ? 0.25 : 0) + (avatarUrl ? 0.25 : 0);
   const circumference = 2 * Math.PI * 52; // r=52 circle stroke dash array
+  const strokeOffset = circumference * (1 - completionRatio);
 
   const getRoleBadgeColor = () => {
     if (role === 'super_admin') return { bg: 'rgba(239, 68, 68, 0.15)', text: '#fca5a5', border: 'rgba(239, 68, 68, 0.25)' };
@@ -360,20 +359,59 @@ const ProfileModal = ({ onClose }) => {
   };
 
   return createPortal(
-    <motion.div 
-      style={styles.overlay} 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div 
+    <div className="profile-overlay animate-fade" style={styles.overlay} onClick={onClose}>
+      
+      {/* Dynamic Keyframes injected safely */}
+      <style>{`
+        @keyframes profileFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes profileSlideIn {
+          from { transform: scale(0.96) translateY(12px); opacity: 0; }
+          to { transform: scale(1) translateY(0); opacity: 1; }
+        }
+        @keyframes profileSlideLeft {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @keyframes profileDrawRing {
+          from { stroke-dashoffset: ${circumference}; }
+          to { stroke-dashoffset: ${strokeOffset}; }
+        }
+        @keyframes profileChartGrow {
+          from { height: 0px; }
+        }
+        .animate-fade {
+          animation: profileFadeIn 0.25s ease-out forwards;
+        }
+        .animate-slide {
+          animation: profileSlideIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) ease-out forwards;
+        }
+        .animate-slide-left {
+          animation: profileSlideLeft 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-ring {
+          animation: profileDrawRing 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        .animate-chart-resolved {
+          animation: profileChartGrow 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          height: 80px;
+        }
+        .animate-chart-wip {
+          animation: profileChartGrow 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          height: 45px;
+        }
+        .animate-chart-escalated {
+          animation: profileChartGrow 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+          height: 20px;
+        }
+      `}</style>
+
+      <div 
+        className="profile-modal-container animate-slide" 
         style={{ ...styles.modalContainer, ...glassStyle, color: themeColors.textPrimary }} 
         onClick={(e) => e.stopPropagation()}
-        initial={{ scale: 0.95, y: 15, opacity: 0 }}
-        animate={{ scale: 1, y: 0, opacity: 1 }}
-        exit={{ scale: 0.95, y: 15, opacity: 0 }}
-        transition={{ type: 'spring', damping: 26, stiffness: 170 }}
       >
         
         {/* --- HEADER --- */}
@@ -405,7 +443,8 @@ const ProfileModal = ({ onClose }) => {
               <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                 <svg width="120" height="120" style={{ transform: 'rotate(-90deg)', position: 'absolute', zIndex: 1 }}>
                   <circle cx="60" cy="60" r="52" fill="transparent" stroke={theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'} strokeWidth="4" />
-                  <motion.circle 
+                  <circle 
+                    className="animate-ring"
                     cx="60" 
                     cy="60" 
                     r="52" 
@@ -413,9 +452,7 @@ const ProfileModal = ({ onClose }) => {
                     stroke="#3b82f6" 
                     strokeWidth="4" 
                     strokeDasharray={circumference}
-                    initial={{ strokeDashoffset: circumference }}
-                    animate={{ strokeDashoffset: circumference * (1 - completionRatio) }}
-                    transition={{ duration: 1.5, ease: 'easeOut' }}
+                    strokeDashoffset={circumference}
                     strokeLinecap="round"
                   />
                 </svg>
@@ -430,7 +467,6 @@ const ProfileModal = ({ onClose }) => {
                   )}
                   <div style={styles.cameraIndicator}>📷</div>
                 </div>
-                {/* Online Status Dot overlay */}
                 <div style={styles.onlineDot}></div>
               </div>
 
@@ -468,24 +504,17 @@ const ProfileModal = ({ onClose }) => {
                   <span>{completionRatio * 100}%</span>
                 </div>
                 <div style={{ width: '100%', height: '6px', background: 'rgba(0,0,0,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <motion.div 
-                    style={{ height: '100%', background: '#2563eb' }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${completionRatio * 100}%` }}
-                    transition={{ duration: 1.2, ease: 'easeOut' }}
-                  ></motion.div>
+                  <div style={{ height: '100%', background: '#2563eb', width: `${completionRatio * 100}%`, transition: 'width 1.2s ease-out' }}></div>
                 </div>
               </div>
 
               {/* Directory code trigger */}
-              <motion.button 
-                onClick={() => setShowQrDrawer(!showQrDrawer)}
+              <button 
+                onClick={() => setShowQrDrawer(true)}
                 style={{ ...styles.directoryTriggerBtn, color: themeColors.primary, border: `1px solid ${themeColors.border}` }}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
               >
                 📱 View Directory QR Code
-              </motion.button>
+              </button>
 
             </div>
           </div>
@@ -493,345 +522,315 @@ const ProfileModal = ({ onClose }) => {
           {/* --- RIGHT PANEL (CONTENT TABS) --- */}
           <div style={styles.rightPanel}>
             
-            {/* Nav Tabs with sliding highlighters */}
+            {/* Nav Tabs */}
             <div style={{ display: 'flex', borderBottom: theme === 'dark' ? '1px solid rgba(255,255,255,0.06)' : '1px solid rgba(0,0,0,0.06)', gap: '15px', marginBottom: '15px', position: 'relative' }}>
               {['general', 'stats', 'security', 'prefs'].map((tabId) => (
                 <button 
                   key={tabId}
                   onClick={() => setActiveTab(tabId)} 
                   style={{ ...styles.tabBtn(activeTab === tabId, themeColors.primary), position: 'relative' }}
+                  className={activeTab === tabId ? 'profile-tab-active' : ''}
                 >
                   {tabId === 'general' && '📋 Details'}
                   {tabId === 'stats' && '📈 Stats & Analytics'}
                   {tabId === 'security' && '🔐 Access Logs'}
                   {tabId === 'prefs' && '⚙️ Preferences'}
-                  {activeTab === tabId && (
-                    <motion.div 
-                      layoutId="activeTabUnderline"
-                      style={{ position: 'absolute', bottom: -1, left: 0, right: 0, height: 3, background: themeColors.primary }}
-                    />
-                  )}
                 </button>
               ))}
             </div>
 
             {/* Tab Container */}
             <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
+              
+              {/* TAB 1: GENERAL INFORMATION */}
+              {activeTab === 'general' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   
-                  {/* TAB 1: GENERAL INFORMATION */}
-                  {activeTab === 'general' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      
-                      {/* Personal Info */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                          <h4 style={styles.cardTitle}>👤 Personal Details</h4>
-                          <button onClick={() => setShowEditPanel(true)} style={styles.actionLink}>✏️ Edit Profile</button>
-                        </div>
-                        
-                        <div style={styles.infoGrid}>
-                          <div><div style={styles.infoLabel}>Full Name</div><div style={styles.infoValue}>{fullName || 'N/A'}</div></div>
-                          <div><div style={styles.infoLabel}>Email Address</div><div style={styles.infoValue}>{user?.email}</div></div>
-                          <div><div style={styles.infoLabel}>Mobile Contact</div><div style={styles.infoValue}>{phone || 'N/A'}</div></div>
-                          <div><div style={styles.infoLabel}>Residential Address</div><div style={styles.infoValue}>{address || 'N/A'}</div></div>
-                          <div><div style={styles.infoLabel}>Verification ID Type</div><div style={styles.infoValue}>{govtIdType.toUpperCase()}</div></div>
-                          <div><div style={styles.infoLabel}>Verification ID Number</div><div style={styles.infoValue}>{govtIdNumber || 'N/A'}</div></div>
-                        </div>
-                      </div>
-
-                      {/* Organization Info */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>🏢 Workspace & Structure</h4>
-                        <div style={styles.infoGrid}>
-                          <div><div style={styles.infoLabel}>Official Designation</div><div style={styles.infoValue}>{role.toUpperCase()}</div></div>
-                          <div><div style={styles.infoLabel}>Assigned Department</div><div style={styles.infoValue}>{department}</div></div>
-                          <div><div style={styles.infoLabel}>Account Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>🟢 Active</div></div>
-                          <div><div style={styles.infoLabel}>Supervisor</div><div style={styles.infoValue}>{role === 'citizen' ? 'Municipal Commissioner' : 'Super Admin'}</div></div>
-                          <div><div style={styles.infoLabel}>District Region</div><div style={styles.infoValue}>Hyderabad Metropolitan (GHMC)</div></div>
-                          <div><div style={styles.infoLabel}>Date Joined Portal</div><div style={styles.infoValue}>{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div></div>
-                        </div>
-                      </div>
-
-                      {/* Documents Vault */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>📁 Official Verification Documents</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={styles.docRow}>
-                            <span>📄 National Identity Card ({govtIdType.toUpperCase()})</span>
-                            <button style={styles.docDlBtn} onClick={() => toast.success('📥 Downloading Government ID...')}>Download ID</button>
-                          </div>
-                          <div style={styles.docRow}>
-                            <span>📷 Profile Photo Upload (avatars bucket)</span>
-                            <button style={styles.docDlBtn} onClick={() => { if (avatarUrl) window.open(avatarUrl, '_blank'); else toast.error('No avatar found'); }}>Download File</button>
-                          </div>
-                        </div>
-                      </div>
-
+                  {/* Personal Info */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                      <h4 style={styles.cardTitle}>👤 Personal Details</h4>
+                      <button onClick={() => setShowEditPanel(true)} style={styles.actionLink}>✏️ Edit Profile</button>
                     </div>
-                  )}
-
-                  {/* TAB 2: PERFORMANCE & STATISTICS */}
-                  {activeTab === 'stats' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      
-                      {/* Dynamic Statistics Grid with Count Up Effects */}
-                      <div style={styles.statsGrid}>
-                        {role === 'citizen' ? (
-                          <>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>📂</div>
-                              <div>
-                                <div style={styles.statNum}>Total Submitted</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.totalComplaints} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>⏱️</div>
-                              <div>
-                                <div style={styles.statNum}>Pending</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.pending} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>⚙️</div>
-                              <div>
-                                <div style={styles.statNum}>In Progress</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.inProgress} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>✅</div>
-                              <div>
-                                <div style={styles.statNum}>Resolved</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.resolved} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>🔒</div>
-                              <div>
-                                <div style={styles.statNum}>Closed</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.closed} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>🔄</div>
-                              <div>
-                                <div style={styles.statNum}>Reopened</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.reopened} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>💬</div>
-                              <div>
-                                <div style={styles.statNum}>Total Feedback</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.feedbackSubmitted} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>🚀</div>
-                              <div>
-                                <div style={styles.statNum}>Citizen Points</div>
-                                <div style={styles.statVal}><AnimatedCounter value={points} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>👑</div>
-                              <div>
-                                <div style={styles.statNum}>Community Rank</div>
-                                <div style={{ ...styles.statVal, fontSize: '0.9rem' }}>{metrics.communityRank}</div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>⏱️</div>
-                              <div>
-                                <div style={styles.statNum}>Avg SLA Solve</div>
-                                <div style={{ ...styles.statVal, fontSize: '0.95rem' }}>{metrics.avgResolutionTime} Days</div>
-                              </div>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>📂</div>
-                              <div>
-                                <div style={styles.statNum}>Total Assigned</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.totalComplaints} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>⏱️</div>
-                              <div>
-                                <div style={styles.statNum}>Active Tasks</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.pending + metrics.inProgress} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>✅</div>
-                              <div>
-                                <div style={styles.statNum}>Resolved</div>
-                                <div style={styles.statVal}><AnimatedCounter value={metrics.resolved} /></div>
-                              </div>
-                            </div>
-                            <div style={styles.statCard}>
-                              <div style={styles.statIcon}>🚀</div>
-                              <div>
-                                <div style={styles.statNum}>KPI Score</div>
-                                <div style={styles.statVal}>96.4%</div>
-                              </div>
-                            </div>
-                          </>
-                        )}
-                      </div>
-
-                      {/* Achievements Badges */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>🏅 Awarded Credentials & Badges</h4>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
-                          <motion.div whileHover={{ scale: 1.05 }} style={styles.badgeItem}>🌟 Top Performer</motion.div>
-                          <motion.div whileHover={{ scale: 1.05 }} style={styles.badgeItem}>🚀 Fast Responder</motion.div>
-                          <motion.div whileHover={{ scale: 1.05 }} style={styles.badgeItem}>🛡️ Verified Account</motion.div>
-                          {role === 'citizen' ? (
-                            <motion.div whileHover={{ scale: 1.05 }} style={styles.badgeItem}>💚 Citizen Hero</motion.div>
-                          ) : (
-                            <motion.div whileHover={{ scale: 1.05 }} style={styles.badgeItem}>🛠️ Resolved 50+</motion.div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Performance Analytics Charts Mockup with animated bar heights */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>📊 Resolution Analytics & Activity Spread</h4>
-                        <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '140px', marginTop: '10px', background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '8px', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1' }}>
-                          <div style={{ textAlign: 'center' }}>
-                            <motion.div 
-                              style={{ width: '40px', background: '#2563eb', borderRadius: '4px', margin: '0 auto 5px' }}
-                              initial={{ height: 0 }}
-                              animate={{ height: 80 }}
-                              transition={{ duration: 1.2 }}
-                            />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Resolved</span>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <motion.div 
-                              style={{ width: '40px', background: '#eab308', borderRadius: '4px', margin: '0 auto 5px' }}
-                              initial={{ height: 0 }}
-                              animate={{ height: 45 }}
-                              transition={{ duration: 1.2 }}
-                            />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>In Progress</span>
-                          </div>
-                          <div style={{ textAlign: 'center' }}>
-                            <motion.div 
-                              style={{ width: '40px', background: '#ca8a04', borderRadius: '4px', margin: '0 auto 5px' }}
-                              initial={{ height: 0 }}
-                              animate={{ height: 20 }}
-                              transition={{ duration: 1.2 }}
-                            />
-                            <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Escalated</span>
-                          </div>
-                        </div>
-                      </div>
-
+                    
+                    <div style={styles.infoGrid}>
+                      <div><div style={styles.infoLabel}>Full Name</div><div style={styles.infoValue}>{fullName || 'N/A'}</div></div>
+                      <div><div style={styles.infoLabel}>Email Address</div><div style={styles.infoValue}>{user?.email}</div></div>
+                      <div><div style={styles.infoLabel}>Mobile Contact</div><div style={styles.infoValue}>{phone || 'N/A'}</div></div>
+                      <div><div style={styles.infoLabel}>Residential Address</div><div style={styles.infoValue}>{address || 'N/A'}</div></div>
+                      <div><div style={styles.infoLabel}>Verification ID Type</div><div style={styles.infoValue}>{govtIdType.toUpperCase()}</div></div>
+                      <div><div style={styles.infoLabel}>Verification ID Number</div><div style={styles.infoValue}>{govtIdNumber || 'N/A'}</div></div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* TAB 3: ACCESS & SECURITY */}
-                  {activeTab === 'security' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      
-                      {/* Security Panel */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>🔐 Access Logs & Session Security</h4>
-                        <div style={styles.infoGrid}>
-                          <div><div style={styles.infoLabel}>Two-Factor Auth</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>🔒 Enabled</div></div>
-                          <div><div style={styles.infoLabel}>Email Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>✅ Verified</div></div>
-                          <div><div style={styles.infoLabel}>Last Password Change</div><div style={styles.infoValue}>14 Days Ago</div></div>
-                          <div><div style={styles.infoLabel}>Active Device Location</div><div style={styles.infoValue}>Chrome Browser (Windows 11)</div></div>
-                          <div><div style={styles.infoLabel}>Masked IP Address</div><div style={styles.infoValue}>192.168.***.***</div></div>
-                          <div><div style={styles.infoLabel}>Audit Logs Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>📊 Recording</div></div>
-                        </div>
-                      </div>
-
-                      {/* Dynamic Recent Activity Timeline */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>🕒 Recent Audit Logs & Action Timeline</h4>
-                        {activities.length === 0 ? (
-                          <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary, padding: '10px 0' }}>No recent activities logged in current session.</div>
-                        ) : (
-                          <div style={styles.timeline}>
-                            {activities.map((act) => (
-                              <div key={act.id} style={styles.timelineStep}>
-                                <div style={styles.timelineIcon}>
-                                  {act.action.includes('create') || act.action.includes('submit') ? '🟢' : '⚙️'}
-                                </div>
-                                <div>
-                                  <div style={styles.timelineLabel}>{act.action.toUpperCase().replace('_', ' ')}</div>
-                                  <div style={styles.timelineTime}>{new Date(act.created_at).toLocaleString()}</div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
+                  {/* Organization Info */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>🏢 Workspace & Structure</h4>
+                    <div style={styles.infoGrid}>
+                      <div><div style={styles.infoLabel}>Official Designation</div><div style={styles.infoValue}>{role.toUpperCase()}</div></div>
+                      <div><div style={styles.infoLabel}>Assigned Department</div><div style={styles.infoValue}>{department}</div></div>
+                      <div><div style={styles.infoLabel}>Account Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>🟢 Active</div></div>
+                      <div><div style={styles.infoLabel}>Supervisor</div><div style={styles.infoValue}>{role === 'citizen' ? 'Municipal Commissioner' : 'Super Admin'}</div></div>
+                      <div><div style={styles.infoLabel}>District Region</div><div style={styles.infoValue}>Hyderabad Metropolitan (GHMC)</div></div>
+                      <div><div style={styles.infoLabel}>Date Joined Portal</div><div style={styles.infoValue}>{createdAt ? new Date(createdAt).toLocaleDateString() : 'N/A'}</div></div>
                     </div>
-                  )}
+                  </div>
 
-                  {/* TAB 4: PREFERENCES & QUICK ACTIONS */}
-                  {activeTab === 'prefs' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      
-                      {/* Notification Toggles */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>✉️ Notification Preferences</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
-                          <div style={styles.prefRow}>
+                  {/* Documents Vault */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>📁 Official Verification Documents</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={styles.docRow}>
+                        <span>📄 National Identity Card ({govtIdType.toUpperCase()})</span>
+                        <button style={styles.docDlBtn} onClick={() => toast.success('📥 Downloading Government ID...')}>Download ID</button>
+                      </div>
+                      <div style={styles.docRow}>
+                        <span>📷 Profile Photo Upload (avatars bucket)</span>
+                        <button style={styles.docDlBtn} onClick={() => { if (avatarUrl) window.open(avatarUrl, '_blank'); else toast.error('No avatar found'); }}>Download File</button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 2: PERFORMANCE & STATISTICS */}
+              {activeTab === 'stats' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Dynamic Statistics Grid with Count Up Effects */}
+                  <div style={styles.statsGrid}>
+                    {role === 'citizen' ? (
+                      <>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>📂</div>
+                          <div>
+                            <div style={styles.statNum}>Total Submitted</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.totalComplaints} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>⏱️</div>
+                          <div>
+                            <div style={styles.statNum}>Pending</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.pending} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>⚙️</div>
+                          <div>
+                            <div style={styles.statNum}>In Progress</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.inProgress} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>✅</div>
+                          <div>
+                            <div style={styles.statNum}>Resolved</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.resolved} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>🔒</div>
+                          <div>
+                            <div style={styles.statNum}>Closed</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.closed} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>🔄</div>
+                          <div>
+                            <div style={styles.statNum}>Reopened</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.reopened} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>💬</div>
+                          <div>
+                            <div style={styles.statNum}>Total Feedback</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.feedbackSubmitted} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>🚀</div>
+                          <div>
+                            <div style={styles.statNum}>Citizen Points</div>
+                            <div style={styles.statVal}><AnimatedCounter value={points} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>👑</div>
+                          <div>
+                            <div style={styles.statNum}>Community Rank</div>
+                            <div style={{ ...styles.statVal, fontSize: '0.9rem' }}>{metrics.communityRank}</div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>⏱️</div>
+                          <div>
+                            <div style={styles.statNum}>Avg SLA Solve</div>
+                            <div style={{ ...styles.statVal, fontSize: '0.95rem' }}>{metrics.avgResolutionTime} Days</div>
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>📂</div>
+                          <div>
+                            <div style={styles.statNum}>Total Assigned</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.totalComplaints} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>⏱️</div>
+                          <div>
+                            <div style={styles.statNum}>Active Tasks</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.pending + metrics.inProgress} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>✅</div>
+                          <div>
+                            <div style={styles.statNum}>Resolved</div>
+                            <div style={styles.statVal}><AnimatedCounter value={metrics.resolved} /></div>
+                          </div>
+                        </div>
+                        <div style={styles.statCard}>
+                          <div style={styles.statIcon}>🚀</div>
+                          <div>
+                            <div style={styles.statNum}>KPI Score</div>
+                            <div style={styles.statVal}>96.4%</div>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Achievements Badges */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>🏅 Awarded Credentials & Badges</h4>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '10px' }}>
+                      <div className="badge-hover" style={styles.badgeItem}>🌟 Top Performer</div>
+                      <div className="badge-hover" style={styles.badgeItem}>🚀 Fast Responder</div>
+                      <div className="badge-hover" style={styles.badgeItem}>🛡️ Verified Account</div>
+                      {role === 'citizen' ? (
+                        <div className="badge-hover" style={styles.badgeItem}>💚 Citizen Hero</div>
+                      ) : (
+                        <div className="badge-hover" style={styles.badgeItem}>🛠️ Resolved 50+</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Performance Analytics Charts */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>📊 Resolution Analytics & Activity Spread</h4>
+                    <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', height: '140px', marginTop: '10px', background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#f8fafc', borderRadius: '8px', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.08)' : '1px solid #cbd5e1' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <div className="animate-chart-resolved" style={{ width: '40px', background: '#2563eb', borderRadius: '4px', margin: '0 auto 5px' }} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Resolved</span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div className="animate-chart-wip" style={{ width: '40px', background: '#eab308', borderRadius: '4px', margin: '0 auto 5px' }} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>In Progress</span>
+                      </div>
+                      <div style={{ textAlign: 'center' }}>
+                        <div className="animate-chart-escalated" style={{ width: '40px', background: '#ca8a04', borderRadius: '4px', margin: '0 auto 5px' }} />
+                        <span style={{ fontSize: '0.7rem', fontWeight: 'bold' }}>Escalated</span>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 3: ACCESS & SECURITY */}
+              {activeTab === 'security' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Security Panel */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>🔐 Access Logs & Session Security</h4>
+                    <div style={styles.infoGrid}>
+                      <div><div style={styles.infoLabel}>Two-Factor Auth</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>🔒 Enabled</div></div>
+                      <div><div style={styles.infoLabel}>Email Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>✅ Verified</div></div>
+                      <div><div style={styles.infoLabel}>Last Password Change</div><div style={styles.infoValue}>14 Days Ago</div></div>
+                      <div><div style={styles.infoLabel}>Active Device Location</div><div style={styles.infoValue}>Chrome Browser (Windows 11)</div></div>
+                      <div><div style={styles.infoLabel}>Masked IP Address</div><div style={styles.infoValue}>192.168.***.***</div></div>
+                      <div><div style={styles.infoLabel}>Audit Logs Status</div><div style={{ ...styles.infoValue, color: '#22c55e', fontWeight: 'bold' }}>📊 Recording</div></div>
+                    </div>
+                  </div>
+
+                  {/* Dynamic Recent Activity Timeline */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>🕒 Recent Audit Logs & Action Timeline</h4>
+                    {activities.length === 0 ? (
+                      <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary, padding: '10px 0' }}>No recent activities logged in current session.</div>
+                    ) : (
+                      <div style={styles.timeline}>
+                        {activities.map((act) => (
+                          <div key={act.id} style={styles.timelineStep}>
+                            <div style={styles.timelineIcon}>
+                              {(act.action || '').includes('create') || (act.action || '').includes('submit') ? '🟢' : '⚙️'}
+                            </div>
                             <div>
-                              <div style={styles.prefTitle}>Email Notification updates</div>
-                              <div style={styles.prefDesc}>Receive automated status changes via email.</div>
+                              <div style={styles.timelineLabel}>{(act.action || 'activity').toUpperCase().replace('_', ' ')}</div>
+                              <div style={styles.timelineTime}>{new Date(act.created_at).toLocaleString()}</div>
                             </div>
-                            <input type="checkbox" checked={prefs.email} onChange={() => setPrefs(prev => ({ ...prev, email: !prev.email }))} style={styles.toggleSwitch} />
                           </div>
-                          <div style={styles.prefRow}>
-                            <div>
-                              <div style={styles.prefTitle}>SMS Alerts</div>
-                              <div style={styles.prefDesc}>Send high-priority escalation logs via mobile message.</div>
-                            </div>
-                            <input type="checkbox" checked={prefs.sms} onChange={() => setPrefs(prev => ({ ...prev, sms: !prev.sms }))} style={styles.toggleSwitch} />
-                          </div>
-                          <div style={styles.prefRow}>
-                            <div>
-                              <div style={styles.prefTitle}>Weekly SLA Summary Logs</div>
-                              <div style={styles.prefDesc}>Weekly digests of municipal resolution analytics.</div>
-                            </div>
-                            <input type="checkbox" checked={prefs.weekly} onChange={() => setPrefs(prev => ({ ...prev, weekly: !prev.weekly }))} style={styles.toggleSwitch} />
-                          </div>
-                        </div>
+                        ))}
                       </div>
+                    )}
+                  </div>
 
-                      {/* Quick Action Matrix */}
-                      <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
-                        <h4 style={styles.cardTitle}>⚡ Enterprise Operations & Quick Actions</h4>
-                        <div style={styles.actionsGrid}>
-                          <motion.button whileHover={{ scale: 1.02 }} style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={handlePrint}>🖨️ Print Employee Profile</motion.button>
-                          <motion.button whileHover={{ scale: 1.02 }} style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('📊 Exporting Full Audit Logs PDF...')}>📁 Export Activity Log PDF</motion.button>
-                          <motion.button whileHover={{ scale: 1.02 }} style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('⚙️ Refreshing session variables...')}>🔄 Force Re-sync Session</motion.button>
+                </div>
+              )}
+
+              {/* TAB 4: PREFERENCES & QUICK ACTIONS */}
+              {activeTab === 'prefs' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Notification Toggles */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>✉️ Notification Preferences</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '10px' }}>
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>Email Notification updates</div>
+                          <div style={styles.prefDesc}>Receive automated status changes via email.</div>
                         </div>
+                        <input type="checkbox" checked={prefs.email} onChange={() => setPrefs(prev => ({ ...prev, email: !prev.email }))} style={styles.toggleSwitch} />
                       </div>
-
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>SMS Alerts</div>
+                          <div style={styles.prefDesc}>Send high-priority escalation logs via mobile message.</div>
+                        </div>
+                        <input type="checkbox" checked={prefs.sms} onChange={() => setPrefs(prev => ({ ...prev, sms: !prev.sms }))} style={styles.toggleSwitch} />
+                      </div>
+                      <div style={styles.prefRow}>
+                        <div>
+                          <div style={styles.prefTitle}>Weekly SLA Summary Logs</div>
+                          <div style={styles.prefDesc}>Weekly digests of municipal resolution analytics.</div>
+                        </div>
+                        <input type="checkbox" checked={prefs.weekly} onChange={() => setPrefs(prev => ({ ...prev, weekly: !prev.weekly }))} style={styles.toggleSwitch} />
+                      </div>
                     </div>
-                  )}
+                  </div>
 
-                </motion.div>
-              </AnimatePresence>
+                  {/* Quick Action Matrix */}
+                  <div style={{ ...styles.card, background: theme === 'dark' ? 'rgba(0,0,0,0.1)' : 'rgba(255,255,255,0.1)', border: theme === 'dark' ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)' }}>
+                    <h4 style={styles.cardTitle}>⚡ Enterprise Operations & Quick Actions</h4>
+                    <div style={styles.actionsGrid}>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={handlePrint}>🖨️ Print Employee Profile</button>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('📊 Exporting Full Audit Logs PDF...')}>📁 Export Activity Log PDF</button>
+                      <button style={{ ...styles.actionBtn, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'none', color: themeColors.textPrimary, border: theme === 'dark' ? '1px solid rgba(255,255,255,0.1)' : '1px solid #cbd5e1' }} onClick={() => toast.success('⚙️ Refreshing session variables...')}>🔄 Force Re-sync Session</button>
+                    </div>
+                  </div>
+
+                </div>
+              )}
+
             </div>
           </div>
 
@@ -843,190 +842,167 @@ const ProfileModal = ({ onClose }) => {
           <button onClick={onClose} style={styles.closeFooterBtn}>Close Directory</button>
         </div>
 
-        {/* --- INTERACTIVE SLIDE-OVER EDIT PANEL (Framer Motion slide-in overlay) --- */}
-        <AnimatePresence>
-          {showEditPanel && (
-            <motion.div 
-              style={styles.editPanelOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowEditPanel(false)}
+        {/* --- INTERACTIVE SLIDE-OVER EDIT PANEL (CSS slide-in overlay) --- */}
+        {showEditPanel && (
+          <div 
+            className="animate-fade"
+            style={styles.editPanelOverlay}
+            onClick={() => setShowEditPanel(false)}
+          >
+            <div 
+              className="animate-slide-left"
+              style={{ ...styles.editPanelContainer, background: themeColors.surface, borderLeft: `1px solid ${themeColors.borderLight}` }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <motion.div 
-                style={{ ...styles.editPanelContainer, background: themeColors.surface, borderLeft: `1px solid ${themeColors.borderLight}` }}
-                onClick={(e) => e.stopPropagation()}
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'tween', duration: 0.35, ease: 'easeOut' }}
-              >
-                <div style={styles.editPanelHeader}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>👤 Edit Profile Center</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: themeColors.textSecondary }}>Update your credentials & configurations</p>
-                  </div>
-                  <button onClick={() => setShowEditPanel(false)} style={styles.editPanelCloseBtn}>&times;</button>
+              <div style={styles.editPanelHeader}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>👤 Edit Profile Center</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: themeColors.textSecondary }}>Update your credentials & configurations</p>
                 </div>
+                <button onClick={() => setShowEditPanel(false)} style={styles.editPanelCloseBtn}>&times;</button>
+              </div>
 
-                <div style={styles.editPanelBody}>
-                  {/* Group 1: Personal Details */}
-                  <div style={styles.editGroupCard}>
-                    <h5 style={styles.editGroupTitle}>👤 Personal Details</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div>
-                        <label style={styles.formLabel}>Full Name</label>
-                        <input value={editName} onChange={(e) => setEditName(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Group 2: Contact Details */}
-                  <div style={styles.editGroupCard}>
-                    <h5 style={styles.editGroupTitle}>📞 Contact Details</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      <div>
-                        <label style={styles.formLabel}>Email Address (Read-Only)</label>
-                        <input value={user?.email || ''} disabled style={{ ...styles.formInput, color: themeColors.textSecondary, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f1f5f9', cursor: 'not-allowed' }} />
-                      </div>
-                      <div>
-                        <label style={styles.formLabel}>Mobile Phone Number</label>
-                        <input value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
-                      </div>
-                      <div>
-                        <label style={styles.formLabel}>Residential Address</label>
-                        <textarea value={editAddress} onChange={(e) => setEditAddress(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff', height: '60px', resize: 'none' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Group 3: Government ID Details */}
-                  <div style={styles.editGroupCard}>
-                    <h5 style={styles.editGroupTitle}>🛡️ Government Verification ID</h5>
-                    <div style={{ display: 'flex', gap: '10px' }}>
-                      <div style={{ flex: 1 }}>
-                        <label style={styles.formLabel}>ID Type</label>
-                        <select value={editGovtIdType} onChange={(e) => setEditGovtIdType(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }}>
-                          <option value="aadhaar">Aadhaar</option>
-                          <option value="pan">PAN Card</option>
-                          <option value="passport">Passport</option>
-                          <option value="badge">Official Badge</option>
-                        </select>
-                      </div>
-                      <div style={{ flex: 1.5 }}>
-                        <label style={styles.formLabel}>ID Number</label>
-                        <input value={editGovtIdNumber} onChange={(e) => setEditGovtIdNumber(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Group 4: Notification Preferences */}
-                  <div style={styles.editGroupCard}>
-                    <h5 style={styles.editGroupTitle}>⚙️ Alerts & Weekly Reports</h5>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div style={styles.prefRow}>
-                        <span style={{ fontSize: '0.8rem' }}>Enable Email Updates</span>
-                        <input type="checkbox" checked={editPrefs.email} onChange={() => setEditPrefs(prev => ({ ...prev, email: !prev.email }))} style={styles.toggleSwitch} />
-                      </div>
-                      <div style={styles.prefRow}>
-                        <span style={{ fontSize: '0.8rem' }}>Enable SMS Alerts</span>
-                        <input type="checkbox" checked={editPrefs.sms} onChange={() => setEditPrefs(prev => ({ ...prev, sms: !prev.sms }))} style={styles.toggleSwitch} />
-                      </div>
+              <div style={styles.editPanelBody}>
+                {/* Group 1: Personal Details */}
+                <div style={styles.editGroupCard}>
+                  <h5 style={styles.editGroupTitle}>👤 Personal Details</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <label style={styles.formLabel}>Full Name</label>
+                      <input value={editName} onChange={(e) => setEditName(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
                     </div>
                   </div>
                 </div>
 
-                <div style={{ ...styles.editPanelFooter, borderTop: `1px solid ${themeColors.borderLight}` }}>
-                  <button onClick={handleResetForm} style={styles.editPanelResetBtn}>Reset</button>
-                  <button onClick={() => setShowEditPanel(false)} style={styles.editPanelCancelBtn}>Cancel</button>
-                  <button onClick={handleSaveProfile} style={styles.editPanelSaveBtn}>Save Changes</button>
+                {/* Group 2: Contact Details */}
+                <div style={styles.editGroupCard}>
+                  <h5 style={styles.editGroupTitle}>📞 Contact Details</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div>
+                      <label style={styles.formLabel}>Email Address (Read-Only)</label>
+                      <input value={user?.email || ''} disabled style={{ ...styles.formInput, color: themeColors.textSecondary, background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f1f5f9', cursor: 'not-allowed' }} />
+                    </div>
+                    <div>
+                      <label style={styles.formLabel}>Mobile Phone Number</label>
+                      <input value={editPhone} onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, '').slice(0, 10))} placeholder="10-digit number" style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
+                    </div>
+                    <div>
+                      <label style={styles.formLabel}>Residential Address</label>
+                      <textarea value={editAddress} onChange={(e) => setEditAddress(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff', height: '60px', resize: 'none' }} />
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
-        {/* --- INTERACTIVE QR CODE DRAWER OVERLAY (Spring slide-in) --- */}
-        <AnimatePresence>
-          {showQrDrawer && (
-            <motion.div 
-              style={styles.editPanelOverlay}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowQrDrawer(false)}
+                {/* Group 3: Government ID Details */}
+                <div style={styles.editGroupCard}>
+                  <h5 style={styles.editGroupTitle}>🛡️ Government Verification ID</h5>
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={styles.formLabel}>ID Type</label>
+                      <select value={editGovtIdType} onChange={(e) => setEditGovtIdType(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }}>
+                        <option value="aadhaar">Aadhaar</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="passport">Passport</option>
+                        <option value="badge">Official Badge</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1.5 }}>
+                      <label style={styles.formLabel}>ID Number</label>
+                      <input value={editGovtIdNumber} onChange={(e) => setEditGovtIdNumber(e.target.value)} style={{ ...styles.formInput, color: themeColors.textPrimary, background: theme === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff' }} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Group 4: Notification Preferences */}
+                <div style={styles.editGroupCard}>
+                  <h5 style={styles.editGroupTitle}>⚙️ Alerts & Weekly Reports</h5>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={styles.prefRow}>
+                      <span style={{ fontSize: '0.8rem' }}>Enable Email Updates</span>
+                      <input type="checkbox" checked={editPrefs.email} onChange={() => setEditPrefs(prev => ({ ...prev, email: !prev.email }))} style={styles.toggleSwitch} />
+                    </div>
+                    <div style={styles.prefRow}>
+                      <span style={{ fontSize: '0.8rem' }}>Enable SMS Alerts</span>
+                      <input type="checkbox" checked={editPrefs.sms} onChange={() => setEditPrefs(prev => ({ ...prev, sms: !prev.sms }))} style={styles.toggleSwitch} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ ...styles.editPanelFooter, borderTop: `1px solid ${themeColors.borderLight}` }}>
+                <button onClick={handleResetForm} style={styles.editPanelResetBtn}>Reset</button>
+                <button onClick={() => setShowEditPanel(false)} style={styles.editPanelCancelBtn}>Cancel</button>
+                <button onClick={handleSaveProfile} style={styles.editPanelSaveBtn}>Save Changes</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- INTERACTIVE QR CODE DRAWER OVERLAY (CSS slide-in) --- */}
+        {showQrDrawer && (
+          <div 
+            className="animate-fade"
+            style={styles.editPanelOverlay}
+            onClick={() => setShowQrDrawer(false)}
+          >
+            <div 
+              className="animate-slide-left"
+              style={{ ...styles.qrDrawerContainer, background: themeColors.surface, borderLeft: `1px solid ${themeColors.borderLight}` }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <motion.div 
-                style={{ ...styles.qrDrawerContainer, background: themeColors.surface, borderLeft: `1px solid ${themeColors.borderLight}` }}
-                onClick={(e) => e.stopPropagation()}
-                initial={{ x: '100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '100%' }}
-                transition={{ type: 'tween', duration: 0.35, ease: 'easeOut' }}
-              >
-                <div style={styles.editPanelHeader}>
-                  <div>
-                    <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>📱 Directory QR Verification</h3>
-                    <p style={{ margin: 0, fontSize: '0.75rem', color: themeColors.textSecondary }}>Generate and export code directories</p>
-                  </div>
-                  <button onClick={() => setShowQrDrawer(false)} style={styles.editPanelCloseBtn}>&times;</button>
+              <div style={styles.editPanelHeader}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 'bold' }}>📱 Directory QR Verification</h3>
+                  <p style={{ margin: 0, fontSize: '0.75rem', color: themeColors.textSecondary }}>Generate and export code directories</p>
+                </div>
+                <button onClick={() => setShowQrDrawer(false)} style={styles.editPanelCloseBtn}>&times;</button>
+              </div>
+
+              <div style={{ ...styles.editPanelBody, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '30px' }}>
+                
+                {/* Frosted frame QR code display */}
+                <div style={{ border: '8px solid #0f172a', padding: '16px', borderRadius: '12px', background: 'white', boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}>
+                  <svg width="180" height="180" viewBox="0 0 100 100" fill="#0f172a">
+                    <rect x="0" y="0" width="25" height="25" />
+                    <rect x="75" y="0" width="25" height="25" />
+                    <rect x="0" y="75" width="25" height="25" />
+                    <rect x="35" y="35" width="30" height="30" />
+                    <rect x="75" y="75" width="10" height="10" />
+                    <rect x="50" y="10" width="10" height="15" />
+                    <rect x="10" y="50" width="15" height="10" />
+                  </svg>
                 </div>
 
-                <div style={{ ...styles.editPanelBody, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '30px' }}>
-                  
-                  {/* Frosted frame QR code display */}
-                  <motion.div 
-                    style={{ border: '8px solid #0f172a', padding: '16px', borderRadius: '12px', background: 'white', boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ delay: 0.15, type: 'spring' }}
+                <div style={{ textAlign: 'center' }}>
+                  <h4 style={{ margin: '0 0 5px' }}>{fullName || 'Civic Connect User'}</h4>
+                  <span style={{ fontSize: '0.8rem', color: themeColors.textSecondary }}>ID: {cardId}</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '0 20px' }}>
+                  <button 
+                    onClick={() => toast.success('📥 Downloading SVG Directory Image...')} 
+                    style={styles.qrActionBtnPri}
                   >
-                    <svg width="180" height="180" viewBox="0 0 100 100" fill="#0f172a">
-                      <rect x="0" y="0" width="25" height="25" />
-                      <rect x="75" y="0" width="25" height="25" />
-                      <rect x="0" y="75" width="25" height="25" />
-                      <rect x="35" y="35" width="30" height="30" />
-                      <rect x="75" y="75" width="10" height="10" />
-                      <rect x="50" y="10" width="10" height="15" />
-                      <rect x="10" y="50" width="15" height="10" />
-                    </svg>
-                  </motion.div>
-
-                  <div style={{ textAlign: 'center' }}>
-                    <h4 style={{ margin: '0 0 5px' }}>{fullName || 'Civic Connect User'}</h4>
-                    <span style={{ fontSize: '0.8rem', color: themeColors.textSecondary }}>ID: {cardId}</span>
-                  </div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%', padding: '0 20px' }}>
-                    <motion.button 
-                      onClick={() => toast.success('📥 Downloading SVG Directory Image...')} 
-                      style={styles.qrActionBtnPri}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Download SVG File
-                    </motion.button>
-                    <motion.button 
-                      onClick={handlePrint} 
-                      style={{ ...styles.qrActionBtnSec, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}` }}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      Print Directory Code
-                    </motion.button>
-                  </div>
+                    Download SVG File
+                  </button>
+                  <button 
+                    onClick={handlePrint} 
+                    style={{ ...styles.qrActionBtnSec, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}` }}
+                  >
+                    Print Directory Code
+                  </button>
                 </div>
+              </div>
 
-                <div style={{ ...styles.editPanelFooter, borderTop: `1px solid ${themeColors.borderLight}` }}>
-                  <button onClick={() => setShowQrDrawer(false)} style={styles.qrCloseBtn}>Done</button>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <div style={{ ...styles.editPanelFooter, borderTop: `1px solid ${themeColors.borderLight}` }}>
+                <button onClick={() => setShowQrDrawer(false)} style={styles.qrCloseBtn}>Done</button>
+              </div>
+            </div>
+          </div>
+        )}
 
-      </motion.div>
-    </motion.div>,
+      </div>
+    </div>,
     document.body
   );
 };
