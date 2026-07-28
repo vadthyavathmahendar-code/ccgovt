@@ -155,7 +155,7 @@ const ProfileModal = ({ onClose }) => {
             const { data: complaintsData, error: complaintsError } = await supabase
               .from('complaints')
               .select('status, rating')
-              .eq('citizen_id', sessionUser.id);
+              .eq('user_id', sessionUser.id);
 
             if (!complaintsError && complaintsData) {
               const total = complaintsData.length;
