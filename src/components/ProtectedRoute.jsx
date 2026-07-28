@@ -15,6 +15,10 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  if (user && role === null) {
+    return <LoadingScreen message="Loading User Profile..." />;
+  }
+
   if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(role)) {
     const redirectPath = getRoleDefaultPath(role);
     return <Navigate to={redirectPath} replace />;
