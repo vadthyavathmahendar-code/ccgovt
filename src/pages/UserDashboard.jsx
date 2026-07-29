@@ -128,8 +128,10 @@ const UserDashboard = () => {
 
     const sub = supabase.channel('user_dashboard')
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'complaints' }, (payload) => {
-        handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
-        fetchHistory(user.id);
+        if (payload.new.user_id === user.id) {
+          handleNewNotification(`🔔 Update: Report #${String(payload.new.id).slice(0,4)} is now ${payload.new.status}`);
+          fetchHistory(user.id);
+        }
       })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'broadcasts' }, (payload) => {
         handleNewNotification(`📢 ADMIN ALERT: ${payload.new.message}`);
