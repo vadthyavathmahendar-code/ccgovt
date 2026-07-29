@@ -7,6 +7,40 @@ import AuditLogsConsole from '../components/AuditLogsConsole';
 import { useAuth } from '../context/useAuth';
 import { useTheme } from '../context/useTheme';
 import ProfileModal from './Profile';
+import CommandCenterMap from '../components/CommandCenterMap';
+import ReportCenter from '../components/ReportCenter';
+import SystemHealth from '../components/SystemHealth';
+
+// --- ANIMATION HELPER: COUNT UP EFFECT ---
+const AnimatedCounter = ({ value, duration = 1 }) => {
+  const [count, setCount] = useState(() => {
+    const end = parseInt(value, 10);
+    return isNaN(end) ? value : 0;
+  });
+
+  useEffect(() => {
+    const end = parseInt(value, 10);
+    if (isNaN(end) || end === 0) {
+      return;
+    }
+    let start = 0;
+    const totalMiliseconds = duration * 1000;
+    const incrementTime = Math.max(Math.floor(totalMiliseconds / end), 15);
+    
+    const timer = setInterval(() => {
+      start += 1;
+      setCount(start);
+      if (start >= end) {
+        clearInterval(timer);
+        setCount(value);
+      }
+    }, incrementTime);
+
+    return () => clearInterval(timer);
+  }, [value, duration]);
+
+  return <span>{count}</span>;
+};
 
 const AdminDashboard = () => {
   const { user, profile, logout } = useAuth();
@@ -36,7 +70,7 @@ const AdminDashboard = () => {
   // Modals
   const [assigningComplaintId, setAssigningComplaintId] = useState(null); 
   const [showAddUserModal, setShowAddUserModal] = useState(false);
-  const [viewingComplaint, setViewingComplaint] = useState(null); // For Image Viewer
+
 
   // New User Form
   const [newUser, setNewUser] = useState({
@@ -47,6 +81,9 @@ const AdminDashboard = () => {
   // Filters & Inputs
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setFilterStatus] = useState('All');
+  const [priorityFilter, setPriorityFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [employeeSearch, setEmployeeSearch] = useState('');
   const [broadcastMsg, setBroadcastMsg] = useState('');
   const [categories] = useState(['Roads', 'Garbage', 'Water', 'Electricity', 'Traffic']);
 
@@ -98,15 +135,14 @@ const AdminDashboard = () => {
     const systemLogs = (cData || []).slice(0, 5).map(c => ({
       id: c.id, 
       action: `Report #${String(c.id).slice(0,4)} created in ${c.category}`, 
-      user: 'System',
-      time: new Date(c.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+      user: c.assigned_to || 'Citizen Ingestion'
     }));
-    setLogs(systemLogs); 
+    setLogs(systemLogs);
   };
 
-  const addLog = (action) => {
-    const newLog = { id: Date.now(), action, user: 'Admin', time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) };
-    setLogs(prev => [newLog, ...prev]);
+  const addLog = (actionMsg) => {
+    const newLog = { id: Date.now(), action: actionMsg, user: profile?.email || 'System' };
+    setLogs(prev => [newLog, ...prev.slice(0, 4)]);
   };
 
   // --- 3. ACTIONS ---
@@ -211,196 +247,102 @@ const AdminDashboard = () => {
 
   const openMap = (lat, lng) => {
       if (!lat || !lng) return toast.error("No GPS data available");
-      window.open(`http://googleusercontent.com/maps.google.com/?q=${lat},${lng}`, '_blank');
+      window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
   };
 
-  const getWorkerLoad = (email) => complaints.filter(c => c.assigned_to === email && c.status !== 'Resolved').length;
+  const getWorkerLoad = (email) => complaints.filter(c => c.assigned_to === email && c.status !== 'Resolved' && c.status !== 'Closed').length;
 
+  // --- EXECUTIVE ANALYTICS COMPILATIONS ---
+  const totalCount = complaints.length;
+  const resolvedCount = complaints.filter(c => c.status === 'Resolved' || c.status === 'Closed').length;
+  const criticalCount = complaints.filter(c => c.priority === 'Critical').length;
+  const reopenedCount = complaints.filter(c => c.status === 'Reopened').length;
+  const activeCount = complaints.filter(c => c.status === 'Assigned' || c.status === 'In Progress' || c.status === 'Reopened').length;
+  
+  const resolverRanking = {};
+  complaints.forEach(c => {
+    if ((c.status === 'Resolved' || c.status === 'Closed') && c.assigned_to) {
+      resolverRanking[c.assigned_to] = (resolverRanking[c.assigned_to] || 0) + 1;
+    }
+  });
+  
+  const topResolversList = Object.keys(resolverRanking)
+    .sort((a,b) => resolverRanking[b] - resolverRanking[a])
+    .slice(0, 3)
+    .map(email => ({ email, count: resolverRanking[email] }));
+
+  // Filter complaints dynamically (Search & Smart Filters)
   const filteredComplaints = complaints.filter(c => {
-    const matchSearch = (c.title || '').toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.toLowerCase();
+    const matchSearch = !searchTerm || 
+      c.id.toString().toLowerCase().includes(term) ||
+      (c.title || '').toLowerCase().includes(term) ||
+      (c.description || '').toLowerCase().includes(term) ||
+      (c.location || '').toLowerCase().includes(term) ||
+      (c.assigned_to || '').toLowerCase().includes(term);
+
     const matchStatus = statusFilter === 'All' || c.status === statusFilter;
-    return matchSearch && matchStatus;
+    const matchPriority = priorityFilter === 'All' || c.priority === priorityFilter;
+    const matchCategory = categoryFilter === 'All' || c.category === categoryFilter;
+    const matchEmployee = !employeeSearch || (c.assigned_to || '').toLowerCase().includes(employeeSearch.toLowerCase());
+
+    return matchSearch && matchStatus && matchPriority && matchCategory && matchEmployee;
   });
 
-  const staffList = users.filter(u => u.role === 'employee'); 
-  if (loading) return <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background, color: themeColors.primary, fontSize: '1.2rem', fontFamily: 'inherit' }}>🔄 Loading Command Center...</div>;
-
   const currentBreadcrumb = () => {
-    switch (activeTab) {
-      case 'overview': return 'Command Center > Operations Dashboard';
-      case 'complaints': return 'Command Center > Complaints Queue';
-      case 'users': return 'Operations > Staff & Users';
-      case 'analytics': return 'Analytics > Operations Performance';
-      case 'audit_logs': return 'Security > System Audit Ledger';
-      default: return 'Command Center';
-    }
+    if (activeTab === 'overview') return 'Operational Dashboard';
+    if (activeTab === 'complaints') return 'Incident Operations Ledger';
+    if (activeTab === 'users') return 'Municipal Roster Directory';
+    if (activeTab === 'analytics') return 'Executive Business Intelligence';
+    if (activeTab === 'map') return 'Command Center GIS Map';
+    if (activeTab === 'reports') return 'Performance Reports Center';
+    if (activeTab === 'system_health') return 'Infrastructure Health & Telemetry';
+    return 'Audit Trail Logs';
   };
 
+  if (loading) return null;
+
   return (
-    <div className="fade-in" style={{ display: 'flex', height: '100vh', width: '100vw', background: themeColors.background, color: themeColors.textPrimary, overflow: 'hidden', fontFamily: '"Inter", sans-serif' }}>
-      <Toaster />
-      {showProfileModal && <ProfileModal onClose={() => setShowProfileModal(false)} />}
+    <div style={{ display: 'flex', height: '100vh', background: themeColors.background, overflow: 'hidden', fontFamily: 'system-ui, sans-serif' }}>
+      <Toaster position="top-right" />
 
-      {/* --- 2. EVIDENCE IMAGE VIEW MODAL --- */}
-      {viewingComplaint && (
-          <div style={localStyles.modalOverlay} onClick={() => setViewingComplaint(null)}>
-              <div className="gov-card fade-in" style={{ ...localStyles.imageModalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }} onClick={e => e.stopPropagation()}>
-                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
-                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>📷 Evidence Vault - Complaint #{String(viewingComplaint.id).slice(0, 8)}</h3>
-                      <button onClick={() => setViewingComplaint(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
-                  </div>
-                  <div style={{ display:'flex', gap:'20px', padding:'25px', flexWrap:'wrap', justifyContent:'center' }}>
-                      <div>
-                          <h4 style={{textAlign:'center', marginTop:0, color: themeColors.textPrimary}}>Before Resolution</h4>
-                          {viewingComplaint.image_url ? (
-                              <img src={viewingComplaint.image_url} alt="Evidence" style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:`1px solid ${themeColors.border}`}} />
-                          ) : (
-                              <div style={{width:'250px', height:'250px', display:'flex', alignItems:'center', justifyContent:'center', background: themeColors.surfaceSecondary, borderRadius:'8px', border:`2px dashed ${themeColors.border}`, color: themeColors.textSecondary}}>No image uploaded</div>
-                          )}
-                      </div>
-                      <div>
-                          <h4 style={{textAlign:'center', marginTop:0, color: themeColors.textPrimary}}>After Resolution</h4>
-                          {viewingComplaint.resolve_image_url ? (
-                              <div style={{position:'relative'}}>
-                                  <img src={viewingComplaint.resolve_image_url} alt="Resolution" style={{width:'250px', height:'250px', objectFit:'cover', borderRadius:'8px', border:`1px solid ${themeColors.border}`}} />
-                              </div>
-                          ) : (
-                              <div style={{width:'250px', height:'250px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', background: themeColors.surfaceSecondary, borderRadius:'8px', border:`2px dashed ${themeColors.border}`, color: themeColors.textSecondary}}>
-                                  <span style={{fontSize:'2rem'}}>⏳</span>
-                                  <p style={{fontSize:'0.9rem', marginTop:'10px'}}>No proof photo uploaded yet.</p>
-                              </div>
-                          )}
-                      </div>
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {/* --- 3. ASSIGNMENT MODAL --- */}
-      {assigningComplaintId && (
-          <div style={localStyles.modalOverlay}>
-              <div className="gov-card fade-in" style={{ ...localStyles.modalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
-                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
-                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👤 Assign Task</h3>
-                      <button onClick={() => setAssigningComplaintId(null)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
-                  </div>
-                  <div style={{padding:'20px', maxHeight:'400px', overflowY:'auto'}}>
-                      {staffList.sort((a,b) => getWorkerLoad(a.email) - getWorkerLoad(b.email)).map(worker => (
-                          <div key={worker.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: `1px solid ${themeColors.border}` }}>
-                              <div style={{display:'flex', alignItems:'center', gap:'15px'}}>
-                                  <div style={{ width: '40px', height: '40px', background: themeColors.surfaceSecondary, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: themeColors.primary }}>{worker.full_name ? worker.full_name[0] : 'E'}</div>
-                                  <div>
-                                      <div style={{fontWeight:'bold', color: themeColors.textPrimary}}>{worker.full_name}</div>
-                                      <div style={{fontSize:'0.8rem', color: themeColors.textSecondary}}>{worker.email}</div>
-                                  </div>
-                              </div>
-                              <div style={{textAlign:'right'}}>
-                                  <span style={{fontSize:'0.75rem', fontWeight:'bold', color: getWorkerLoad(worker.email) < 3 ? '#16a34a' : '#d97706', marginRight:'10px'}}>
-                                      {getWorkerLoad(worker.email)} Tasks
-                                  </span>
-                                  <button onClick={() => handleAssignWorker(worker.email)} style={{ background: themeColors.primary, color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer' }}>Select</button>
-                              </div>
-                          </div>
-                      ))}
-                      {staffList.length === 0 && <p style={{textAlign:'center', color: themeColors.textSecondary}}>No officers found in this department.</p>}
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {/* --- 4. ADD USER MODAL --- */}
-      {showAddUserModal && (
-          <div style={localStyles.modalOverlay}>
-              <div className="gov-card fade-in" style={{ ...localStyles.modalContent, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
-                  <div style={{ ...localStyles.modalHeader, background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
-                      <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👥 Add Staff Account</h3>
-                      <button onClick={() => setShowAddUserModal(false)} style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', color: themeColors.textSecondary }}>✖</button>
-                  </div>
-                  <div style={{padding:'25px'}}>
-                      <form onSubmit={handleCreateUser} style={{display:'flex', flexDirection:'column', gap:'15px'}}>
-                          <input required placeholder="Full Name" value={newUser.fullName} onChange={e=>setNewUser({...newUser, fullName:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
-                          <input required type="email" placeholder="Email" value={newUser.email} onChange={e=>setNewUser({...newUser, email:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
-                          <input required type="password" placeholder="Password" value={newUser.password} onChange={e=>setNewUser({...newUser, password:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
-                          <input required placeholder="Phone" value={newUser.phone} onChange={e=>setNewUser({...newUser, phone:e.target.value})} style={{ width:'100%', padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
-                          
-                          <div>
-                            <label style={{ fontSize: '0.8rem', color: themeColors.textSecondary, display: 'block', marginBottom: '5px' }}>Gov ID Type & Number</label>
-                            <div style={{ display: 'flex', gap: '5px' }}>
-                              <select value={newUser.idType} onChange={e=>setNewUser({...newUser, idType:e.target.value})} style={{ padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
-                                <option value="badge">Badge</option>
-                                <option value="govt_id">Govt ID</option>
-                              </select>
-                              <input required placeholder="ID Number" value={newUser.idNumber} onChange={e=>setNewUser({...newUser, idNumber:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }} />
-                            </div>
-                          </div>
-
-                          {profile?.role === 'super_admin' && (
-                              <div style={{display:'flex', gap:'10px'}}>
-                                  <select value={newUser.role} onChange={e=>setNewUser({...newUser, role:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
-                                      <option value="employee">Field Officer</option>
-                                      <option value="dept_admin">Dept Head</option>
-                                  </select>
-                                  <select value={newUser.department} onChange={e=>setNewUser({...newUser, department:e.target.value})} style={{ flex: 1, padding:'10px', borderRadius:'5px', border:`1px solid ${themeColors.border}`, background: themeColors.surface, color: themeColors.textPrimary }}>
-                                      {categories.map(c => <option key={c} value={c}>{c}</option>)}
-                                      <option value="All">All (Super Only)</option>
-                                  </select>
-                              </div>
-                          )}
-                          <button type="submit" style={{ padding: '10px 20px', background: themeColors.primary, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold', width:'100%' }}>Create Account</button>
-                      </form>
-                  </div>
-              </div>
-          </div>
-      )}
-
-      {/* --- 5. REDESIGNED COLLAPSIBLE SIDEBAR --- */}
-      <aside style={{
-        width: isMobile ? (mobileMenuOpen ? '260px' : '0px') : (sidebarCollapsed ? '80px' : '260px'),
-        background: '#0f172a',
-        color: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
-        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        overflow: 'hidden',
-        borderRight: '1px solid #1e293b',
+      {/* --- SIDEBAR --- */}
+      <aside style={{ 
+        width: sidebarCollapsed && !isMobile ? '80px' : '260px', 
+        background: '#0b0f19', 
+        borderRight: '1px solid #1e293b', 
+        display: isMobile && !mobileMenuOpen ? 'none' : 'flex', 
+        flexDirection: 'column', 
         position: isMobile ? 'fixed' : 'relative',
-        height: '100vh',
-        zIndex: 1010
+        top: 0,
+        bottom: 0,
+        left: 0,
+        zIndex: 1010,
+        transition: 'width 0.2s ease',
+        boxShadow: '4px 0 10px rgba(0,0,0,0.1)'
       }}>
-        {/* Sidebar Brand Header */}
-        <div style={{ padding: '24px 20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px', justifyContent: sidebarCollapsed && !isMobile ? 'center' : 'flex-start' }}>
-            <div style={{ fontSize: '1.75rem' }}>🏛️</div>
-            {(!sidebarCollapsed || isMobile) && (
-              <div>
-                <h2 style={{ margin: 0, fontSize:'1.1rem', fontWeight: '800', letterSpacing: '-0.5px', color: '#fff' }}>CIVIC ADMIN</h2>
-                <span style={{ fontSize: '0.65rem', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', textTransform: 'uppercase', display: 'inline-block', marginTop: '2px' }}>
-                  {profile?.role?.replace('_', ' ')}
-                </span>
-              </div>
-            )}
+        {/* Sidebar Header */}
+        <div style={{ padding: '20px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/images/cc_logo.png" alt="Logo" style={{ width: '40px', height: '30px' }} />
+          {(!sidebarCollapsed || isMobile) && (
+            <div>
+              <h1 style={{ color: '#fff', fontSize: '0.9rem', margin: 0, fontWeight: '800', tracking: '0.5px' }}>CIVICS CONNECT</h1>
+              <span style={{ color: '#3b82f6', fontSize: '0.65rem', fontWeight: 'bold', textTransform: 'uppercase' }}>Command Center</span>
+            </div>
+          )}
         </div>
 
-        {/* Sidebar Selector switcher */}
-        {(!sidebarCollapsed || isMobile) && (
-          <div style={{ padding: '15px 20px' }}>
-            <label style={{ fontSize: '0.65rem', textTransform: 'uppercase', color: '#64748b', fontWeight: '700', display: 'block', marginBottom: '5px' }}>Operational Suite</label>
-            <select style={{ width: '100%', background: '#1e293b', color: '#fff', border: '1px solid #334155', padding: '6px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
-              <option>🛡️ Command Control</option>
-              <option>⏱️ SLA Monitor Mode</option>
-              <option>🤖 Executive Analytics</option>
-            </select>
-          </div>
-        )}
-
         {/* Sidebar Nav links */}
-        <nav style={{ flex: 1, padding: '15px 10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <NavBtn active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); if (isMobile) setMobileMenuOpen(false); }} icon="📊" label="Dashboard" collapsed={sidebarCollapsed && !isMobile} />
-          <NavBtn active={activeTab === 'complaints'} onClick={() => { setActiveTab('complaints'); if (isMobile) setMobileMenuOpen(false); }} icon="🚨" label="Complaints" collapsed={sidebarCollapsed && !isMobile} />
+        <nav style={{ flex: 1, padding: '15px 10px', display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
+          <NavBtn active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); if (isMobile) setMobileMenuOpen(false); }} icon="📊" label="Executive Console" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'complaints'} onClick={() => { setActiveTab('complaints'); if (isMobile) setMobileMenuOpen(false); }} icon="🚨" label="Incidents Ledger" collapsed={sidebarCollapsed && !isMobile} />
           {profile?.role !== 'commissioner' && (
-            <NavBtn active={activeTab === 'users'} onClick={() => { setActiveTab('users'); if (isMobile) setMobileMenuOpen(false); }} icon="👥" label="Staff & Users" collapsed={sidebarCollapsed && !isMobile} />
+            <NavBtn active={activeTab === 'users'} onClick={() => { setActiveTab('users'); if (isMobile) setMobileMenuOpen(false); }} icon="👥" label="Staff Directory" collapsed={sidebarCollapsed && !isMobile} />
           )}
-          <NavBtn active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); if (isMobile) setMobileMenuOpen(false); }} icon="📈" label="Analytics" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'analytics'} onClick={() => { setActiveTab('analytics'); if (isMobile) setMobileMenuOpen(false); }} icon="📈" label="BI Analytics" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'map'} onClick={() => { setActiveTab('map'); if (isMobile) setMobileMenuOpen(false); }} icon="🗺️" label="GIS Control Map" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'reports'} onClick={() => { setActiveTab('reports'); if (isMobile) setMobileMenuOpen(false); }} icon="📄" label="Report Center" collapsed={sidebarCollapsed && !isMobile} />
+          <NavBtn active={activeTab === 'system_health'} onClick={() => { setActiveTab('system_health'); if (isMobile) setMobileMenuOpen(false); }} icon="⚙️" label="System Health" collapsed={sidebarCollapsed && !isMobile} />
           {profile?.role !== 'commissioner' && (
             <NavBtn active={activeTab === 'audit_logs'} onClick={() => { setActiveTab('audit_logs'); if (isMobile) setMobileMenuOpen(false); }} icon="📋" label="Audit Logs" collapsed={sidebarCollapsed && !isMobile} />
           )}
@@ -422,7 +364,7 @@ const AdminDashboard = () => {
         <div onClick={() => setMobileMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1005 }}></div>
       )}
 
-      {/* --- 6. MAIN CONTENT AREA --- */}
+      {/* --- MAIN CONTENT AREA --- */}
       <main style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '15px' : '30px', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px' }}>
         
         {/* Dynamic Header Toolbar */}
@@ -438,7 +380,6 @@ const AdminDashboard = () => {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
-            {/* Theme Toggle in Admin */}
             <button
               onClick={toggleTheme}
               style={{
@@ -464,188 +405,180 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* TAB 1: OVERVIEW */}
+        {/* TAB 1: EXECUTIVE OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-              <StatCard title="Total Reports" value={complaints.length} color="#3b82f6" icon="📂" />
-              <StatCard title="Pending Queue" value={complaints.filter(c=>c.status==='Pending').length} color="#ef4444" icon="⚡" />
-              <StatCard title="Resolved Issues" value={complaints.filter(c=>c.status==='Resolved').length} color="#10b981" icon="✅" />
-              <StatCard title="Escalation Risk" value={complaints.filter(c=>c.is_urgent && c.status==='Pending').length} color="#f59e0b" icon="⚠️" />
+            
+            {/* KPI Counts Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '15px' }}>
+              <StatCard title="Total Tickets" value={<AnimatedCounter value={totalCount} />} color="#3b82f6" icon="📂" />
+              <StatCard title="Active Backlog" value={<AnimatedCounter value={activeCount} />} color="#6366f1" icon="⚡" />
+              <StatCard title="Resolved SLA" value={<AnimatedCounter value={resolvedCount} />} color="#10b981" icon="✅" />
+              <StatCard title="Escalation Risk" value={<AnimatedCounter value={criticalCount} />} color="#ef4444" icon="⚠️" />
+              <StatCard title="Reopened Rate" value={<AnimatedCounter value={reopenedCount} />} color="#eab308" icon="🔄" />
             </div>
 
-            {/* AI operations widget */}
-            <div style={{ padding: '20px', borderRadius: '12px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+            {/* AI Executive Triaging Summary */}
+            <div style={{ padding: '20px', borderRadius: '16px', background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)', color: '#fff', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
               <h3 style={{ margin: '0 0 8px', color: '#fbcfe8', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span>🤖</span> Gemini Executive Operations Summary
               </h3>
               <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: '#cbd5e1' }}>
-                Operational triage shows active infrastructure loads are stable. <strong>Roads & Traffic</strong> represent {complaints.length > 0 ? Math.round((complaints.filter(c=>c.category==='Roads').length / complaints.length)*100) : 0}% of complaints. 
-                SLA compliance averages <strong>98%</strong> across Hyderabad sectors. 
-                Action alert: <strong>{complaints.filter(c=>c.is_urgent && c.status==='Pending').length} high-priority risks</strong> are currently pending field officer assignment.
+                Incident ingestion volumes are currently within normal thresholds. <strong>Roads & Water</strong> categories account for the majority of issues. 
+                SLA solve compliance is healthy at <strong>98.2%</strong>. 
+                Escalation Alert: <strong>{criticalCount} critical issues</strong> require immediate dispatcher attention.
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '2fr 1fr', gap: '20px' }}>
-              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
-                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📋 Operational Incident Feed</h3>
-                <div style={{ height: '250px', overflowY: 'auto', background: themeColors.surfaceSecondary, padding: '12px', borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
-                    {logs.map((log,i) => (
-                      <div key={i} style={{ fontSize: '0.85rem', padding: '8px 0', borderBottom: `1px dashed ${themeColors.border}`, color: themeColors.textPrimary }}>
-                        <strong>{log.user}:</strong> {log.action}
+            {/* Sub grids: Activity & Leaderboards */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1.8fr 1.2fr', gap: '20px' }}>
+              
+              {/* Leaderboards */}
+              <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary, fontSize: '0.95rem', fontWeight: 'bold', textTransform: 'uppercase' }}>🏆 Performance Leaderboard</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {topResolversList.length === 0 ? (
+                    <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary }}>No solved complaints recorded.</div>
+                  ) : (
+                    topResolversList.map((worker, index) => (
+                      <div key={worker.email} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: themeColors.surfaceSecondary, borderRadius: '8px', border: `1px solid ${themeColors.border}` }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '1rem', fontWeight: 'bold', color: '#2563eb' }}>#{index + 1}</span>
+                          <span style={{ fontSize: '0.85rem', color: themeColors.textPrimary }}>{worker.email}</span>
+                        </div>
+                        <span style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#10b981' }}>{worker.count} Solved</span>
                       </div>
-                    ))}
-                    {logs.length === 0 && <p style={{ textAlign: 'center', color: themeColors.textSecondary, padding: '20px' }}>No recent activities logged.</p>}
+                    ))
+                  )}
                 </div>
               </div>
 
-              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
-                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📢 Broadcast Alert Strip</h3>
+              {/* Broadcast announcements strip */}
+              <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+                <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary, fontSize: '0.95rem', fontWeight: 'bold', textTransform: 'uppercase' }}>📢 Send Broadcast Notification</h3>
                 <textarea 
                   value={broadcastMsg} 
                   onChange={e=>setBroadcastMsg(e.target.value)} 
-                  placeholder="Type an announcement to broadcast to all citizens..." 
-                  style={{ width:'100%', padding:'10px', marginBottom:'15px', borderRadius:'8px', border:`1px solid ${themeColors.border}`, background: themeColors.background, color: themeColors.textPrimary, height: '100px', resize: 'none' }}
+                  placeholder="Announce system maintenance or citizen warnings..." 
+                  style={{ width:'100%', padding:'10px', marginBottom:'15px', borderRadius:'8px', border:`1px solid ${themeColors.border}`, background: themeColors.background, color: themeColors.textPrimary, height: '80px', resize: 'none', outline: 'none' }}
                 />
                 <button onClick={handleBroadcast} style={{ width: '100%', padding: '10px', background: themeColors.primary, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  Send City Broadcast
+                  Transmit Public Broadcast
                 </button>
               </div>
+
             </div>
+
+            {/* Activity Feeds */}
+            <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+              <h3 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>📋 Realtime Operational Ingestion Log</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {logs.map((log, i) => (
+                  <div key={i} style={{ fontSize: '0.8rem', padding: '8px 12px', background: themeColors.surfaceSecondary, borderRadius: '6px', color: themeColors.textPrimary, display: 'flex', justifyContent: 'space-between' }}>
+                    <span>{log.action}</span>
+                    <strong style={{ color: '#2563eb' }}>{log.user}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+
           </div>
         )}
 
         {/* TAB 2: COMPLAINTS MANAGEMENT */}
         {activeTab === 'complaints' && (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', width: '100%' }}>
+            
+            {/* Search & Filters */}
+            <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}`, display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <input 
-                  placeholder="🔍 Search tickets by description..." 
+                  type="text" 
                   value={searchTerm} 
-                  onChange={e => setSearchTerm(e.target.value)} 
-                  style={{ padding: '10px 15px', border: `1px solid ${themeColors.border}`, borderRadius: '8px', background: themeColors.surface, color: themeColors.textPrimary, flex: 1, minWidth: '200px' }} 
+                  onChange={e=>setSearchTerm(e.target.value)} 
+                  placeholder="Global Search (ID, Citizen, Description, Address...)" 
+                  style={{ ...styles.input, flex: 2, minWidth: '220px', color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }}
                 />
-                <select 
-                  value={statusFilter} 
-                  onChange={e => setFilterStatus(e.target.value)} 
-                  style={{ padding: '10px', border: `1px solid ${themeColors.border}`, borderRadius: '8px', background: themeColors.surface, color: themeColors.textPrimary, minWidth: '150px' }}
-                >
-                  <option value="All">All Statuses</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Assigned">Assigned</option>
-                  <option value="In Progress">In Progress</option>
-                  <option value="Resolved">Resolved</option>
-                  <option value="Rejected">Rejected</option>
-                </select>
+                <input 
+                  type="text" 
+                  value={employeeSearch} 
+                  onChange={e=>setEmployeeSearch(e.target.value)} 
+                  placeholder="Assignee Staff Search" 
+                  style={{ ...styles.input, flex: 1, minWidth: '150px', color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', fontSize: '0.8rem' }}>
+                <div>
+                  <span style={{ marginRight: '6px', fontWeight: 'bold' }}>Status:</span>
+                  <select value={statusFilter} onChange={e=>setFilterStatus(e.target.value)} style={{ ...styles.miniSelect, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }}>
+                    <option value="All">All Statuses</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Assigned">Assigned</option>
+                    <option value="In Progress">In Progress</option>
+                    <option value="Resolved">Resolved</option>
+                    <option value="Closed">Closed</option>
+                    <option value="Reopened">Reopened</option>
+                    <option value="Rejected">Rejected</option>
+                  </select>
+                </div>
+                <div>
+                  <span style={{ marginRight: '6px', fontWeight: 'bold' }}>Priority:</span>
+                  <select value={priorityFilter} onChange={e=>setPriorityFilter(e.target.value)} style={{ ...styles.miniSelect, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }}>
+                    <option value="All">All Priorities</option>
+                    <option value="Critical">Critical</option>
+                    <option value="High">High</option>
+                    <option value="Normal">Normal</option>
+                  </select>
+                </div>
+                <div>
+                  <span style={{ marginRight: '6px', fontWeight: 'bold' }}>Category:</span>
+                  <select value={categoryFilter} onChange={e=>setCategoryFilter(e.target.value)} style={{ ...styles.miniSelect, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }}>
+                    <option value="All">All Categories</option>
+                    {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-              {filteredComplaints.map(c => (
-                <div key={c.id} style={{ display: 'flex', flexDirection: 'column', background: themeColors.surface, borderRadius: '12px', border: c.is_urgent ? '2px solid #ef4444' : `1px solid ${themeColors.border}`, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
-                  
-                  {/* Complaint Item Top Strip */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', background: themeColors.surfaceSecondary, padding: '12px 20px', borderBottom: `1px solid ${themeColors.border}`, flexWrap: 'wrap', gap: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '0.9rem', color: themeColors.textPrimary }}>Ticket #{String(c.id).slice(0, 8)}</span>
-                      {c.is_urgent && <span style={{ background: '#ef4444', color: '#fff', padding: '2px 8px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: 'bold' }}>🚨 URGENT</span>}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={statusBadgeStyle(c.status)}>{c.status}</span>
-                      <span style={{ fontSize: '0.75rem', background: '#3b82f6', color: '#fff', padding: '2px 8px', borderRadius: '4px', fontWeight: 'bold' }}>{c.category}</span>
-                    </div>
-                  </div>
-
-                  {/* Complaint Item Body */}
-                  <div style={{ padding: '20px', display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '250px' }}>
-                      <h4 style={{ margin: '0 0 8px 0', fontSize: '1.1rem', color: themeColors.textPrimary }}>{c.title}</h4>
-                      <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: themeColors.textSecondary }}>{c.description}</p>
-                      
-                      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap', fontSize: '0.8rem', color: themeColors.textSecondary }}>
-                        <span onClick={() => openMap(c.latitude, c.longitude)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>📍 {c.location || 'Municipal Zone'}</span>
-                        {c.servicenow_ticket_number && <span style={{ color: '#2563eb', fontWeight: 'bold' }}>🎫 ServiceNow: {c.servicenow_ticket_number}</span>}
-                      </div>
-                    </div>
-
-                    {/* Complaint Actions Panel */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', justifyContent: 'center', minWidth: '150px' }}>
-                      <button onClick={() => setViewingComplaint(c)} style={{ padding: '8px 12px', background: themeColors.surfaceSecondary, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}`, borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
-                        📷 Preview Evidence
-                      </button>
-
-                      {c.status === 'Pending' && (
-                        <div style={{ display: 'flex', gap: '5px' }}>
-                          <button onClick={() => setAssigningComplaintId(c.id)} style={{ flex: 1, padding: '8px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                            Dispatch
-                          </button>
-                          <button onClick={() => handleReject(c.id)} style={{ flex: 1, padding: '8px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}>
-                            Reject
-                          </button>
-                        </div>
-                      )}
-
-                      {c.status !== 'Pending' && (
-                        <div style={{ fontSize: '0.8rem', color: themeColors.textSecondary, background: themeColors.surfaceSecondary, padding: '8px', borderRadius: '6px', border: `1px solid ${themeColors.border}` }}>
-                          👤 Assigned: <strong style={{ color: themeColors.textPrimary }}>{c.assigned_to || 'None'}</strong>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {filteredComplaints.length === 0 && (
-                <div style={{ textAlign: 'center', padding: '50px', background: themeColors.surface, borderRadius: '12px', border: `1px dashed ${themeColors.border}` }}>
-                  <span style={{ fontSize: '2.5rem' }}>🍃</span>
-                  <p style={{ color: themeColors.textSecondary, margin: '10px 0 0 0' }}>No incidents matched your query.</p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: STAFF & USER ACCOUNTS */}
-        {activeTab === 'users' && (
-          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-              <div>
-                <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👥 Municipal Staff Directory</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: themeColors.textSecondary }}>Manage personnel, assign tasks, and monitor workloads.</p>
-              </div>
-              <button onClick={() => setShowAddUserModal(true)} style={{ padding: '10px 20px', background: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-                ➕ Invite Staff Member
-              </button>
-            </div>
-
-            <div style={{ background: themeColors.surface, borderRadius: '12px', border: `1px solid ${themeColors.border}`, overflow: 'hidden', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.05)' }}>
+            {/* Complaints Data Ledger Table */}
+            <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
               <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
                   <thead>
-                    <tr style={{ background: themeColors.surfaceSecondary, borderBottom: `1px solid ${themeColors.border}` }}>
-                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Staff Member</th>
-                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Role Badge</th>
-                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Department</th>
-                      <th style={{ padding: '12px 20px', color: themeColors.textPrimary, fontSize: '0.85rem', textAlign: 'left' }}>Active Workload</th>
+                    <tr style={{ borderBottom: `2px solid ${themeColors.border}`, color: themeColors.textSecondary }}>
+                      <th style={{ padding: '12px' }}>Incident ID</th>
+                      <th style={{ padding: '12px' }}>Topic</th>
+                      <th style={{ padding: '12px' }}>Category</th>
+                      <th style={{ padding: '12px' }}>Priority</th>
+                      <th style={{ padding: '12px' }}>Status</th>
+                      <th style={{ padding: '12px' }}>Assignee</th>
+                      <th style={{ padding: '12px' }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {users.filter(u=>u.role !== 'citizen').map(u => (
-                      <tr key={u.id} style={{ borderBottom: `1px solid ${themeColors.border}` }}>
-                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>
-                          <strong>{u.full_name}</strong>
-                          <div style={{ fontSize: '0.75rem', color: themeColors.textSecondary }}>{u.email}</div>
+                    {filteredComplaints.map((c) => (
+                      <tr key={c.id} style={{ borderBottom: `1px solid ${themeColors.border}`, color: themeColors.textPrimary }}>
+                        <td style={{ padding: '12px', fontFamily: 'monospace' }}>#{String(c.id).slice(0, 6).toUpperCase()}</td>
+                        <td style={{ padding: '12px', fontWeight: '600' }}>{c.title}</td>
+                        <td style={{ padding: '12px' }}>{c.category}</td>
+                        <td style={{ padding: '12px' }}>
+                          <span style={{ padding: '2px 6px', borderRadius: '4px', fontSize: '0.7rem', fontWeight: 'bold', background: c.priority==='Critical'?'rgba(239,68,68,0.15)':'rgba(0,0,0,0.03)', color: c.priority==='Critical'?'#ef4444':themeColors.textSecondary }}>
+                            {c.priority || 'Normal'}
+                          </span>
                         </td>
-                        <td style={{ padding: '15px 20px' }}>
-                          <span style={roleBadgeStyle(u.role)}>{u.role === 'dept_admin' ? 'HEAD' : 'OFFICER'}</span>
+                        <td style={{ padding: '12px' }}>
+                          <span style={statusBadgeStyle(c.status)}>{c.status}</span>
                         </td>
-                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>{u.department}</td>
-                        <td style={{ padding: '15px 20px', fontSize: '0.9rem', color: themeColors.textPrimary }}>
-                          {u.role === 'employee' ? (
-                            <span style={{ fontWeight: 'bold', color: getWorkerLoad(u.email) > 3 ? '#ef4444' : themeColors.textPrimary }}>
-                              {getWorkerLoad(u.email)} Active Tasks
-                            </span>
-                          ) : '-'}
+                        <td style={{ padding: '12px', color: '#2563eb' }}>{c.assigned_to || 'Unassigned'}</td>
+                        <td style={{ padding: '12px' }}>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <button onClick={() => setAssigningComplaintId(c.id)} style={{ padding: '4px 8px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Assign</button>
+                            <button onClick={() => handleReject(c.id)} style={{ padding: '4px 8px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Reject</button>
+                            {c.latitude && c.longitude && (
+                              <button onClick={() => openMap(c.latitude, c.longitude)} style={{ padding: '4px 8px', background: 'none', border: `1px solid ${themeColors.border}`, color: themeColors.textPrimary, borderRadius: '4px', cursor: 'pointer' }}>📍 Map</button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -653,10 +586,48 @@ const AdminDashboard = () => {
                 </table>
               </div>
             </div>
+
           </div>
         )}
 
-        {/* TAB 4: ADVANCED PREMIUM ANALYTICS (SVG CHARTS) */}
+        {/* TAB 3: STAFF DIRECTORY */}
+        {activeTab === 'users' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, color: themeColors.textPrimary }}>👥 Municipal Roster Directory</h3>
+              <button onClick={() => setShowAddUserModal(true)} style={{ padding: '8px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>+ Create Worker Accounts</button>
+            </div>
+
+            <div style={{ ...styles.card, background: themeColors.surface, border: `1px solid ${themeColors.border}` }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '0.8rem' }}>
+                <thead>
+                  <tr style={{ borderBottom: `2px solid ${themeColors.border}`, color: themeColors.textSecondary }}>
+                    <th style={{ padding: '12px' }}>Full Name</th>
+                    <th style={{ padding: '12px' }}>Email Address</th>
+                    <th style={{ padding: '12px' }}>Role Badge</th>
+                    <th style={{ padding: '12px' }}>Department</th>
+                    <th style={{ padding: '12px' }}>Active Load</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {users.filter(u=>u.role!=='citizen').map((u) => (
+                    <tr key={u.id} style={{ borderBottom: `1px solid ${themeColors.border}`, color: themeColors.textPrimary }}>
+                      <td style={{ padding: '12px', fontWeight: 'bold' }}>{u.full_name || 'N/A'}</td>
+                      <td style={{ padding: '12px' }}>{u.email}</td>
+                      <td style={{ padding: '12px' }}>
+                        <span style={roleBadgeStyle(u.role)}>{u.role}</span>
+                      </td>
+                      <td style={{ padding: '12px' }}>{u.department}</td>
+                      <td style={{ padding: '12px', fontWeight: 'bold', color: getWorkerLoad(u.email) > 3 ? '#ef4444' : '#22c55e' }}>{getWorkerLoad(u.email)} Complaints</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ADVANCED BI ANALYTICS */}
         {activeTab === 'analytics' && (
           <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <h3 style={{ margin: 0, color: themeColors.textPrimary }}>📈 Enterprise Performance Analytics</h3>
@@ -674,21 +645,16 @@ const AdminDashboard = () => {
                         <stop offset="100%" stopColor="#3b82f6" stopOpacity="0" />
                       </linearGradient>
                     </defs>
-                    {/* Grid Lines */}
                     <line x1="50" y1="50" x2="450" y2="50" stroke={themeColors.border} strokeDasharray="5,5" />
                     <line x1="50" y1="100" x2="450" y2="100" stroke={themeColors.border} strokeDasharray="5,5" />
                     <line x1="50" y1="150" x2="450" y2="150" stroke={themeColors.border} strokeDasharray="5,5" />
-                    {/* Area path */}
                     <path d="M 50 170 Q 130 110 200 130 T 350 70 T 450 60 L 450 170 L 50 170 Z" fill="url(#areaGrad)" />
-                    {/* Line path */}
                     <path d="M 50 170 Q 130 110 200 130 T 350 70 T 450 60" fill="none" stroke="#3b82f6" strokeWidth="3" />
-                    {/* Data Points */}
                     <circle cx="50" cy="170" r="4" fill="#3b82f6" />
                     <circle cx="130" cy="115" r="4" fill="#3b82f6" />
                     <circle cx="200" cy="130" r="4" fill="#3b82f6" />
                     <circle cx="350" cy="70" r="4" fill="#3b82f6" />
                     <circle cx="450" cy="60" r="4" fill="#3b82f6" />
-                    {/* Labels */}
                     <text x="50" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Mon</text>
                     <text x="130" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Wed</text>
                     <text x="200" y="190" fill={themeColors.textSecondary} fontSize="10" textAnchor="middle">Thu</text>
@@ -704,11 +670,8 @@ const AdminDashboard = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
                   <svg width="150" height="150" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" fill="none" stroke={themeColors.border} strokeWidth="10" />
-                    {/* 45% Roads */}
                     <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="125 251" strokeDashoffset="0" />
-                    {/* 30% Water */}
                     <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="10" strokeDasharray="80 251" strokeDashoffset="-125" />
-                    {/* 25% Electricity */}
                     <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="10" strokeDasharray="46 251" strokeDashoffset="-205" />
                   </svg>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
@@ -719,45 +682,110 @@ const AdminDashboard = () => {
                 </div>
               </div>
 
-              {/* Chart 3: Backlog Zone Density Heat Map */}
-              <div style={{ background: themeColors.surface, padding: '20px', borderRadius: '12px', border: `1px solid ${themeColors.border}`, gridColumn: isMobile ? 'span 1' : 'span 2' }}>
-                <h4 style={{ margin: '0 0 15px', color: themeColors.textPrimary }}>🗺️ Municipal Backlog Heat Map (By Operational Zones)</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px' }}>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.9)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                    <strong>Zone 1 (Secunderabad)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>42 Open</div>
-                  </div>
-                  <div style={{ background: 'rgba(239, 68, 68, 0.65)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                    <strong>Zone 2 (Khairatabad)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>28 Open</div>
-                  </div>
-                  <div style={{ background: 'rgba(245, 158, 11, 0.8)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                    <strong>Zone 3 (Serilingampally)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>19 Open</div>
-                  </div>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.8)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                    <strong>Zone 4 (Charminar)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>6 Open</div>
-                  </div>
-                  <div style={{ background: 'rgba(16, 185, 129, 0.9)', color: '#fff', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                    <strong>Zone 5 (Kukatpally)</strong><div style={{ fontSize: '1.25rem', fontWeight: 'bold' }}>2 Open</div>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         )}
 
-        {/* TAB 5: SYSTEM AUDIT LOGS LEDGER */}
+        {/* TAB 5: GIS MAP */}
+        {activeTab === 'map' && (
+          <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '550px' }}>
+            <h3 style={{ margin: 0, color: themeColors.textPrimary }}>🗺️ Municipal Command Center GIS Map</h3>
+            <div style={{ flex: 1, borderRadius: '12px', overflow: 'hidden', border: `1px solid ${themeColors.border}` }}>
+              <CommandCenterMap complaints={complaints} onSelectComplaint={(c) => { setActiveTab('complaints'); setSearchTerm(c.title); }} />
+            </div>
+          </div>
+        )}
+
+        {/* TAB 6: REPORT CENTER */}
+        {activeTab === 'reports' && (
+          <div className="fade-in">
+            <h3 style={{ margin: '0 0 15px 0', color: themeColors.textPrimary }}>📄 Performance Reports Center</h3>
+            <ReportCenter complaints={complaints} theme={theme} themeColors={themeColors} />
+          </div>
+        )}
+
+        {/* TAB 7: INFRASTRUCTURE TELEMETRY */}
+        {activeTab === 'system_health' && (
+          <div className="fade-in">
+            <h3 style={{ margin: '0 0 15px 0', color: themeColors.textPrimary }}>⚙️ Infrastructure Health & Telemetry</h3>
+            <SystemHealth theme={theme} themeColors={themeColors} />
+          </div>
+        )}
+
+        {/* TAB 8: AUDIT TRAIL LOGS */}
         {activeTab === 'audit_logs' && (
           <div className="fade-in">
              <h2 style={{ margin: '0 0 20px', color: themeColors.textPrimary, fontSize: '1.5rem' }}>Security Audit Logs Ledger</h2>
              <AuditLogsConsole />
           </div>
         )}
+
       </main>
+
+      {/* --- ADD USER MODAL --- */}
+      {showAddUserModal && (
+        <div style={localStyles.modalOverlay} onClick={() => setShowAddUserModal(false)}>
+          <div style={{ ...localStyles.modalContent, background: themeColors.surface, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}` }} onClick={e=>e.stopPropagation()}>
+            <div style={{ ...localStyles.modalHeader, borderBottom: `1px solid ${themeColors.border}` }}>
+              <h3 style={{ margin: 0 }}>Create Worker Account</h3>
+              <button onClick={() => setShowAddUserModal(false)} style={{ background:'none', border:'none', fontSize:'1.5rem', cursor:'pointer', color: themeColors.textPrimary }}>&times;</button>
+            </div>
+            <form onSubmit={handleCreateUser} style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={styles.formLabel}>Full Name</label>
+                <input required value={newUser.fullName} onChange={e=>setNewUser(prev=>({...prev, fullName: e.target.value}))} style={{ ...styles.input, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }} />
+              </div>
+              <div>
+                <label style={styles.formLabel}>Email Address</label>
+                <input required type="email" value={newUser.email} onChange={e=>setNewUser(prev=>({...prev, email: e.target.value}))} style={{ ...styles.input, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }} />
+              </div>
+              <div>
+                <label style={styles.formLabel}>Temporary Password</label>
+                <input required type="password" value={newUser.password} onChange={e=>setNewUser(prev=>({...prev, password: e.target.value}))} style={{ ...styles.input, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }} />
+              </div>
+              <div>
+                <label style={styles.formLabel}>Govt ID Number</label>
+                <input required value={newUser.idNumber} onChange={e=>setNewUser(prev=>({...prev, idNumber: e.target.value}))} style={{ ...styles.input, color: themeColors.textPrimary, background: themeColors.background, border: `1px solid ${themeColors.border}` }} />
+              </div>
+              <button type="submit" style={{ padding: '10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}>Create Account</button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* --- WORKER ASSIGNMENT MODAL --- */}
+      {assigningComplaintId && (
+        <div style={localStyles.modalOverlay} onClick={() => setAssigningComplaintId(null)}>
+          <div style={{ ...localStyles.modalContent, background: themeColors.surface, color: themeColors.textPrimary, border: `1px solid ${themeColors.border}`, maxHeight: '400px', display: 'flex', flexDirection: 'column' }} onClick={e=>e.stopPropagation()}>
+            <div style={{ ...localStyles.modalHeader, borderBottom: `1px solid ${themeColors.border}` }}>
+              <h3 style={{ margin: 0 }}>Allocate Field Dispatcher</h3>
+              <button onClick={() => setAssigningComplaintId(null)} style={{ background:'none', border:'none', fontSize:'1.5rem', cursor:'pointer', color: themeColors.textPrimary }}>&times;</button>
+            </div>
+            <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+              {users.filter(u=>u.role==='employee').map(worker => (
+                <div key={worker.email} style={{ ...localStyles.workerRow, borderBottom: `1px solid ${themeColors.border}` }}>
+                  <div>
+                    <div style={{ fontWeight: 'bold' }}>{worker.full_name}</div>
+                    <div style={{ fontSize: '0.75rem', color: themeColors.textSecondary }}>{worker.email} &bull; Load: {getWorkerLoad(worker.email)}</div>
+                  </div>
+                  <button onClick={() => handleAssignWorker(worker.email)} style={{ padding: '6px 12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>Select</button>
+                </div>
+              ))}
+              {users.filter(u=>u.role==='employee').length === 0 && <p style={{ color: themeColors.textSecondary, textAlign: 'center' }}>No active field workers registered.</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- MY PROFILE PORTAL TRIGGER --- */}
+      {showProfileModal && (
+        <ProfileModal onClose={() => setShowProfileModal(false)} />
+      )}
     </div>
   );
 };
 
-// --- SUB-COMPONENTS WITH THEME SUPPORT ---
+// --- SUB-COMPONENTS ---
 const NavBtn = ({ active, onClick, icon, label, collapsed }) => {
   return (
     <button onClick={onClick} style={{
@@ -765,19 +793,19 @@ const NavBtn = ({ active, onClick, icon, label, collapsed }) => {
       alignItems: 'center', 
       gap: '15px', 
       padding: '12px 15px',
-      background: active ? 'rgba(255, 255, 255, 0.15)' : 'transparent', 
+      background: active ? 'rgba(255, 255, 255, 0.12)' : 'transparent', 
       color: active ? '#fff' : '#94a3b8',
       border: 'none', 
       borderRadius: '8px', 
       cursor: 'pointer', 
-      fontSize: '0.95rem', 
+      fontSize: '0.9rem', 
       width: '100%', 
       textAlign: 'left',
       justifyContent: collapsed ? 'center' : 'flex-start',
       transition: 'all 0.2s ease',
-      fontWeight: active ? '600' : 'normal',
+      fontWeight: active ? '700' : 'normal',
     }}>
-      <span style={{ fontSize: '1.25rem' }}>{icon}</span> 
+      <span style={{ fontSize: '1.2rem' }}>{icon}</span> 
       {!collapsed && <span>{label}</span>}
     </button>
   );
@@ -799,40 +827,59 @@ const StatCard = ({ title, value, color, icon }) => {
       transition: 'transform 0.2s',
     }}>
       <div>
-        <div style={{ fontSize: '1.8rem', fontWeight: '800', color: themeColors.textPrimary }}>{value}</div>
-        <div style={{ color: themeColors.textSecondary, fontSize: '0.85rem', marginTop: '4px', fontWeight: '500' }}>{title}</div>
+        <div style={{ fontSize: '1.6rem', fontWeight: '800', color: themeColors.textPrimary }}>{value}</div>
+        <div style={{ color: themeColors.textSecondary, fontSize: '0.8rem', marginTop: '4px', fontWeight: '600' }}>{title}</div>
       </div>
-      <div style={{ fontSize: '2rem', opacity: 0.8 }}>{icon}</div>
+      <div style={{ fontSize: '1.8rem', opacity: 0.8 }}>{icon}</div>
     </div>
   );
 };
 
-// --- STYLES OBJECT ---
+const styles = {
+  card: {
+    padding: '20px',
+    borderRadius: '16px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.01)'
+  },
+  input: {
+    padding: '10px 14px',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    outline: 'none',
+    boxSizing: 'border-box'
+  },
+  miniSelect: {
+    padding: '6px 10px',
+    borderRadius: '6px',
+    fontSize: '0.75rem',
+    outline: 'none'
+  },
+  formLabel: {
+    display: 'block',
+    fontSize: '0.75rem',
+    fontWeight: 'bold',
+    marginBottom: '4px',
+    color: '#64748b'
+  }
+};
+
 const localStyles = {
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1050, padding: '20px' },
   modalContent: { width: '450px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', overflow:'hidden' },
-  imageModalContent: { width: '600px', borderRadius: '12px', boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1)', overflow:'hidden' },
   modalHeader: { padding: '15px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  workerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' },
-  
-  profileCard: { width:'400px', borderRadius:'16px', overflow:'hidden', boxShadow:'0 15px 35px rgba(0,0,0,0.25)', position:'relative' },
-  profileAvatarContainer: { position:'absolute', top:'50px', left:'50%', transform:'translateX(-50%)', padding:'4px', borderRadius:'50%' },
-  profileAvatar: { width:'90px', height:'90px', borderRadius:'50%', display:'flex', justifyContent:'center', alignItems:'center', fontSize:'2rem', fontWeight:'bold' },
-  profileBody: { padding:'60px 25px 25px', textAlign:'center' },
-  profileGrid: { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px', marginTop:'20px', textAlign:'left' },
-  closeProfileBtn: { width:'100%', padding:'12px', border:'none', borderRadius:'8px', marginTop:'25px', cursor:'pointer', fontWeight:'bold' }
+  workerRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0' }
 };
 
 const statusBadgeStyle = (status) => {
-  const isResolved = status === 'Resolved';
+  const isResolved = status === 'Resolved' || status === 'Closed';
   const isRejected = status === 'Rejected';
   return {
     padding: '4px 10px', 
     borderRadius: '12px', 
     fontSize: '0.7rem', 
     fontWeight: 'bold', 
-    background: isResolved ? '#d1e7dd' : isRejected ? '#f8d7da' : '#fff3cd', 
-    color: isResolved ? '#0f5132' : isRejected ? '#842029' : '#664d03'
+    background: isResolved ? 'rgba(34,197,94,0.12)' : isRejected ? 'rgba(239,68,68,0.12)' : 'rgba(234,88,12,0.12)', 
+    color: isResolved ? '#22c55e' : isRejected ? '#ef4444' : '#ea580c'
   };
 };
 
@@ -841,8 +888,8 @@ const roleBadgeStyle = (role) => {
   return {
     padding: '4px 10px', 
     borderRadius: '12px', 
-    background: isSuper ? '#ffd700' : '#17a2b8', 
-    color: isSuper ? '#000' : '#fff', 
+    background: isSuper ? 'rgba(234,88,12,0.12)' : 'rgba(37,99,235,0.12)', 
+    color: isSuper ? '#ea580c' : '#2563eb', 
     fontSize: '0.7rem', 
     fontWeight: 'bold', 
     textTransform: 'uppercase', 
