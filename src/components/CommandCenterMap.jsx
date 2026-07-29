@@ -1,20 +1,19 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Custom pulsing SVG markers based on status and priority
-const createCustomIcon = (status, priority) => {
-  let color = '#22c55e'; // Green - Resolved
-  if (status === 'Pending') {
-    color = priority === 'Critical' ? '#ef4444' : '#eab308'; // Red or Yellow
-  } else if (status === 'In Progress') {
-    color = '#3b82f6'; // Blue
-  } else if (status === 'Closed') {
-    color = '#10b981'; // Emerald
-  } else if (priority === 'Critical') {
-    color = '#ef4444'; // Critical is always Red
-  }
+// Department-specific color mapping
+const getDeptColor = (category) => {
+  if (category === 'Roads') return '#3b82f6'; // Blue
+  if (category === 'Street Lighting') return '#eab308'; // Yellow/Amber
+  if (category === 'Drainage & Sewerage') return '#9333ea'; // Purple
+  if (category === 'Sanitation & Garbage') return '#ef4444'; // Red
+  return '#22c55e'; // Green (default / other)
+};
+
+const createCustomIcon = (category) => {
+  const color = getDeptColor(category);
 
   return L.divIcon({
     html: `
@@ -55,6 +54,9 @@ const createCustomIcon = (status, priority) => {
 
 const CommandCenterMap = ({ complaints = [], onSelectComplaint }) => {
   const hyderabadCenter = [17.3850, 78.4867];
+  const [selectedDept, setSelectedDept] = useState('All');
+
+  const departments = ['All', 'Roads', 'Street Lighting', 'Drainage & Sewerage', 'Sanitation & Garbage'];
 
   // Helper to generate deterministic coordinates if latitude/longitude are missing
   const getCoordinates = (complaint) => {
@@ -63,13 +65,53 @@ const CommandCenterMap = ({ complaints = [], onSelectComplaint }) => {
     }
     // Fallback coordinates based on ID so they scatter realistically around Hyderabad
     const idNum = parseInt(String(complaint.id).slice(0, 5), 10) || 12345;
-    const latOffset = ((idNum % 100) - 50) * 0.0015;
-    const lngOffset = (((idNum * 17) % 100) - 50) * 0.0015;
+    const latOffset = ((idNum % 100) - 50) * 0.0018;
+    const lngOffset = (((idNum * 17) % 100) - 50) * 0.0018;
     return [hyderabadCenter[0] + latOffset, hyderabadCenter[1] + lngOffset];
   };
 
+  // Filter complaints by selected department
+  const filteredComplaints = selectedDept === 'All' 
+    ? complaints 
+    : complaints.filter(c => c.category === selectedDept);
+
   return (
     <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+      
+      {/* Floating Filter Overlay */}
+      <div style={{
+        position: 'absolute',
+        top: '15px',
+        left: '50px', // Shift right to avoid overlap with Leaflet zoom control
+        zIndex: 10,
+        background: 'rgba(255, 255, 255, 0.95)',
+        padding: '8px 12px',
+        borderRadius: '8px',
+        border: '1px solid #e2e8f0',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        fontFamily: 'system-ui, sans-serif',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }}>
+        <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: '#1e293b' }}>📍 Map Filter:</span>
+        <select 
+          value={selectedDept} 
+          onChange={(e) => setSelectedDept(e.target.value)}
+          style={{
+            padding: '4px 8px',
+            borderRadius: '6px',
+            border: '1px solid #cbd5e1',
+            fontSize: '0.75rem',
+            background: 'white',
+            outline: 'none',
+            cursor: 'pointer'
+          }}
+        >
+          {departments.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+        </select>
+      </div>
+
       <MapContainer 
         center={hyderabadCenter} 
         zoom={12} 
@@ -80,13 +122,13 @@ const CommandCenterMap = ({ complaints = [], onSelectComplaint }) => {
           url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
         />
 
-        {complaints.map((c) => {
+        {filteredComplaints.map((c) => {
           const coords = getCoordinates(c);
           return (
             <Marker 
               key={c.id} 
               position={coords} 
-              icon={createCustomIcon(c.status, c.priority)}
+              icon={createCustomIcon(c.category)}
             >
               <Popup>
                 <div style={{ fontFamily: 'system-ui, sans-serif', fontSize: '0.8rem', minWidth: '180px' }}>
@@ -106,7 +148,7 @@ const CommandCenterMap = ({ complaints = [], onSelectComplaint }) => {
                   <p style={{ margin: '0 0 8px 0', color: '#475569', fontSize: '0.75rem', lineHeight: '1.3' }}>{c.description?.slice(0, 80)}...</p>
 
                   <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '6px', fontSize: '0.7rem', color: '#64748b' }}>
-                    <strong>Category:</strong> {c.category}<br />
+                    <strong>Department:</strong> {c.category}<br />
                     <strong>Status:</strong> {c.status}<br />
                     <strong>Assignee:</strong> {c.assigned_to || 'Unassigned'}
                   </div>
@@ -153,23 +195,23 @@ const CommandCenterMap = ({ complaints = [], onSelectComplaint }) => {
         fontSize: '0.75rem',
         color: '#1f2937'
       }}>
-        <h5 style={{ margin: '0 0 8px 0', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>Priority Map Status</h5>
+        <h5 style={{ margin: '0 0 8px 0', fontWeight: 'bold', borderBottom: '1px solid #e2e8f0', paddingBottom: '4px' }}>Municipal Roster</h5>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#ef4444', display: 'inline-block' }}></span>
-            <span>Critical / High</span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDeptColor('Roads'), display: 'inline-block' }}></span>
+            <span>Roads</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#3b82f6', display: 'inline-block' }}></span>
-            <span>In Progress</span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDeptColor('Street Lighting'), display: 'inline-block' }}></span>
+            <span>Street Lighting</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#eab308', display: 'inline-block' }}></span>
-            <span>Pending Allocation</span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDeptColor('Drainage & Sewerage'), display: 'inline-block' }}></span>
+            <span>Drainage & Sewerage</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#22c55e', display: 'inline-block' }}></span>
-            <span>Resolved</span>
+            <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: getDeptColor('Sanitation & Garbage'), display: 'inline-block' }}></span>
+            <span>Sanitation & Garbage</span>
           </div>
         </div>
       </div>

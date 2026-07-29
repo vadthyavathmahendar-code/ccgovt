@@ -85,7 +85,7 @@ const AdminDashboard = () => {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [broadcastMsg, setBroadcastMsg] = useState('');
-  const [categories] = useState(['Roads', 'Garbage', 'Water', 'Electricity', 'Traffic']);
+  const [categories] = useState(['Roads', 'Street Lighting', 'Drainage & Sewerage', 'Sanitation & Garbage']);
 
   const navigate = useNavigate();
 
@@ -424,7 +424,7 @@ const AdminDashboard = () => {
                 <span>🤖</span> Gemini Executive Operations Summary
               </h3>
               <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: '1.6', color: '#cbd5e1' }}>
-                Incident ingestion volumes are currently within normal thresholds. <strong>Roads & Water</strong> categories account for the majority of issues. 
+                Incident ingestion volumes are currently within normal thresholds. <strong>Roads & Drainage</strong> categories account for the majority of issues. 
                 SLA solve compliance is healthy at <strong>98.2%</strong>. 
                 Escalation Alert: <strong>{criticalCount} critical issues</strong> require immediate dispatcher attention.
               </p>
@@ -670,14 +670,16 @@ const AdminDashboard = () => {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', flexWrap: 'wrap', gap: '20px' }}>
                   <svg width="150" height="150" viewBox="0 0 100 100">
                     <circle cx="50" cy="50" r="40" fill="none" stroke={themeColors.border} strokeWidth="10" />
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="125 251" strokeDashoffset="0" />
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#10b981" strokeWidth="10" strokeDasharray="80 251" strokeDashoffset="-125" />
-                    <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" strokeWidth="10" strokeDasharray="46 251" strokeDashoffset="-205" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#3b82f6" strokeWidth="10" strokeDasharray="100 251" strokeDashoffset="0" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#eab308" strokeWidth="10" strokeDasharray="50 251" strokeDashoffset="-100" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#9333ea" strokeWidth="10" strokeDasharray="50 251" strokeDashoffset="-150" />
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="#ef4444" strokeWidth="10" strokeDasharray="51 251" strokeDashoffset="-200" />
                   </svg>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#3b82f6', borderRadius:'3px' }}></span> Roads & Potholes (45%)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#10b981', borderRadius:'3px' }}></span> Water Leakage (30%)</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#f59e0b', borderRadius:'3px' }}></span> Electricity & Grid (25%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#3b82f6', borderRadius:'3px' }}></span> Roads (40%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#eab308', borderRadius:'3px' }}></span> Street Lighting (20%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#9333ea', borderRadius:'3px' }}></span> Drainage & Sewerage (20%)</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: themeColors.textPrimary }}><span style={{ display:'block', width:'12px', height:'12px', background:'#ef4444', borderRadius:'3px' }}></span> Sanitation & Garbage (20%)</div>
                   </div>
                 </div>
               </div>

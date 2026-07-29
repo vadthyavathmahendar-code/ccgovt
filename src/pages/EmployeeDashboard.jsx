@@ -371,11 +371,9 @@ const EmployeeDashboard = () => {
                                 style={{ padding: '6px', borderRadius: '4px', border: '1px solid #ccc', fontSize: '0.85rem' }}
                               >
                                 <option value="Roads">Roads</option>
-                                <option value="Water">Water</option>
-                                <option value="Electricity">Electricity</option>
-                                <option value="Garbage">Garbage</option>
-                                <option value="Drainage">Drainage</option>
-                                <option value="Parks">Parks</option>
+                                <option value="Street Lighting">Street Lighting</option>
+                                <option value="Drainage & Sewerage">Drainage & Sewerage</option>
+                                <option value="Sanitation & Garbage">Sanitation & Garbage</option>
                               </select>
                               <button onClick={() => handleReroute(t.id, rerouteCategory)} className="btn btn-primary" style={{ padding: '6px 12px', fontSize: '0.8rem', background: '#d97706', borderColor: '#d97706' }}>
                                 Send

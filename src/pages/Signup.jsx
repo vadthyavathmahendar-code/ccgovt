@@ -220,9 +220,9 @@ const Signup = () => {
                             <label style={styles.label}>Department</label>
                             <select name="department" value={formData.department} onChange={handleChange} style={styles.input}>
                                 <option value="Roads">Roads</option>
-                                <option value="Garbage">Garbage</option>
-                                <option value="Electricity">Electricity</option>
-                                
+                                <option value="Street Lighting">Street Lighting</option>
+                                <option value="Drainage & Sewerage">Drainage & Sewerage</option>
+                                <option value="Sanitation & Garbage">Sanitation & Garbage</option>
                             </select>
                         </div>
                     </div>

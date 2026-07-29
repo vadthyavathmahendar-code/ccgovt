@@ -9,7 +9,7 @@ const ReportCenter = ({ complaints = [], theme, themeColors }) => {
   const [generatedData, setGeneratedData] = useState([]);
   const [summaryStats, setSummaryStats] = useState({});
 
-  const departments = ['All', 'Roads', 'Garbage', 'Water', 'Electricity', 'Traffic'];
+  const departments = ['All', 'Roads', 'Street Lighting', 'Drainage & Sewerage', 'Sanitation & Garbage'];
   const wards = ['All', 'Ward 1 - Gachibowli', 'Ward 2 - Madhapur', 'Ward 3 - Jubilee Hills', 'Ward 4 - Banjara Hills', 'Ward 5 - Begumpet'];
 
   const handleGenerateReport = () => {

@@ -19,11 +19,11 @@ VALUES ('74e5dea8-8e48-4bd1-b45b-720a4e75fd85', 'admin_roads@ccgovt.test', 'Road
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('d3fb0879-980c-4336-bcdd-baf571bfecef', 'admin_sanitation@ccgovt.test', 'Sanitation Administrative Director', 'dept_admin', 'Sanitation', '9100000002', 'Sanitation Control Center, Hyderabad', 0, 'aadhaar', '123456789002', now(), now())
+VALUES ('d3fb0879-980c-4336-bcdd-baf571bfecef', 'admin_sanitation@ccgovt.test', 'Sanitation Administrative Director', 'dept_admin', 'Sanitation & Garbage', '9100000002', 'Sanitation & Garbage Control Center, Hyderabad', 0, 'aadhaar', '123456789002', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('2a9fec04-f332-407a-be3a-a5207c96cdcf', 'admin_water_supply@ccgovt.test', 'Water Supply Administrative Director', 'dept_admin', 'Water Supply', '9100000003', 'Water Supply Control Center, Hyderabad', 0, 'aadhaar', '123456789003', now(), now())
+VALUES ('2a9fec04-f332-407a-be3a-a5207c96cdcf', 'admin_water_supply@ccgovt.test', 'Water Supply Administrative Director', 'dept_admin', 'Drainage & Sewerage', '9100000003', 'Drainage & Sewerage Control Center, Hyderabad', 0, 'aadhaar', '123456789003', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
@@ -43,27 +43,27 @@ VALUES ('99b9b122-ebd4-40b1-a58c-c5f2819e2bf8', 'emp_road_3@ccgovt.test', 'Roads
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('a9cfadaf-ad7c-4c8f-b5a8-d918e846fff3', 'emp_sani_1@ccgovt.test', 'Sanitation Field Inspector 1', 'employee', 'Sanitation', '92000011', 'Sanitation Sub-station Office 1', 0, 'aadhaar', '123456789011', now(), now())
+VALUES ('a9cfadaf-ad7c-4c8f-b5a8-d918e846fff3', 'emp_sani_1@ccgovt.test', 'Sanitation Field Inspector 1', 'employee', 'Sanitation & Garbage', '92000011', 'Sanitation Sub-station Office 1', 0, 'aadhaar', '123456789011', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('d0d26e90-24d1-4b64-8900-456c923a863d', 'emp_sani_2@ccgovt.test', 'Sanitation Field Inspector 2', 'employee', 'Sanitation', '92000012', 'Sanitation Sub-station Office 2', 0, 'aadhaar', '123456789012', now(), now())
+VALUES ('d0d26e90-24d1-4b64-8900-456c923a863d', 'emp_sani_2@ccgovt.test', 'Sanitation Field Inspector 2', 'employee', 'Sanitation & Garbage', '92000012', 'Sanitation Sub-station Office 2', 0, 'aadhaar', '123456789012', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('193c0f5a-0094-4dae-9937-feb097bb47b6', 'emp_sani_3@ccgovt.test', 'Sanitation Field Inspector 3', 'employee', 'Sanitation', '92000013', 'Sanitation Sub-station Office 3', 0, 'aadhaar', '123456789013', now(), now())
+VALUES ('193c0f5a-0094-4dae-9937-feb097bb47b6', 'emp_sani_3@ccgovt.test', 'Sanitation Field Inspector 3', 'employee', 'Sanitation & Garbage', '92000013', 'Sanitation Sub-station Office 3', 0, 'aadhaar', '123456789013', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('269fcca0-71d5-443f-b5d6-211c8c7a40bd', 'emp_wate_1@ccgovt.test', 'Water Supply Field Inspector 1', 'employee', 'Water Supply', '92000021', 'Water Supply Sub-station Office 1', 0, 'aadhaar', '123456789021', now(), now())
+VALUES ('269fcca0-71d5-443f-b5d6-211c8c7a40bd', 'emp_wate_1@ccgovt.test', 'Water Supply Field Inspector 1', 'employee', 'Drainage & Sewerage', '92000021', 'Water Supply Sub-station Office 1', 0, 'aadhaar', '123456789021', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('16182b15-c8f6-4891-b43d-2ecd46cc15b3', 'emp_wate_2@ccgovt.test', 'Water Supply Field Inspector 2', 'employee', 'Water Supply', '92000022', 'Water Supply Sub-station Office 2', 0, 'aadhaar', '123456789022', now(), now())
+VALUES ('16182b15-c8f6-4891-b43d-2ecd46cc15b3', 'emp_wate_2@ccgovt.test', 'Water Supply Field Inspector 2', 'employee', 'Drainage & Sewerage', '92000022', 'Water Supply Sub-station Office 2', 0, 'aadhaar', '123456789022', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
-VALUES ('4a2a5c9d-cb51-44b9-a4ce-cc623458aed0', 'emp_wate_3@ccgovt.test', 'Water Supply Field Inspector 3', 'employee', 'Water Supply', '92000023', 'Water Supply Sub-station Office 3', 0, 'aadhaar', '123456789023', now(), now())
+VALUES ('4a2a5c9d-cb51-44b9-a4ce-cc623458aed0', 'emp_wate_3@ccgovt.test', 'Water Supply Field Inspector 3', 'employee', 'Drainage & Sewerage', '92000023', 'Water Supply Sub-station Office 3', 0, 'aadhaar', '123456789023', now(), now())
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.profiles (id, email, full_name, role, department, phone, address, points, govt_id_type, govt_id_number, created_at, updated_at)
@@ -160,11 +160,11 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 2. Seed Complaints
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (26, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Triaged', 'Medium', '17.446812, 78.414093', 'Kukatpally, Block A, Hyderabad', 17.446812, 78.414093, NULL, false, '2026-06-04T11:19:41.376+00:00')
+VALUES (26, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Triaged', 'Medium', '17.446812, 78.414093', 'Kukatpally, Block A, Hyderabad', 17.446812, 78.414093, NULL, false, '2026-06-04T11:19:41.376+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (27, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Assigned', 'High', '17.351814, 78.505798', 'Jubilee Hills, Sector 2, Hyderabad', 17.351814, 78.505798, 'emp_wate_3@ccgovt.test', true, '2026-06-05T11:19:41.377+00:00')
+VALUES (27, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Assigned', 'High', '17.351814, 78.505798', 'Jubilee Hills, Sector 2, Hyderabad', 17.351814, 78.505798, 'emp_wate_3@ccgovt.test', true, '2026-06-05T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -176,11 +176,11 @@ VALUES (29, (SELECT id FROM public.profiles WHERE email = 'citizen_4@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (30, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Closed', 'High', '17.424145, 78.501045', 'Begumpet, Sector 1, Hyderabad', 17.424145, 78.501045, 'emp_sani_3@ccgovt.test', true, '2026-06-08T11:19:41.377+00:00')
+VALUES (30, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Closed', 'High', '17.424145, 78.501045', 'Begumpet, Sector 1, Hyderabad', 17.424145, 78.501045, 'emp_sani_3@ccgovt.test', true, '2026-06-08T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (31, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Rejected', 'Low', '17.399156, 78.381765', 'Jubilee Hills, Phase II, Hyderabad', 17.399156, 78.381765, 'emp_wate_1@ccgovt.test', false, '2026-06-09T11:19:41.377+00:00')
+VALUES (31, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Rejected', 'Low', '17.399156, 78.381765', 'Jubilee Hills, Phase II, Hyderabad', 17.399156, 78.381765, 'emp_wate_1@ccgovt.test', false, '2026-06-09T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -192,11 +192,11 @@ VALUES (33, (SELECT id FROM public.profiles WHERE email = 'citizen_8@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (34, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Verification Pending', 'Low', '17.383503, 78.437162', 'Kukatpally, Block A, Hyderabad', 17.383503, 78.437162, 'emp_sani_1@ccgovt.test', false, '2026-06-12T11:19:41.377+00:00')
+VALUES (34, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Verification Pending', 'Low', '17.383503, 78.437162', 'Kukatpally, Block A, Hyderabad', 17.383503, 78.437162, 'emp_sani_1@ccgovt.test', false, '2026-06-12T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (35, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Pending', 'Medium', '17.342628, 78.505349', 'Kukatpally, Phase II, Hyderabad', 17.342628, 78.505349, NULL, false, '2026-06-13T11:19:41.377+00:00')
+VALUES (35, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Pending', 'Medium', '17.342628, 78.505349', 'Kukatpally, Phase II, Hyderabad', 17.342628, 78.505349, NULL, false, '2026-06-13T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -208,11 +208,11 @@ VALUES (37, (SELECT id FROM public.profiles WHERE email = 'citizen_12@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (38, (SELECT id FROM public.profiles WHERE email = 'citizen_13@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'In Progress', 'Medium', '17.430632, 78.418058', 'Kukatpally, Sector 3, Hyderabad', 17.430632, 78.418058, 'emp_sani_2@ccgovt.test', false, '2026-06-16T11:19:41.377+00:00')
+VALUES (38, (SELECT id FROM public.profiles WHERE email = 'citizen_13@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'In Progress', 'Medium', '17.430632, 78.418058', 'Kukatpally, Sector 3, Hyderabad', 17.430632, 78.418058, 'emp_sani_2@ccgovt.test', false, '2026-06-16T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (39, (SELECT id FROM public.profiles WHERE email = 'citizen_14@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Resolved', 'High', '17.449615, 78.394899', 'Kukatpally, Sector 3, Hyderabad', 17.449615, 78.394899, 'emp_wate_3@ccgovt.test', true, '2026-06-17T11:19:41.377+00:00')
+VALUES (39, (SELECT id FROM public.profiles WHERE email = 'citizen_14@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Resolved', 'High', '17.449615, 78.394899', 'Kukatpally, Sector 3, Hyderabad', 17.449615, 78.394899, 'emp_wate_3@ccgovt.test', true, '2026-06-17T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -224,11 +224,11 @@ VALUES (41, (SELECT id FROM public.profiles WHERE email = 'citizen_16@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (42, (SELECT id FROM public.profiles WHERE email = 'citizen_17@ccgovt.test'), 'Dead Animal issue reported at Jubilee Hills', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Reopened', 'High', '17.329665, 78.487209', 'Jubilee Hills, Sector 3, Hyderabad', 17.329665, 78.487209, 'emp_sani_3@ccgovt.test', true, '2026-06-20T11:19:41.377+00:00')
+VALUES (42, (SELECT id FROM public.profiles WHERE email = 'citizen_17@ccgovt.test'), 'Dead Animal issue reported at Jubilee Hills', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Reopened', 'High', '17.329665, 78.487209', 'Jubilee Hills, Sector 3, Hyderabad', 17.329665, 78.487209, 'emp_sani_3@ccgovt.test', true, '2026-06-20T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (43, (SELECT id FROM public.profiles WHERE email = 'citizen_18@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Escalated', 'Low', '17.405833, 78.389387', 'Kukatpally, Block A, Hyderabad', 17.405833, 78.389387, 'emp_wate_1@ccgovt.test', false, '2026-06-21T11:19:41.377+00:00')
+VALUES (43, (SELECT id FROM public.profiles WHERE email = 'citizen_18@ccgovt.test'), 'Pipe Leakage issue reported at Kukatpally', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Escalated', 'Low', '17.405833, 78.389387', 'Kukatpally, Block A, Hyderabad', 17.405833, 78.389387, 'emp_wate_1@ccgovt.test', false, '2026-06-21T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -240,11 +240,11 @@ VALUES (45, (SELECT id FROM public.profiles WHERE email = 'citizen_20@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (46, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Triaged', 'Low', '17.366074, 78.394502', 'Kukatpally, Sector 2, Hyderabad', 17.366074, 78.394502, NULL, false, '2026-06-24T11:19:41.377+00:00')
+VALUES (46, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Triaged', 'Low', '17.366074, 78.394502', 'Kukatpally, Sector 2, Hyderabad', 17.366074, 78.394502, NULL, false, '2026-06-24T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (47, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Assigned', 'Medium', '17.439953, 78.457183', 'Jubilee Hills, Phase I, Hyderabad', 17.439953, 78.457183, 'emp_wate_2@ccgovt.test', false, '2026-06-25T11:19:41.377+00:00')
+VALUES (47, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Assigned', 'Medium', '17.439953, 78.457183', 'Jubilee Hills, Phase I, Hyderabad', 17.439953, 78.457183, 'emp_wate_2@ccgovt.test', false, '2026-06-25T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -256,11 +256,11 @@ VALUES (49, (SELECT id FROM public.profiles WHERE email = 'citizen_4@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (50, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Closed', 'Medium', '17.409152, 78.397071', 'Kukatpally, Sector 2, Hyderabad', 17.409152, 78.397071, 'emp_sani_2@ccgovt.test', false, '2026-06-28T11:19:41.377+00:00')
+VALUES (50, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Closed', 'Medium', '17.409152, 78.397071', 'Kukatpally, Sector 2, Hyderabad', 17.409152, 78.397071, 'emp_sani_2@ccgovt.test', false, '2026-06-28T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (51, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Banjara Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Rejected', 'High', '17.451313, 78.510031', 'Banjara Hills, Phase I, Hyderabad', 17.451313, 78.510031, 'emp_wate_3@ccgovt.test', true, '2026-06-29T11:19:41.377+00:00')
+VALUES (51, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Banjara Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Rejected', 'High', '17.451313, 78.510031', 'Banjara Hills, Phase I, Hyderabad', 17.451313, 78.510031, 'emp_wate_3@ccgovt.test', true, '2026-06-29T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -272,11 +272,11 @@ VALUES (53, (SELECT id FROM public.profiles WHERE email = 'citizen_8@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (54, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Verification Pending', 'High', '17.428671, 78.488063', 'Begumpet, Sector 3, Hyderabad', 17.428671, 78.488063, 'emp_sani_3@ccgovt.test', true, '2026-07-02T11:19:41.377+00:00')
+VALUES (54, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Verification Pending', 'High', '17.428671, 78.488063', 'Begumpet, Sector 3, Hyderabad', 17.428671, 78.488063, 'emp_sani_3@ccgovt.test', true, '2026-07-02T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (55, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Pending', 'Low', '17.460427, 78.522236', 'Jubilee Hills, Sector 3, Hyderabad', 17.460427, 78.522236, NULL, false, '2026-07-03T11:19:41.377+00:00')
+VALUES (55, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Pending', 'Low', '17.460427, 78.522236', 'Jubilee Hills, Sector 3, Hyderabad', 17.460427, 78.522236, NULL, false, '2026-07-03T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -288,11 +288,11 @@ VALUES (57, (SELECT id FROM public.profiles WHERE email = 'citizen_12@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (58, (SELECT id FROM public.profiles WHERE email = 'citizen_13@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'In Progress', 'Low', '17.456855, 78.375222', 'Kukatpally, Sector 3, Hyderabad', 17.456855, 78.375222, 'emp_sani_1@ccgovt.test', false, '2026-07-06T11:19:41.377+00:00')
+VALUES (58, (SELECT id FROM public.profiles WHERE email = 'citizen_13@ccgovt.test'), 'Dead Animal issue reported at Kukatpally', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'In Progress', 'Low', '17.456855, 78.375222', 'Kukatpally, Sector 3, Hyderabad', 17.456855, 78.375222, 'emp_sani_1@ccgovt.test', false, '2026-07-06T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (59, (SELECT id FROM public.profiles WHERE email = 'citizen_14@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Resolved', 'Medium', '17.420430, 78.386016', 'Jubilee Hills, Phase II, Hyderabad', 17.42043, 78.386016, 'emp_wate_2@ccgovt.test', false, '2026-07-07T11:19:41.377+00:00')
+VALUES (59, (SELECT id FROM public.profiles WHERE email = 'citizen_14@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Resolved', 'Medium', '17.420430, 78.386016', 'Jubilee Hills, Phase II, Hyderabad', 17.42043, 78.386016, 'emp_wate_2@ccgovt.test', false, '2026-07-07T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -304,11 +304,11 @@ VALUES (61, (SELECT id FROM public.profiles WHERE email = 'citizen_16@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (62, (SELECT id FROM public.profiles WHERE email = 'citizen_17@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Reopened', 'Medium', '17.386167, 78.523677', 'Begumpet, Block A, Hyderabad', 17.386167, 78.523677, 'emp_sani_2@ccgovt.test', false, '2026-07-10T11:19:41.377+00:00')
+VALUES (62, (SELECT id FROM public.profiles WHERE email = 'citizen_17@ccgovt.test'), 'Dead Animal issue reported at Begumpet', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Reopened', 'Medium', '17.386167, 78.523677', 'Begumpet, Block A, Hyderabad', 17.386167, 78.523677, 'emp_sani_2@ccgovt.test', false, '2026-07-10T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (63, (SELECT id FROM public.profiles WHERE email = 'citizen_18@ccgovt.test'), 'Pipe Leakage issue reported at Secunderabad', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Escalated', 'High', '17.463293, 78.445299', 'Secunderabad, Block B, Hyderabad', 17.463293, 78.445299, 'emp_wate_3@ccgovt.test', true, '2026-07-11T11:19:41.377+00:00')
+VALUES (63, (SELECT id FROM public.profiles WHERE email = 'citizen_18@ccgovt.test'), 'Pipe Leakage issue reported at Secunderabad', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Escalated', 'High', '17.463293, 78.445299', 'Secunderabad, Block B, Hyderabad', 17.463293, 78.445299, 'emp_wate_3@ccgovt.test', true, '2026-07-11T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -320,11 +320,11 @@ VALUES (65, (SELECT id FROM public.profiles WHERE email = 'citizen_20@ccgovt.tes
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (66, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Madhapur', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Triaged', 'High', '17.377223, 78.458586', 'Madhapur, Sector 1, Hyderabad', 17.377223, 78.458586, NULL, true, '2026-07-14T11:19:41.377+00:00')
+VALUES (66, (SELECT id FROM public.profiles WHERE email = 'citizen_1@ccgovt.test'), 'Dead Animal issue reported at Madhapur', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Triaged', 'High', '17.377223, 78.458586', 'Madhapur, Sector 1, Hyderabad', 17.377223, 78.458586, NULL, true, '2026-07-14T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (67, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Assigned', 'Low', '17.334753, 78.453028', 'Jubilee Hills, Sector 1, Hyderabad', 17.334753, 78.453028, 'emp_wate_1@ccgovt.test', false, '2026-07-15T11:19:41.377+00:00')
+VALUES (67, (SELECT id FROM public.profiles WHERE email = 'citizen_2@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Assigned', 'Low', '17.334753, 78.453028', 'Jubilee Hills, Sector 1, Hyderabad', 17.334753, 78.453028, 'emp_wate_1@ccgovt.test', false, '2026-07-15T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -336,11 +336,11 @@ VALUES (69, (SELECT id FROM public.profiles WHERE email = 'citizen_4@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (70, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Banjara Hills', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Closed', 'Low', '17.470512, 78.395112', 'Banjara Hills, Sector 1, Hyderabad', 17.470512, 78.395112, 'emp_sani_1@ccgovt.test', false, '2026-07-18T11:19:41.377+00:00')
+VALUES (70, (SELECT id FROM public.profiles WHERE email = 'citizen_5@ccgovt.test'), 'Dead Animal issue reported at Banjara Hills', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Closed', 'Low', '17.470512, 78.395112', 'Banjara Hills, Sector 1, Hyderabad', 17.470512, 78.395112, 'emp_sani_1@ccgovt.test', false, '2026-07-18T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (71, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Banjara Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Rejected', 'Medium', '17.398787, 78.437065', 'Banjara Hills, Sector 3, Hyderabad', 17.398787, 78.437065, 'emp_wate_2@ccgovt.test', false, '2026-07-19T11:19:41.377+00:00')
+VALUES (71, (SELECT id FROM public.profiles WHERE email = 'citizen_6@ccgovt.test'), 'Pipe Leakage issue reported at Banjara Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Rejected', 'Medium', '17.398787, 78.437065', 'Banjara Hills, Sector 3, Hyderabad', 17.398787, 78.437065, 'emp_wate_2@ccgovt.test', false, '2026-07-19T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
@@ -352,11 +352,11 @@ VALUES (73, (SELECT id FROM public.profiles WHERE email = 'citizen_8@ccgovt.test
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (74, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Gachibowli', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation', 'Dead Animal', 'Verification Pending', 'Medium', '17.382878, 78.456639', 'Gachibowli, Block A, Hyderabad', 17.382878, 78.456639, 'emp_sani_2@ccgovt.test', false, '2026-07-22T11:19:41.377+00:00')
+VALUES (74, (SELECT id FROM public.profiles WHERE email = 'citizen_9@ccgovt.test'), 'Dead Animal issue reported at Gachibowli', 'Citizens report a severe dead animal hazard near the local residential sector. Requesting immediate inspection.', 'Sanitation & Garbage', 'Dead Animal', 'Verification Pending', 'Medium', '17.382878, 78.456639', 'Gachibowli, Block A, Hyderabad', 17.382878, 78.456639, 'emp_sani_2@ccgovt.test', false, '2026-07-22T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO public.complaints (id, user_id, title, description, category, subcategory, status, priority, location, civic_address, latitude, longitude, assigned_to, is_urgent, created_at)
-VALUES (75, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Water Supply', 'Pipe Leakage', 'Pending', 'High', '17.370372, 78.430877', 'Jubilee Hills, Phase I, Hyderabad', 17.370372, 78.430877, NULL, true, '2026-07-23T11:19:41.377+00:00')
+VALUES (75, (SELECT id FROM public.profiles WHERE email = 'citizen_10@ccgovt.test'), 'Pipe Leakage issue reported at Jubilee Hills', 'Citizens report a severe pipe leakage hazard near the local residential sector. Requesting immediate inspection.', 'Drainage & Sewerage', 'Pipe Leakage', 'Pending', 'High', '17.370372, 78.430877', 'Jubilee Hills, Phase I, Hyderabad', 17.370372, 78.430877, NULL, true, '2026-07-23T11:19:41.377+00:00')
 ON CONFLICT (id) DO NOTHING;
 
 -- 3. Seed Audit Logs

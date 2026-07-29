@@ -410,12 +410,10 @@ const UserDashboard = () => {
                 value={formData.category}
                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                 options={[
-                  { label: 'Roads & Potholes', value: 'Roads' },
-                  { label: 'Water Supply & Sewage', value: 'Water' },
-                  { label: 'Electricity & Streetlights', value: 'Electricity' },
-                  { label: 'Sanitation & Garbage', value: 'Garbage' },
-                  { label: 'Drainage Overflow', value: 'Drainage' },
-                  { label: 'Public Parks', value: 'Parks' },
+                  { label: 'Roads', value: 'Roads' },
+                  { label: 'Street Lighting', value: 'Street Lighting' },
+                  { label: 'Drainage & Sewerage', value: 'Drainage & Sewerage' },
+                  { label: 'Sanitation & Garbage', value: 'Sanitation & Garbage' },
                 ]}
               />
 
